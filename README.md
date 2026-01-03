@@ -206,10 +206,6 @@ GreenRatchet/
 - [ ] Webhook integrations for legal systems
 - [ ] Azure cloud support
 
-## License
-
-MIT
-
 ## Support
 
 For issues or questions, please open an issue on GitHub.
