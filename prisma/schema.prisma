@@ -1,0 +1,216 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  BORROWER
+  LENDER
+}
+
+enum KPIStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+}
+
+enum CloudProvider {
+  AWS
+  GCP
+  AZURE
+}
+
+enum KPIResultStatus {
+  PASSED
+  FAILED
+  PENDING
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  image         String?
+  role          UserRole
+  organizationId String?
+
+  accounts      Account[]
+  sessions      Session[]
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  auditLogs     AuditLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  type            UserRole
+
+  users           User[]
+  borrowerLoans   Loan[]   @relation("BorrowerOrganization")
+  lenderLoans     Loan[]   @relation("LenderOrganization")
+  cloudConnections CloudConnection[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Loan {
+  id                  String   @id @default(cuid())
+  name                String
+  currency            String   @default("USD")
+  observationPeriod   String   // e.g., "Annual", "Quarterly"
+  marginRatchetBps    Int      // Basis points for margin adjustment
+
+  borrowerOrgId       String
+  lenderOrgId         String?
+
+  borrowerOrg         Organization @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
+  lenderOrg           Organization? @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
+
+  kpis                KPI[]
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model KPI {
+  id                  String      @id @default(cuid())
+  name                String
+  definition          String      @db.Text
+  metricFormula       String      @db.Text
+  unit                String      // e.g., "tCO₂e / 1,000 AI compute hours", "%"
+  targetValue         Float
+  baselineValue       Float?
+  observationPeriod   String
+  marginImpactBps     Int         // Basis points impact (+/-)
+  status              KPIStatus   @default(PROPOSED)
+
+  loanId              String
+  loan                Loan        @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  results             KPIResult[]
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model KPIResult {
+  id                  String          @id @default(cuid())
+  kpiId               String
+  periodStart         DateTime
+  periodEnd           DateTime
+  actualValue         Float
+  targetValue         Float
+  status              KPIResultStatus @default(PENDING)
+
+  // Calculation metadata
+  dataSource          String          @db.Text // JSON string of data sources
+  calculationDetails  String          @db.Text // JSON string of calculation steps
+  calculationVersion  String
+
+  kpi                 KPI             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model CloudConnection {
+  id                  String        @id @default(cuid())
+  provider            CloudProvider
+
+  // AWS specific
+  roleArn             String?
+  externalId          String?
+
+  // GCP specific
+  serviceAccountKey   String?       @db.Text
+  projectId           String?
+
+  // Common
+  isActive            Boolean       @default(true)
+  lastSync            DateTime?
+
+  organizationId      String
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model AuditLog {
+  id                  String    @id @default(cuid())
+  action              String    // e.g., "KPI_CREATED", "KPI_ACCEPTED", "DATA_PULL", "RESULT_CHANGED"
+  entity              String    // e.g., "KPI", "LOAN", "CLOUD_CONNECTION"
+  entityId            String
+  details             String    @db.Text // JSON string
+
+  userId              String?
+  user                User?     @relation(fields: [userId], references: [id])
+
+  loanId              String?
+  loan                Loan?     @relation(fields: [loanId], references: [id])
+
+  kpiId               String?
+  kpi                 KPI?      @relation(fields: [kpiId], references: [id])
+
+  kpiResultId         String?
+  kpiResult           KPIResult? @relation(fields: [kpiResultId], references: [id])
+
+  cloudConnectionId   String?
+  cloudConnection     CloudConnection? @relation(fields: [cloudConnectionId], references: [id])
+
+  createdAt           DateTime  @default(now())
+}
