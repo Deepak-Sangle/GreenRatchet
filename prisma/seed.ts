@@ -34,6 +34,7 @@ async function main() {
     where: { email: "borrower@techcorp.ai" },
     update: {},
     create: {
+      id: "borrower-user-1",
       email: "borrower@techcorp.ai",
       password: hashedPasswordBorrower,
       name: "Alice Johnson",
@@ -48,6 +49,7 @@ async function main() {
     where: { email: "lender@greencapital.com" },
     update: {},
     create: {
+      id: "lender-user-1",
       email: "lender@greencapital.com",
       password: hashedPasswordLender,
       name: "Bob Smith",
@@ -56,7 +58,7 @@ async function main() {
     },
   });
 
-  // Create sample loan
+  // Create sample loan with all required fields
   const loan = await prisma.loan.upsert({
     where: { id: "loan-1" },
     update: {},
@@ -64,10 +66,17 @@ async function main() {
       id: "loan-1",
       name: "Q4 2024 AI Infrastructure Financing",
       currency: "USD",
-      observationPeriod: "Annual",
+      observationPeriod: "ANNUAL",
       marginRatchetBps: 25,
+      principalAmount: 5000000,
+      committedAmount: 5000000,
+      drawnAmount: 3500000,
+      type: "FIXED_RATE",
+      startDate: new Date("2024-01-01"),
+      maturityDate: new Date("2029-01-01"),
       borrowerOrgId: borrowerOrg.id,
       lenderOrgId: lenderOrg.id,
+      createdByUserId: borrowerUser.id,
     },
   });
 
@@ -85,7 +94,7 @@ async function main() {
       unit: "tCO₂e / 1,000 AI hours",
       baselineValue: 12.5,
       targetValue: 9.0,
-      observationPeriod: "Annual",
+      observationPeriod: "ANNUAL",
       marginImpactBps: 15,
       status: "ACCEPTED",
       loanId: loan.id,
@@ -105,7 +114,7 @@ async function main() {
       unit: "%",
       baselineValue: 45.0,
       targetValue: 70.0,
-      observationPeriod: "Annual",
+      observationPeriod: "ANNUAL",
       marginImpactBps: 10,
       status: "ACCEPTED",
       loanId: loan.id,

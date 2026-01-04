@@ -1,6 +1,11 @@
 "use client";
 
 import { createLoan } from "@/app/actions/loans";
+import {
+  LoanCurrencySchema,
+  LoanTypeSchema,
+  ObservationPeriodSchema,
+} from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +31,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreateLoanSchema, type CreateLoanInput } from "@/lib/validations/loan";
+import {
+  CURRENCY_LABELS,
+  LOAN_TYPE_LABELS,
+  OBSERVATION_PERIOD_LABELS,
+} from "@/lib/labels";
+import {
+  CreateLoanFormSchema,
+  type CreateLoanFormInput,
+} from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -34,22 +47,33 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+// Get enum values from generated schemas
+const LOAN_TYPES = LoanTypeSchema.options;
+const CURRENCIES = LoanCurrencySchema.options;
+const OBSERVATION_PERIODS = ObservationPeriodSchema.options;
+
 export default function NewLoanPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<CreateLoanInput>({
-    resolver: zodResolver(CreateLoanSchema),
+  const form = useForm<CreateLoanFormInput>({
+    resolver: zodResolver(CreateLoanFormSchema),
     defaultValues: {
       name: "",
       currency: "USD",
-      observationPeriod: "Annual",
+      observationPeriod: "ANNUAL",
       marginRatchetBps: 0,
+      principalAmount: 0,
+      committedAmount: -1,
+      drawnAmount: -1,
+      type: "FIXED_RATE",
+      startDate: "",
+      maturityDate: "",
     },
   });
 
-  async function onSubmit(data: CreateLoanInput) {
+  async function onSubmit(data: CreateLoanFormInput) {
     setLoading(true);
     setError(null);
 
@@ -89,12 +113,13 @@ export default function NewLoanPage() {
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {error && (
                 <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
+
               <FormField
                 control={form.control}
                 name="name"
@@ -111,7 +136,35 @@ export default function NewLoanPage() {
                   </FormItem>
                 )}
               />
+
               <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loan Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select loan type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LOAN_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {LOAN_TYPE_LABELS[type] || type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="currency"
@@ -128,15 +181,122 @@ export default function NewLoanPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="GBP">GBP</SelectItem>
+                          {CURRENCIES.map((currency) => (
+                            <SelectItem key={currency} value={currency}>
+                              {CURRENCY_LABELS[currency] || currency}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Loan Amounts</h3>
+                <p className="text-xs text-muted-foreground">
+                  Enter -1 for any field that is not applicable. At least one
+                  amount should be set.
+                </p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <FormField
+                    control={form.control}
+                    name="principalAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Principal Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="1000000"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="committedAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Committed Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="-1"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="drawnAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Drawn Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="-1"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="maturityDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Maturity Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="observationPeriod"
@@ -153,9 +313,11 @@ export default function NewLoanPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Annual">Annual</SelectItem>
-                          <SelectItem value="Quarterly">Quarterly</SelectItem>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
+                          {OBSERVATION_PERIODS.map((period) => (
+                            <SelectItem key={period} value={period}>
+                              {OBSERVATION_PERIOD_LABELS[period] || period}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
@@ -165,31 +327,30 @@ export default function NewLoanPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="marginRatchetBps"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Margin Ratchet (bps)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="25"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Basis points adjustment (+/- bps)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <FormField
-                control={form.control}
-                name="marginRatchetBps"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Margin Ratchet (bps)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="25"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Basis points adjustment for margin (+/- bps). Positive
-                      values reward KPI achievement, negative penalize failure.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </CardContent>
             <div className="flex justify-end gap-3 p-6 pt-0">
               <Link href="/dashboard">

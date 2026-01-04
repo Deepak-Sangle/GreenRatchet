@@ -1,6 +1,10 @@
 import { auth } from "@/auth";
-import { redirect, notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { CalculateKPIsButton } from "@/components/loans/calculate-kpis-button";
+import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
+import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
+import { KPIReviewActions } from "@/components/loans/kpi-review-actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,10 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft, Download } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -20,12 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
-import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
-import { KPIReviewActions } from "@/components/loans/kpi-review-actions";
-import { CalculateKPIsButton } from "@/components/loans/calculate-kpis-button";
-import { formatBps } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
+import { LOAN_TYPE_LABELS } from "@/lib/labels";
+import { prisma } from "@/lib/prisma";
+import { formatBps, formatCurrency, formatDate } from "@/lib/utils";
+import { ArrowLeft, Download } from "lucide-react";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 
 export default async function LoanDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -61,8 +62,10 @@ export default async function LoanDetailPage(props: {
   }
 
   // Check permissions
-  const isBorrower = user.role === "BORROWER" && loan.borrowerOrgId === user.organizationId;
-  const isLender = user.role === "LENDER" && loan.lenderOrgId === user.organizationId;
+  const isBorrower =
+    user.role === "BORROWER" && loan.borrowerOrgId === user.organizationId;
+  const isLender =
+    user.role === "LENDER" && loan.lenderOrgId === user.organizationId;
 
   if (!isBorrower && !isLender) {
     redirect("/dashboard");
@@ -106,36 +109,67 @@ export default async function LoanDetailPage(props: {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">
-              Observation Period
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loan.observationPeriod}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">
-              Margin Ratchet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatBps(loan.marginRatchetBps)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Currency</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loan.currency}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Loan Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-x-8 gap-y-4 grid-cols-2 md:grid-cols-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Loan Type</p>
+              <p className="font-medium">
+                {LOAN_TYPE_LABELS[loan.type] || loan.type}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Currency</p>
+              <p className="font-medium">{loan.currency}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Observation Period
+              </p>
+              <p className="font-medium">{loan.observationPeriod}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Margin Ratchet</p>
+              <p className="font-medium">{formatBps(loan.marginRatchetBps)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Principal Amount</p>
+              <p className="font-medium">
+                {Number(loan.principalAmount) >= 0
+                  ? formatCurrency(Number(loan.principalAmount), loan.currency)
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Committed Amount</p>
+              <p className="font-medium">
+                {Number(loan.committedAmount) >= 0
+                  ? formatCurrency(Number(loan.committedAmount), loan.currency)
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Drawn Amount</p>
+              <p className="font-medium">
+                {Number(loan.drawnAmount) >= 0
+                  ? formatCurrency(Number(loan.drawnAmount), loan.currency)
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Start Date</p>
+              <p className="font-medium">{formatDate(loan.startDate)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Maturity Date</p>
+              <p className="font-medium">{formatDate(loan.maturityDate)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -185,9 +219,7 @@ export default async function LoanDetailPage(props: {
         <CardContent>
           {loan.kpis.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                No KPIs defined yet.
-              </p>
+              <p className="text-muted-foreground mb-4">No KPIs defined yet.</p>
               {isBorrower && (
                 <p className="text-sm text-muted-foreground">
                   Add AI-focused environmental KPIs to get started.
@@ -225,7 +257,9 @@ export default async function LoanDetailPage(props: {
                           </TableCell>
                           <TableCell>{kpi.unit}</TableCell>
                           <TableCell>{kpi.targetValue}</TableCell>
-                          <TableCell>{formatBps(kpi.marginImpactBps)}</TableCell>
+                          <TableCell>
+                            {formatBps(kpi.marginImpactBps)}
+                          </TableCell>
                           {isLender && (
                             <TableCell>
                               <KPIReviewActions kpiId={kpi.id} />
@@ -266,11 +300,11 @@ export default async function LoanDetailPage(props: {
                             </div>
                           </TableCell>
                           <TableCell>{kpi.unit}</TableCell>
-                          <TableCell>
-                            {kpi.baselineValue || "—"}
-                          </TableCell>
+                          <TableCell>{kpi.baselineValue || "—"}</TableCell>
                           <TableCell>{kpi.targetValue}</TableCell>
-                          <TableCell>{formatBps(kpi.marginImpactBps)}</TableCell>
+                          <TableCell>
+                            {formatBps(kpi.marginImpactBps)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -306,7 +340,9 @@ export default async function LoanDetailPage(props: {
                           </TableCell>
                           <TableCell>{kpi.unit}</TableCell>
                           <TableCell>{kpi.targetValue}</TableCell>
-                          <TableCell>{formatBps(kpi.marginImpactBps)}</TableCell>
+                          <TableCell>
+                            {formatBps(kpi.marginImpactBps)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -325,8 +361,9 @@ export default async function LoanDetailPage(props: {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Your KPIs have been accepted. Connect your cloud providers to enable
-              automated, continuous, cloud-native ESG assurance with full auditability.
+              Your KPIs have been accepted. Connect your cloud providers to
+              enable automated, continuous, cloud-native ESG assurance with full
+              auditability.
             </p>
             <Link href="/cloud">
               <Button>Connect Cloud Providers</Button>

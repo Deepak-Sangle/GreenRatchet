@@ -7,12 +7,12 @@ import {
   CreateLoanSchema,
   UpdateKPIStatusSchema,
   type CreateKPIInput,
-  type CreateLoanInput,
+  type CreateLoanFormInput,
   type UpdateKPIStatusInput,
 } from "@/lib/validations/loan";
 import { revalidatePath } from "next/cache";
 
-export async function createLoan(data: CreateLoanInput) {
+export async function createLoan(data: CreateLoanFormInput) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -33,6 +33,7 @@ export async function createLoan(data: CreateLoanInput) {
       data: {
         ...validated,
         borrowerOrgId: user.organizationId,
+        createdByUserId: user.id,
       },
     });
 

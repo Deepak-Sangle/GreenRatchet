@@ -7,6 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+generator zod {
+  provider = "prisma-zod-generator"
+  config   = "../zod-generator.config.json"
+}
+
 enum UserRole {
   BORROWER
   LENDER
@@ -30,9 +35,27 @@ enum KPIResultStatus {
   PENDING
 }
 
+enum LoanStatus {
+  PENDING
+  ACTIVE
+  CLOSED
+}
+
+enum LoanType {
+  FIXED_RATE // The interest rate is fixed for the entire loan term
+  FLOATING_RATE // The interest rate is variable and changes based on market conditions
+  AMORTIZED // The loan is amortized over the loan term
+  ANNUITY // The loan is repaid in equal installments over the loan term
+  BALLOON // The loan is repaid in a single lump sum at the end of the loan term
+  CREDIT_LINE // The loan is a credit line that can be used as needed
+  REVOLVING_CREDIT_LINE // The loan is a revolving credit line that can be used as needed
+  CREDIT_CARD // The loan is a credit card that can be used as needed
+}
+
 model User {
   id             String        @id @default(cuid())
   name           String?
+  avatarUrl      String?
   email          String        @unique
   emailVerified  DateTime?
   password       String
@@ -43,11 +66,15 @@ model User {
   auditLogs      AuditLog[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  loans          Loan[]
 }
 
 model Organization {
   id               String            @id @default(cuid())
   name             String
+  logoUrl          String?
+  // all users in this organization have the same role
+  // but they are still have the field `role` in the user table
   type             UserRole
   users            User[]
   borrowerLoans    Loan[]            @relation("BorrowerOrganization")
@@ -57,39 +84,71 @@ model Organization {
   updatedAt        DateTime          @updatedAt
 }
 
+enum LoanCurrency {
+  USD
+  EUR
+  GBP
+  JPY
+  AUD
+  CAD
+  CHF
+}
+
+enum ObservationPeriod {
+  ANNUAL
+  QUARTERLY
+  MONTHLY
+}
+
 model Loan {
-  id                String        @id @default(cuid())
+  id                String            @id @default(cuid())
   name              String
-  currency          String        @default("USD")
-  observationPeriod String // e.g., "Annual", "Quarterly"
-  marginRatchetBps  Int // Basis points for margin adjustment
+  currency          LoanCurrency      @default(USD)
+  // The period interval for which the loan will be observed to adjust the margin
+  observationPeriod ObservationPeriod
+  // The basis points for margin ratchet; 1 bps = 0.01%
+  // If during the observation period, the KPI result is below the target value, the margin will be adjusted (decreased) by the margin ratchet bps, otherwise increased
+  marginRatchetBps  Int               @default(0)
+  // I have no idea what these are, but since our app doesn't handle loan calculations, we are gonna add them
+  // Use -1 to indicate that the value is N/A
+  // At least one of these three should be set
+  principalAmount   Float
+  committedAmount   Float
+  drawnAmount       Float
+  type              LoanType          @default(FIXED_RATE)
   borrowerOrgId     String
-  borrowerOrg       Organization  @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
+  borrowerOrg       Organization      @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
   lenderOrgId       String?
-  lenderOrg         Organization? @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
+  lenderOrg         Organization?     @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
+  startDate         DateTime
+  maturityDate      DateTime
+  status            LoanStatus        @default(PENDING)
+  // All the KPIs for this loan
   kpis              KPI[]
   auditLogs         AuditLog[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdByUserId   String
+  createdByUser     User              @relation(fields: [createdByUserId], references: [id])
 }
 
 model KPI {
-  id                String      @id @default(cuid())
+  id                String            @id @default(cuid())
   name              String
-  definition        String      @db.Text
-  metricFormula     String      @db.Text
+  definition        String            @db.Text
+  metricFormula     String            @db.Text
   unit              String // e.g., "tCO₂e / 1,000 AI compute hours", "%"
   targetValue       Float
   baselineValue     Float?
-  observationPeriod String
+  observationPeriod ObservationPeriod
   marginImpactBps   Int // Basis points impact (+/-)
-  status            KPIStatus   @default(PROPOSED)
+  status            KPIStatus         @default(PROPOSED)
   loanId            String
-  loan              Loan        @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  loan              Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
   results           KPIResult[]
   auditLogs         AuditLog[]
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model KPIResult {

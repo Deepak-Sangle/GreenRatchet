@@ -46,7 +46,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
       unit: "",
       targetValue: 0,
       baselineValue: 0,
-      observationPeriod: "Annual",
+      observationPeriod: "ANNUAL",
       marginImpactBps: 0,
     },
   });
