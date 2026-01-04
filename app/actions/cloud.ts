@@ -3,8 +3,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  connectAWSSchema,
-  connectGCPSchema,
+  ConnectAWSSchema,
+  ConnectGCPSchema,
   type ConnectAWSInput,
   type ConnectGCPInput,
 } from "@/lib/validations/cloud";
@@ -25,7 +25,7 @@ export async function connectAWS(data: ConnectAWSInput) {
       return { error: "Only borrowers can connect cloud providers" };
     }
 
-    const validated = await connectAWSSchema.parseAsync(data);
+    const validated = await ConnectAWSSchema.parseAsync(data);
 
     // TODO: Validate AWS role ARN by attempting AssumeRole
     // For hackathon: accept any valid ARN format
@@ -76,7 +76,7 @@ export async function connectGCP(data: ConnectGCPInput) {
       return { error: "Only borrowers can connect cloud providers" };
     }
 
-    const validated = await connectGCPSchema.parseAsync(data);
+    const validated = await ConnectGCPSchema.parseAsync(data);
 
     // TODO: Validate GCP service account key by making a test API call
     // For hackathon: accept any JSON
@@ -97,7 +97,10 @@ export async function connectGCP(data: ConnectGCPInput) {
         action: "CLOUD_CONNECTION_CREATED",
         entity: "CLOUD_CONNECTION",
         entityId: connection.id,
-        details: JSON.stringify({ provider: "GCP", projectId: validated.projectId }),
+        details: JSON.stringify({
+          provider: "GCP",
+          projectId: validated.projectId,
+        }),
         userId: user.id,
         cloudConnectionId: connection.id,
       },

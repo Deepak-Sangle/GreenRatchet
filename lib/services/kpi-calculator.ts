@@ -5,7 +5,7 @@
  * It implements the logic for different KPI types and formulas.
  */
 
-import { KPI, KPIResultStatus } from "@/app/generated/prisma";
+import { KPI, KPIResultStatus } from "@/app/generated/prisma/client";
 import { CloudUsageData } from "./cloud-data";
 
 export interface KPICalculationResult {
@@ -53,7 +53,9 @@ export function calculateKPI(
     steps.push(`Divide by 1,000: ${computeHoursK} (thousand hours)`);
 
     actualValue = co2Tonnes / computeHoursK;
-    steps.push(`AI Carbon Intensity: ${actualValue.toFixed(3)} tCO₂e / 1,000 hours`);
+    steps.push(
+      `AI Carbon Intensity: ${actualValue.toFixed(3)} tCO₂e / 1,000 hours`
+    );
   } else if (kpiName.includes("low-carbon") || kpiName.includes("region")) {
     // % AI workloads in low-carbon regions
     const lowCarbonThreshold = 300; // gCO2/kWh

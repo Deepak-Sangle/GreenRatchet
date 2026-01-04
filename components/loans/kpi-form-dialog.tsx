@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { createKPI } from "@/app/actions/loans";
-import { createKPISchema, type CreateKPIInput } from "@/lib/validations/loan";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,15 +14,19 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CreateKPISchema, type CreateKPIInput } from "@/lib/validations/loan";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 interface KPIFormDialogProps {
   loanId: string;
@@ -38,7 +38,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<CreateKPIInput>({
-    resolver: zodResolver(createKPISchema),
+    resolver: zodResolver(CreateKPISchema),
     defaultValues: {
       name: "",
       definition: "",

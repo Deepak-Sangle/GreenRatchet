@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,10 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { prisma } from "@/lib/prisma";
+import { Cloud, FileText, Plus, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { Plus, TrendingUp, Cloud, FileText } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -76,9 +76,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user.name}
-          </p>
+          <p className="text-muted-foreground">Welcome back, {user.name}</p>
         </div>
         {isBorrower && (
           <Link href="/loans/new">
@@ -126,7 +124,9 @@ export default async function DashboardPage() {
               <Cloud className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{cloudConnections.length}</div>
+              <div className="text-2xl font-bold">
+                {cloudConnections.length}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Active connections
               </p>
@@ -197,7 +197,8 @@ export default async function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {loan.kpis.length} KPI{loan.kpis.length !== 1 ? "s" : ""}
+                        {loan.kpis.length} KPI
+                        {loan.kpis.length !== 1 ? "s" : ""}
                       </Badge>
                       {loan.kpis.some((kpi) => kpi.status === "PROPOSED") && (
                         <Badge variant="warning">Pending</Badge>

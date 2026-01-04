@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:generate": "prisma generate --config=./prisma.config.ts",
+    "db:migrate": "prisma migrate dev --config=./prisma.config.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

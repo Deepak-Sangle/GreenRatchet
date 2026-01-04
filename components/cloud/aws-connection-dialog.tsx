@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { connectAWS } from "@/app/actions/cloud";
-import { connectAWSSchema, type ConnectAWSInput } from "@/lib/validations/cloud";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,15 +15,21 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  ConnectAWSSchema,
+  type ConnectAWSInput,
+} from "@/lib/validations/cloud";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 interface AWSConnectionDialogProps {
   accountId: string; // Your AWS account ID for the trust policy
@@ -38,7 +41,7 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<ConnectAWSInput>({
-    resolver: zodResolver(connectAWSSchema),
+    resolver: zodResolver(ConnectAWSSchema),
     defaultValues: {
       roleArn: "",
       externalId: "",
@@ -82,11 +85,13 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
         <div className="space-y-4">
           <Card className="border-primary/20 bg-accent/30">
             <CardContent className="pt-6 space-y-3">
-              <h4 className="font-medium text-sm">Step 1: Deploy CloudFormation Stack</h4>
+              <h4 className="font-medium text-sm">
+                Step 1: Deploy CloudFormation Stack
+              </h4>
               <p className="text-sm text-muted-foreground">
-                Click the button below to deploy an IAM role in your AWS account.
-                This role grants read-only access to Cost Explorer, EC2, and EKS
-                for carbon emissions calculation.
+                Click the button below to deploy an IAM role in your AWS
+                account. This role grants read-only access to Cost Explorer,
+                EC2, and EKS for carbon emissions calculation.
               </p>
               <a
                 href={cloudFormationUrl}
@@ -103,10 +108,12 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
 
           <Card className="border-primary/20 bg-accent/30">
             <CardContent className="pt-6 space-y-3">
-              <h4 className="font-medium text-sm">Step 2: Enter Role Details</h4>
+              <h4 className="font-medium text-sm">
+                Step 2: Enter Role Details
+              </h4>
               <p className="text-sm text-muted-foreground">
-                After the stack is created, copy the Role ARN from the CloudFormation
-                Outputs tab and paste it below.
+                After the stack is created, copy the Role ARN from the
+                CloudFormation Outputs tab and paste it below.
               </p>
             </CardContent>
           </Card>
@@ -144,10 +151,7 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
                   <FormItem>
                     <FormLabel>External ID (Optional)</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="your-external-id"
-                        {...field}
-                      />
+                      <Input placeholder="your-external-id" {...field} />
                     </FormControl>
                     <FormDescription>
                       Additional security layer (optional)

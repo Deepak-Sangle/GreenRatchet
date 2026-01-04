@@ -3,11 +3,11 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  createLoanSchema,
-  createKPISchema,
-  updateKPIStatusSchema,
-  type CreateLoanInput,
+  CreateKPISchema,
+  CreateLoanSchema,
+  UpdateKPIStatusSchema,
   type CreateKPIInput,
+  type CreateLoanInput,
   type UpdateKPIStatusInput,
 } from "@/lib/validations/loan";
 import { revalidatePath } from "next/cache";
@@ -27,7 +27,7 @@ export async function createLoan(data: CreateLoanInput) {
       return { error: "Only borrowers can create loans" };
     }
 
-    const validated = await createLoanSchema.parseAsync(data);
+    const validated = await CreateLoanSchema.parseAsync(data);
 
     const loan = await prisma.loan.create({
       data: {
@@ -83,7 +83,7 @@ export async function createKPI(loanId: string, data: CreateKPIInput) {
       return { error: "Loan not found" };
     }
 
-    const validated = await createKPISchema.parseAsync(data);
+    const validated = await CreateKPISchema.parseAsync(data);
 
     const kpi = await prisma.kPI.create({
       data: {
@@ -150,7 +150,7 @@ export async function updateKPIStatus(
       return { error: "KPI has already been reviewed" };
     }
 
-    const validated = await updateKPIStatusSchema.parseAsync(data);
+    const validated = await UpdateKPIStatusSchema.parseAsync(data);
 
     const updatedKPI = await prisma.kPI.update({
       where: { id: kpiId },
@@ -160,10 +160,14 @@ export async function updateKPIStatus(
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        action: validated.status === "ACCEPTED" ? "KPI_ACCEPTED" : "KPI_REJECTED",
+        action:
+          validated.status === "ACCEPTED" ? "KPI_ACCEPTED" : "KPI_REJECTED",
         entity: "KPI",
         entityId: kpi.id,
-        details: JSON.stringify({ kpiName: kpi.name, newStatus: validated.status }),
+        details: JSON.stringify({
+          kpiName: kpi.name,
+          newStatus: validated.status,
+        }),
         userId: user.id,
         loanId: kpi.loanId,
         kpiId: kpi.id,
@@ -224,7 +228,10 @@ export async function inviteLender(loanId: string, lenderEmail: string) {
         action: "LENDER_INVITED",
         entity: "LOAN",
         entityId: loan.id,
-        details: JSON.stringify({ lenderEmail, lenderOrgName: lenderUser.organization?.name }),
+        details: JSON.stringify({
+          lenderEmail,
+          lenderOrgName: lenderUser.organization?.name,
+        }),
         userId: user.id,
         loanId: loan.id,
       },

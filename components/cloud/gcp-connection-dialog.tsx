@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { connectGCP } from "@/app/actions/cloud";
-import { connectGCPSchema, type ConnectGCPInput } from "@/lib/validations/cloud";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,15 +15,21 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  ConnectGCPSchema,
+  type ConnectGCPInput,
+} from "@/lib/validations/cloud";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 export function GCPConnectionDialog() {
   const [open, setOpen] = useState(false);
@@ -34,7 +37,7 @@ export function GCPConnectionDialog() {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<ConnectGCPInput>({
-    resolver: zodResolver(connectGCPSchema),
+    resolver: zodResolver(ConnectGCPSchema),
     defaultValues: {
       projectId: "",
       serviceAccountKey: "",
@@ -79,7 +82,10 @@ export function GCPConnectionDialog() {
               <h4 className="font-medium text-sm">Setup Instructions</h4>
               <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
                 <li>Go to GCP Console → IAM & Admin → Service Accounts</li>
-                <li>Create a new service account (e.g., &quot;greenratchet-esg&quot;)</li>
+                <li>
+                  Create a new service account (e.g.,
+                  &quot;greenratchet-esg&quot;)
+                </li>
                 <li>
                   Grant the following roles:
                   <ul className="ml-6 mt-1 space-y-1 list-disc">
@@ -108,14 +114,9 @@ export function GCPConnectionDialog() {
                   <FormItem>
                     <FormLabel>Project ID</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="my-gcp-project"
-                        {...field}
-                      />
+                      <Input placeholder="my-gcp-project" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Your GCP project ID
-                    </FormDescription>
+                    <FormDescription>Your GCP project ID</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -143,9 +144,9 @@ export function GCPConnectionDialog() {
               />
               <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3">
                 <p className="text-xs text-yellow-800">
-                  <strong>For Hackathon Only:</strong> In production, service account
-                  keys should be handled via secure key management services, not
-                  uploaded directly.
+                  <strong>For Hackathon Only:</strong> In production, service
+                  account keys should be handled via secure key management
+                  services, not uploaded directly.
                 </p>
               </div>
               <DialogFooter>

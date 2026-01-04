@@ -1,14 +1,12 @@
+import { authConfig } from "@/auth.config";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const { auth } = NextAuth(authConfig);
 
-  // Get the session token from cookies
-  const sessionToken = request.cookies.get("authjs.session-token")?.value ||
-                      request.cookies.get("__Secure-authjs.session-token")?.value;
-
-  const isLoggedIn = !!sessionToken;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const isLoggedIn = !!req.auth;
 
   // Protected routes
   const isProtectedRoute =
@@ -19,17 +17,17 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/cloud");
 
   // Redirect logged-in users away from auth pages
-  if (isLoggedIn && (pathname.startsWith("/auth/"))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isLoggedIn && pathname.startsWith("/auth/")) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   // Redirect non-logged-in users to sign in
   if (!isLoggedIn && isProtectedRoute) {
-    return NextResponse.redirect(new URL("/auth/signin", request.url));
+    return NextResponse.redirect(new URL("/auth/signin", req.url));
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],

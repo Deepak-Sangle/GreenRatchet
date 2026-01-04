@@ -2,13 +2,13 @@
 
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { signUpSchema, type SignUpInput } from "@/lib/validations/auth";
+import { SignUpSchema, type SignUpInput } from "@/lib/validations/auth";
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 
 export async function signUpAction(data: SignUpInput) {
   try {
-    const validated = await signUpSchema.parseAsync(data);
+    const validated = await SignUpSchema.parseAsync(data);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

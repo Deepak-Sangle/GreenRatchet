@@ -1,11 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { createLoan } from "@/app/actions/loans";
-import { createLoanSchema, type CreateLoanInput } from "@/lib/validations/loan";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,11 +12,11 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,8 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
+import { CreateLoanSchema, type CreateLoanInput } from "@/lib/validations/loan";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 export default function NewLoanPage() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export default function NewLoanPage() {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<CreateLoanInput>({
-    resolver: zodResolver(createLoanSchema),
+    resolver: zodResolver(CreateLoanSchema),
     defaultValues: {
       name: "",
       currency: "USD",
@@ -177,12 +177,14 @@ export default function NewLoanPage() {
                         type="number"
                         placeholder="25"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormDescription>
-                      Basis points adjustment for margin (+/- bps). Positive values
-                      reward KPI achievement, negative penalize failure.
+                      Basis points adjustment for margin (+/- bps). Positive
+                      values reward KPI achievement, negative penalize failure.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

@@ -44,7 +44,7 @@ async function main() {
 
   // Create lender user
   const hashedPasswordLender = await bcrypt.hash("password123", 10);
-  const lenderUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: "lender@greencapital.com" },
     update: {},
     create: {
