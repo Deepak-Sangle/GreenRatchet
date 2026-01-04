@@ -4,7 +4,6 @@ import { createLoan } from "@/app/actions/loans";
 import {
   LoanCurrencySchema,
   LoanTypeSchema,
-  ObservationPeriodSchema,
 } from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,14 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CURRENCY_LABELS,
-  LOAN_TYPE_LABELS,
-  OBSERVATION_PERIOD_LABELS,
-} from "@/lib/labels";
+import { CURRENCY_LABELS, LOAN_TYPE_LABELS } from "@/lib/labels";
 import {
   CreateLoanFormSchema,
-  type CreateLoanFormInput,
+  type CreateLoanForm,
 } from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
@@ -50,20 +45,18 @@ import { useForm } from "react-hook-form";
 // Get enum values from generated schemas
 const LOAN_TYPES = LoanTypeSchema.options;
 const CURRENCIES = LoanCurrencySchema.options;
-const OBSERVATION_PERIODS = ObservationPeriodSchema.options;
 
 export default function NewLoanPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<CreateLoanFormInput>({
+  const form = useForm<CreateLoanForm>({
     resolver: zodResolver(CreateLoanFormSchema),
     defaultValues: {
       name: "",
       currency: "USD",
-      observationPeriod: "ANNUAL",
-      marginRatchetBps: 0,
+      status: "PENDING",
       principalAmount: 0,
       committedAmount: -1,
       drawnAmount: -1,
@@ -73,7 +66,8 @@ export default function NewLoanPage() {
     },
   });
 
-  async function onSubmit(data: CreateLoanFormInput) {
+  async function onSubmit(data: CreateLoanForm) {
+    console.log(data);
     setLoading(true);
     setError(null);
 
@@ -108,7 +102,7 @@ export default function NewLoanPage() {
           <CardTitle>Deal Information</CardTitle>
           <CardDescription>
             Enter the basic details of your SLL deal. You&apos;ll be able to add
-            KPIs after creating the deal.
+            KPIs and margin ratchets after creating the deal.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -295,62 +289,6 @@ export default function NewLoanPage() {
                   )}
                 />
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="observationPeriod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observation Period</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select period" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {OBSERVATION_PERIODS.map((period) => (
-                            <SelectItem key={period} value={period}>
-                              {OBSERVATION_PERIOD_LABELS[period] || period}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        How often KPIs will be measured
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="marginRatchetBps"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Margin Ratchet (bps)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="25"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Basis points adjustment (+/- bps)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
             </CardContent>
             <div className="flex justify-end gap-3 p-6 pt-0">
               <Link href="/dashboard">
@@ -372,9 +310,9 @@ export default function NewLoanPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Enter KPIs as commercially agreed. Legal documentation happens
-            outside the platform. This system provides automated, continuous,
-            cloud-native ESG assurance with full auditability.
+            After creating the deal, you can add KPIs and configure margin
+            ratchets for each KPI. Margin ratchets define how the loan margin
+            adjusts based on KPI performance.
           </p>
         </CardContent>
       </Card>

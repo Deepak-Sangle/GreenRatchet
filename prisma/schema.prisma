@@ -17,12 +17,6 @@ enum UserRole {
   LENDER
 }
 
-enum KPIStatus {
-  PROPOSED
-  ACCEPTED
-  REJECTED
-}
-
 enum CloudProvider {
   AWS
   GCP
@@ -101,72 +95,116 @@ enum ObservationPeriod {
 }
 
 model Loan {
-  id                String            @id @default(cuid())
-  name              String
-  currency          LoanCurrency      @default(USD)
-  // The period interval for which the loan will be observed to adjust the margin
-  observationPeriod ObservationPeriod
-  // The basis points for margin ratchet; 1 bps = 0.01%
-  // If during the observation period, the KPI result is below the target value, the margin will be adjusted (decreased) by the margin ratchet bps, otherwise increased
-  marginRatchetBps  Int               @default(0)
+  id              String          @id @default(cuid())
+  name            String
+  currency        LoanCurrency
   // I have no idea what these are, but since our app doesn't handle loan calculations, we are gonna add them
   // Use -1 to indicate that the value is N/A
   // At least one of these three should be set
-  principalAmount   Float
-  committedAmount   Float
-  drawnAmount       Float
-  type              LoanType          @default(FIXED_RATE)
-  borrowerOrgId     String
-  borrowerOrg       Organization      @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
-  lenderOrgId       String?
-  lenderOrg         Organization?     @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
-  startDate         DateTime
-  maturityDate      DateTime
-  status            LoanStatus        @default(PENDING)
+  principalAmount Float
+  committedAmount Float
+  drawnAmount     Float
+  type            LoanType
+  borrowerOrgId   String
+  borrowerOrg     Organization    @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
+  lenderOrgId     String?
+  lenderOrg       Organization?   @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
+  startDate       DateTime
+  maturityDate    DateTime
+  status          LoanStatus      @default(PENDING)
   // All the KPIs for this loan
-  kpis              KPI[]
-  auditLogs         AuditLog[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  createdByUserId   String
-  createdByUser     User              @relation(fields: [createdByUserId], references: [id])
+  kpis            KPI[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  createdByUserId String
+  createdByUser   User            @relation(fields: [createdByUserId], references: [id])
+  marginRatchets  MarginRatchet[]
+}
+
+enum KpiCategory {
+  ENVIRONMENTAL
+  OPERATIONAL
+  GOVERNANCE
+}
+
+enum KpiValueType {
+  ABSOLUTE
+  INTENSITY
+  PERCENTAGE
+  SCORE
+}
+
+enum KpiDirection {
+  LOWER_IS_BETTER
+  HIGHER_IS_BETTER
+  TARGET_RANGE
+}
+
+enum KpiStatus {
+  DRAFT
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+model MarginRatchet {
+  id                   String            @id @default(uuid())
+  loanId               String
+  loan                 Loan              @relation(fields: [loanId], references: [id])
+  kpiId                String
+  kpi                  KPI               @relation(fields: [kpiId], references: [id])
+  // The basis points for margin ratchet; 1 bps = 0.01%
+  // step up bps if there is no violation of KPI target
+  stepUpBps            Int
+  // step down bps if there is violation of KPI target
+  stepDownBps          Int
+  // Maximum adjustment bps for the margin ratchet
+  maxAdjustmentBps     Int
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 }
 
 model KPI {
-  id                String            @id @default(cuid())
-  name              String
-  definition        String            @db.Text
-  metricFormula     String            @db.Text
-  unit              String // e.g., "tCO₂e / 1,000 AI compute hours", "%"
-  targetValue       Float
-  baselineValue     Float?
-  observationPeriod ObservationPeriod
-  marginImpactBps   Int // Basis points impact (+/-)
-  status            KPIStatus         @default(PROPOSED)
-  loanId            String
-  loan              Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  results           KPIResult[]
-  auditLogs         AuditLog[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id             String            @id @default(cuid())
+  name           String
+  category       KpiCategory
+  valueType      KpiValueType
+  direction      KpiDirection
+  unit           String
+  targetValue    Float
+  thresholdMin   Float?
+  thresholdMax   Float?
+  frequency      ObservationPeriod
+  baselineValue  Float?
+  status         KpiStatus
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  loanId         String
+  loan           Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  results        KPIResult[]
+  auditLogs      AuditLog[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  marginRatchets MarginRatchet[]
 }
 
 model KPIResult {
-  id                 String          @id @default(cuid())
-  kpiId              String
-  periodStart        DateTime
-  periodEnd          DateTime
-  actualValue        Float
-  targetValue        Float
-  status             KPIResultStatus @default(PENDING)
-  // Calculation metadata
-  dataSource         String          @db.Text // JSON string of data sources
-  calculationDetails String          @db.Text // JSON string of calculation steps
-  calculationVersion String
-  kpi                KPI             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
-  auditLogs          AuditLog[]
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id          String          @id @default(cuid())
+  kpiId       String
+  periodStart DateTime
+  periodEnd   DateTime
+  actualValue Float
+  targetValue Float
+  status      KPIResultStatus @default(PENDING)
+  // Calculation details to be added later
+  kpi         KPI             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  auditLogs   AuditLog[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model CloudConnection {

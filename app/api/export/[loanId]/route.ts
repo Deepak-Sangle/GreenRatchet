@@ -20,12 +20,18 @@ export async function GET(
         borrowerOrg: true,
         lenderOrg: true,
         kpis: {
-          where: { status: "ACCEPTED" },
+          where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
           include: {
             results: {
               orderBy: { createdAt: "desc" },
               take: 1,
             },
+            marginRatchets: true,
+          },
+        },
+        marginRatchets: {
+          include: {
+            kpi: true,
           },
         },
       },
@@ -35,34 +41,75 @@ export async function GET(
       return NextResponse.json({ error: "Loan not found" }, { status: 404 });
     }
 
+    // Helper to safely extract calculation method
+    // const getCalculationMethod = (kpi: (typeof loan.kpis)[0]) => {
+    //   try {
+    //     const method = kpi.calculationMethod as {
+    //       formula?: string;
+    //       description?: string;
+    //     };
+    //     return {
+    //       formula: method?.formula || "",
+    //       description: method?.description || "",
+    //     };
+    //   } catch {
+    //     return { formula: "", description: "" };
+    //   }
+    // };
+
     // Build export data
     const exportData = {
       loanDetails: {
         name: loan.name,
         currency: loan.currency,
-        observationPeriod: loan.observationPeriod,
-        marginRatchetBps: loan.marginRatchetBps,
+        type: loan.type,
+        principalAmount: loan.principalAmount,
+        committedAmount: loan.committedAmount,
+        drawnAmount: loan.drawnAmount,
+        startDate: loan.startDate,
+        maturityDate: loan.maturityDate,
+        status: loan.status,
         borrower: loan.borrowerOrg.name,
         lender: loan.lenderOrg?.name || null,
       },
-      kpis: loan.kpis.map((kpi) => ({
-        name: kpi.name,
-        definition: kpi.definition,
-        metricFormula: kpi.metricFormula,
-        unit: kpi.unit,
-        baselineValue: kpi.baselineValue,
-        targetValue: kpi.targetValue,
-        observationPeriod: kpi.observationPeriod,
-        marginImpactBps: kpi.marginImpactBps,
-        latestResult: kpi.results[0]
-          ? {
-              actualValue: kpi.results[0].actualValue,
-              status: kpi.results[0].status,
-              periodStart: kpi.results[0].periodStart,
-              periodEnd: kpi.results[0].periodEnd,
-              calculationVersion: kpi.results[0].calculationVersion,
-            }
-          : null,
+      kpis: loan.kpis.map((kpi) => {
+        // const calcMethod = getCalculationMethod(kpi);
+        return {
+          name: kpi.name,
+          category: kpi.category,
+          valueType: kpi.valueType,
+          direction: kpi.direction,
+          unit: kpi.unit,
+          baselineValue: kpi.baselineValue?.toString() || null,
+          targetValue: kpi.targetValue.toString(),
+          thresholdMin: kpi.thresholdMin?.toString() || null,
+          thresholdMax: kpi.thresholdMax?.toString() || null,
+          frequency: kpi.frequency,
+          // calculationFormula: calcMethod.formula,
+          // calculationDescription: calcMethod.description,
+          effectiveFrom: kpi.effectiveFrom,
+          effectiveTo: kpi.effectiveTo,
+          status: kpi.status,
+          marginRatchets: kpi.marginRatchets.map((ratchet) => ({
+            stepUpBps: ratchet.stepUpBps,
+            stepDownBps: ratchet.stepDownBps,
+            maxAdjustmentBps: ratchet.maxAdjustmentBps,
+          })),
+          latestResult: kpi.results[0]
+            ? {
+                actualValue: kpi.results[0].actualValue,
+                status: kpi.results[0].status,
+                periodStart: kpi.results[0].periodStart,
+                periodEnd: kpi.results[0].periodEnd,
+              }
+            : null,
+        };
+      }),
+      marginRatchetsSummary: loan.marginRatchets.map((ratchet) => ({
+        kpiName: ratchet.kpi.name,
+        stepUpBps: ratchet.stepUpBps,
+        stepDownBps: ratchet.stepDownBps,
+        maxAdjustmentBps: ratchet.maxAdjustmentBps,
       })),
       exportMetadata: {
         exportedAt: new Date().toISOString(),

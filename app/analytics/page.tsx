@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,8 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { KPI_CATEGORY_LABELS } from "@/lib/labels";
+import { prisma } from "@/lib/prisma";
 import { BarChart3 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function AnalyticsPage() {
   const session = await auth();
@@ -26,7 +27,7 @@ export default async function AnalyticsPage() {
           borrowerLoans: {
             include: {
               kpis: {
-                where: { status: "ACCEPTED" },
+                where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
                 include: {
                   results: {
                     orderBy: { createdAt: "desc" },
@@ -39,7 +40,7 @@ export default async function AnalyticsPage() {
           lenderLoans: {
             include: {
               kpis: {
-                where: { status: "ACCEPTED" },
+                where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
                 include: {
                   results: {
                     orderBy: { createdAt: "desc" },
@@ -69,6 +70,23 @@ export default async function AnalyticsPage() {
     0
   );
 
+  // Helper to get description from calculationMethod JSON
+  const getKpiDescription = (kpi: (typeof allKPIs)[0]) => {
+    try {
+      // const method = kpi.calculationMethod as {
+      //   description?: string;
+      //   formula?: string;
+      // };
+      return (
+        // method?.description ||
+        // method?.formula ||
+        `${KPI_CATEGORY_LABELS[kpi.category]} KPI`
+      );
+    } catch {
+      return `${KPI_CATEGORY_LABELS[kpi.category]} KPI`;
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
@@ -93,7 +111,6 @@ export default async function AnalyticsPage() {
       ) : (
         <div className="space-y-6">
           {allKPIs.map((kpi) => {
-
             const latestResult = kpi.results[0];
 
             return (
@@ -102,11 +119,15 @@ export default async function AnalyticsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle>{kpi.name}</CardTitle>
-                      <CardDescription>{kpi.definition}</CardDescription>
+                      <CardDescription>
+                        {getKpiDescription(kpi)}
+                      </CardDescription>
                     </div>
                     <Badge
                       variant={
-                        latestResult.status === "PASSED" ? "success" : "destructive"
+                        latestResult.status === "PASSED"
+                          ? "success"
+                          : "destructive"
                       }
                     >
                       {latestResult.status}
@@ -137,7 +158,8 @@ export default async function AnalyticsPage() {
                       </p>
                       <p className="text-2xl font-bold">
                         {(
-                          ((latestResult.targetValue - latestResult.actualValue) /
+                          ((latestResult.targetValue -
+                            latestResult.actualValue) /
                             latestResult.targetValue) *
                           100
                         ).toFixed(1)}
@@ -152,16 +174,7 @@ export default async function AnalyticsPage() {
                     </p>
                     <div className="bg-muted/50 rounded-lg p-4 font-mono text-xs space-y-1">
                       {(() => {
-                        try {
-                          const details = JSON.parse(latestResult.calculationDetails);
-                          return details.steps?.map((step: string, i: number) => (
-                            <div key={i} className="text-muted-foreground">
-                              {step}
-                            </div>
-                          ));
-                        } catch {
-                          return <div>Calculation details unavailable</div>;
-                        }
+                        return <div>Calculation details unavailable</div>;
                       })()}
                     </div>
                   </div>
@@ -170,17 +183,8 @@ export default async function AnalyticsPage() {
                     <div>
                       <strong>Data Source:</strong>{" "}
                       {(() => {
-                        try {
-                          const source = JSON.parse(latestResult.dataSource);
-                          return source.provider;
-                        } catch {
-                          return "Unknown";
-                        }
+                        return "Unknown";
                       })()}
-                    </div>
-                    <div>
-                      <strong>Calculation Version:</strong>{" "}
-                      {latestResult.calculationVersion}
                     </div>
                   </div>
                 </CardContent>

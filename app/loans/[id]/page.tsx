@@ -3,6 +3,7 @@ import { CalculateKPIsButton } from "@/components/loans/calculate-kpis-button";
 import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
 import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
 import { KPIReviewActions } from "@/components/loans/kpi-review-actions";
+import { MarginRatchetDialog } from "@/components/loans/margin-ratchet-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,10 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { LOAN_TYPE_LABELS } from "@/lib/labels";
+import {
+  KPI_CATEGORY_LABELS,
+  KPI_DIRECTION_LABELS,
+  KPI_FREQUENCY_LABELS,
+  LOAN_TYPE_LABELS,
+  OBSERVATION_PERIOD_LABELS,
+} from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { formatBps, formatCurrency, formatDate } from "@/lib/utils";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -53,6 +60,15 @@ export default async function LoanDetailPage(props: {
       lenderOrg: true,
       kpis: {
         orderBy: { createdAt: "desc" },
+        include: {
+          marginRatchets: true,
+        },
+      },
+      marginRatchets: {
+        include: {
+          kpi: true,
+        },
+        orderBy: { createdAt: "desc" },
       },
     },
   });
@@ -73,8 +89,16 @@ export default async function LoanDetailPage(props: {
 
   const hasLender = !!loan.lenderOrgId;
   const proposedKPIs = loan.kpis.filter((kpi) => kpi.status === "PROPOSED");
-  const acceptedKPIs = loan.kpis.filter((kpi) => kpi.status === "ACCEPTED");
-  const rejectedKPIs = loan.kpis.filter((kpi) => kpi.status === "REJECTED");
+  const acceptedKPIs = loan.kpis.filter(
+    (kpi) => kpi.status === "ACCEPTED" || kpi.status === "ACTIVE"
+  );
+  const draftKPIs = loan.kpis.filter((kpi) => kpi.status === "DRAFT");
+
+  // KPIs available for margin ratchets (accepted or active)
+  const kpisForRatchets = acceptedKPIs.map((kpi) => ({
+    id: kpi.id,
+    name: kpi.name,
+  }));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -126,14 +150,18 @@ export default async function LoanDetailPage(props: {
               <p className="font-medium">{loan.currency}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">
-                Observation Period
-              </p>
-              <p className="font-medium">{loan.observationPeriod}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Margin Ratchet</p>
-              <p className="font-medium">{formatBps(loan.marginRatchetBps)}</p>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <Badge
+                variant={
+                  loan.status === "ACTIVE"
+                    ? "success"
+                    : loan.status === "CLOSED"
+                      ? "secondary"
+                      : "warning"
+                }
+              >
+                {loan.status}
+              </Badge>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Principal Amount</p>
@@ -209,7 +237,7 @@ export default async function LoanDetailPage(props: {
               <CardTitle>ESG KPIs</CardTitle>
               <CardDescription>
                 {isBorrower
-                  ? "Enter KPIs as commercially agreed. Legal documentation happens outside the platform."
+                  ? "Define sustainability KPIs for this loan. Configure margin ratchets to link KPI performance to loan pricing."
                   : "Review proposed KPIs. Accept or reject each KPI."}
               </CardDescription>
             </div>
@@ -222,7 +250,7 @@ export default async function LoanDetailPage(props: {
               <p className="text-muted-foreground mb-4">No KPIs defined yet.</p>
               {isBorrower && (
                 <p className="text-sm text-muted-foreground">
-                  Add AI-focused environmental KPIs to get started.
+                  Add sustainability KPIs to get started.
                 </p>
               )}
             </div>
@@ -238,9 +266,10 @@ export default async function LoanDetailPage(props: {
                     <TableHeader>
                       <TableRow>
                         <TableHead>KPI Name</TableHead>
-                        <TableHead>Unit</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Target</TableHead>
-                        <TableHead>Margin Impact</TableHead>
+                        <TableHead>Direction</TableHead>
+                        <TableHead>Frequency</TableHead>
                         {isLender && <TableHead>Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -251,14 +280,31 @@ export default async function LoanDetailPage(props: {
                             <div>
                               <p className="font-medium">{kpi.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {kpi.definition}
+                                {kpi.unit}
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>{kpi.unit}</TableCell>
-                          <TableCell>{kpi.targetValue}</TableCell>
                           <TableCell>
-                            {formatBps(kpi.marginImpactBps)}
+                            <Badge variant="outline">
+                              {KPI_CATEGORY_LABELS[kpi.category] ||
+                                kpi.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{kpi.targetValue.toString()}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-sm">
+                              {kpi.direction === "LOWER_IS_BETTER" ? (
+                                <TrendingDown className="h-3 w-3 text-green-600" />
+                              ) : kpi.direction === "HIGHER_IS_BETTER" ? (
+                                <TrendingUp className="h-3 w-3 text-green-600" />
+                              ) : null}
+                              {KPI_DIRECTION_LABELS[kpi.direction] ||
+                                kpi.direction}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {KPI_FREQUENCY_LABELS[kpi.frequency] ||
+                              kpi.frequency}
                           </TableCell>
                           {isLender && (
                             <TableCell>
@@ -275,17 +321,18 @@ export default async function LoanDetailPage(props: {
               {acceptedKPIs.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    Accepted KPIs
+                    Active KPIs
                     <Badge variant="success">{acceptedKPIs.length}</Badge>
                   </h3>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>KPI Name</TableHead>
-                        <TableHead>Unit</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Baseline</TableHead>
                         <TableHead>Target</TableHead>
-                        <TableHead>Margin Impact</TableHead>
+                        <TableHead>Direction</TableHead>
+                        <TableHead>Ratchets</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -295,15 +342,41 @@ export default async function LoanDetailPage(props: {
                             <div>
                               <p className="font-medium">{kpi.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {kpi.definition}
+                                {kpi.unit}
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>{kpi.unit}</TableCell>
-                          <TableCell>{kpi.baselineValue || "—"}</TableCell>
-                          <TableCell>{kpi.targetValue}</TableCell>
                           <TableCell>
-                            {formatBps(kpi.marginImpactBps)}
+                            <Badge variant="outline">
+                              {KPI_CATEGORY_LABELS[kpi.category] ||
+                                kpi.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {kpi.baselineValue?.toString() || "—"}
+                          </TableCell>
+                          <TableCell>{kpi.targetValue.toString()}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-sm">
+                              {kpi.direction === "LOWER_IS_BETTER" ? (
+                                <TrendingDown className="h-3 w-3 text-green-600" />
+                              ) : kpi.direction === "HIGHER_IS_BETTER" ? (
+                                <TrendingUp className="h-3 w-3 text-green-600" />
+                              ) : null}
+                              {KPI_DIRECTION_LABELS[kpi.direction] ||
+                                kpi.direction}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {kpi.marginRatchets.length > 0 ? (
+                              <Badge variant="secondary">
+                                {kpi.marginRatchets.length} configured
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">
+                                None
+                              </span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -312,36 +385,42 @@ export default async function LoanDetailPage(props: {
                 </div>
               )}
 
-              {rejectedKPIs.length > 0 && (
+              {draftKPIs.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    Rejected KPIs
-                    <Badge variant="destructive">{rejectedKPIs.length}</Badge>
+                    Draft KPIs
+                    <Badge variant="secondary">{draftKPIs.length}</Badge>
                   </h3>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>KPI Name</TableHead>
-                        <TableHead>Unit</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Target</TableHead>
-                        <TableHead>Margin Impact</TableHead>
+                        <TableHead>Direction</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rejectedKPIs.map((kpi) => (
+                      {draftKPIs.map((kpi) => (
                         <TableRow key={kpi.id} className="opacity-60">
                           <TableCell>
                             <div>
                               <p className="font-medium">{kpi.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {kpi.definition}
+                                {kpi.unit}
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>{kpi.unit}</TableCell>
-                          <TableCell>{kpi.targetValue}</TableCell>
                           <TableCell>
-                            {formatBps(kpi.marginImpactBps)}
+                            <Badge variant="outline">
+                              {KPI_CATEGORY_LABELS[kpi.category] ||
+                                kpi.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{kpi.targetValue.toString()}</TableCell>
+                          <TableCell>
+                            {KPI_DIRECTION_LABELS[kpi.direction] ||
+                              kpi.direction}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -350,6 +429,70 @@ export default async function LoanDetailPage(props: {
                 </div>
               )}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Margin Ratchets Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Margin Ratchets</CardTitle>
+              <CardDescription>
+                Configure how loan margins adjust based on KPI performance.
+                Ratchets link sustainability targets to financial outcomes.
+              </CardDescription>
+            </div>
+            {isBorrower && kpisForRatchets.length > 0 && (
+              <MarginRatchetDialog loanId={loan.id} kpis={kpisForRatchets} />
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loan.marginRatchets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground mb-4">
+                No margin ratchets configured yet.
+              </p>
+              {isBorrower && kpisForRatchets.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Add and get KPIs accepted first, then configure margin
+                  ratchets.
+                </p>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Step Up</TableHead>
+                  <TableHead>Step Down</TableHead>
+                  <TableHead>Max Adjustment</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loan.marginRatchets.map((ratchet) => (
+                  <TableRow key={ratchet.id}>
+                    <TableCell>
+                      <span className="text-green-600 font-medium">
+                        {formatBps(ratchet.stepUpBps)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-red-600 font-medium">
+                        {formatBps(ratchet.stepDownBps)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        ±{ratchet.maxAdjustmentBps} bps
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

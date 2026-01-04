@@ -13,7 +13,7 @@ export interface KPICalculationResult {
   targetValue: number;
   status: KPIResultStatus;
   calculationDetails: {
-    formula: string;
+    // formula: string;
     inputs: Record<string, number | string>;
     steps: string[];
     carbonIntensityUsed?: Record<string, number>;
@@ -39,6 +39,7 @@ export function calculateKPI(
   // Determine KPI type based on name/formula
   // In production, this would be more sophisticated
   const kpiName = kpi.name.toLowerCase();
+  const targetValue = Number(kpi.targetValue);
 
   if (kpiName.includes("carbon intensity") || kpiName.includes("co2")) {
     // AI Carbon Intensity: tCO₂e / 1,000 AI compute hours
@@ -99,9 +100,25 @@ export function calculateKPI(
     steps.push("Using default carbon intensity calculation");
   }
 
-  // Determine status
-  const status: KPIResultStatus =
-    actualValue <= kpi.targetValue ? "PASSED" : "FAILED";
+  // Determine status based on direction
+  let status: KPIResultStatus;
+  if (kpi.direction === "LOWER_IS_BETTER") {
+    status = actualValue <= targetValue ? "PASSED" : "FAILED";
+  } else if (kpi.direction === "HIGHER_IS_BETTER") {
+    status = actualValue >= targetValue ? "PASSED" : "FAILED";
+  } else {
+    // TARGET_RANGE - check if within thresholds
+    const thresholdMin = kpi.thresholdMin
+      ? Number(kpi.thresholdMin)
+      : targetValue * 0.9;
+    const thresholdMax = kpi.thresholdMax
+      ? Number(kpi.thresholdMax)
+      : targetValue * 1.1;
+    status =
+      actualValue >= thresholdMin && actualValue <= thresholdMax
+        ? "PASSED"
+        : "FAILED";
+  }
 
   // Build carbon intensity map
   const carbonIntensityUsed: Record<string, number> = {};
@@ -111,10 +128,10 @@ export function calculateKPI(
 
   return {
     actualValue: Math.round(actualValue * 1000) / 1000,
-    targetValue: kpi.targetValue,
+    targetValue,
     status,
     calculationDetails: {
-      formula: kpi.metricFormula,
+      // formula: getCalculationFormula(kpi),
       inputs,
       steps,
       carbonIntensityUsed,

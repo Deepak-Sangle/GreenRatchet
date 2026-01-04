@@ -3,7 +3,10 @@
 
 import {
   CloudProvider,
-  KPIStatus,
+  KpiCategory,
+  KpiDirection,
+  KpiStatus,
+  KpiValueType,
   LoanCurrency,
   LoanStatus,
   LoanType,
@@ -44,12 +47,6 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, string> = {
   CLOSED: "Closed",
 };
 
-export const KPI_STATUS_LABELS: Record<KPIStatus, string> = {
-  PROPOSED: "Proposed",
-  ACCEPTED: "Accepted",
-  REJECTED: "Rejected",
-};
-
 export const CLOUD_PROVIDER_LABELS: Record<CloudProvider, string> = {
   AWS: "Amazon Web Services",
   GCP: "Google Cloud Platform",
@@ -59,4 +56,39 @@ export const CLOUD_PROVIDER_LABELS: Record<CloudProvider, string> = {
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   BORROWER: "Borrower",
   LENDER: "Lender",
+};
+
+export const KPI_CATEGORY_LABELS: Record<KpiCategory, string> = {
+  ENVIRONMENTAL: "Environmental",
+  OPERATIONAL: "Operational",
+  GOVERNANCE: "Governance",
+};
+
+export const KPI_VALUE_TYPE_LABELS: Record<KpiValueType, string> = {
+  ABSOLUTE: "Absolute Value",
+  INTENSITY: "Intensity",
+  PERCENTAGE: "Percentage",
+  SCORE: "Score",
+};
+
+export const KPI_DIRECTION_LABELS: Record<KpiDirection, string> = {
+  LOWER_IS_BETTER: "Lower is Better",
+  HIGHER_IS_BETTER: "Higher is Better",
+  TARGET_RANGE: "Target Range",
+};
+
+export const KPI_FREQUENCY_LABELS: Record<ObservationPeriod, string> = {
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  ANNUAL: "Annual",
+};
+
+export const KPI_STATUS_LABELS: Record<KpiStatus, string> = {
+  DRAFT: "Draft",
+  PROPOSED: "Proposed",
+  ACCEPTED: "Accepted",
+  REJECTED: "Rejected",
+  ACTIVE: "Active",
+  PAUSED: "Paused",
+  EXPIRED: "Expired",
 };

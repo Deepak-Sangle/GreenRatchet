@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { fetchCloudUsageData } from "@/lib/services/cloud-data";
-import { calculateKPI, getCalculationVersion } from "@/lib/services/kpi-calculator";
+import { calculateKPI } from "@/lib/services/kpi-calculator";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -78,9 +78,6 @@ export async function triggerKPICalculation(loanId: string) {
           actualValue: calculationResult.actualValue,
           targetValue: calculationResult.targetValue,
           status: calculationResult.status,
-          dataSource: JSON.stringify(calculationResult.dataSource),
-          calculationDetails: JSON.stringify(calculationResult.calculationDetails),
-          calculationVersion: getCalculationVersion(),
         },
       });
 

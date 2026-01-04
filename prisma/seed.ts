@@ -58,7 +58,7 @@ async function main() {
     },
   });
 
-  // Create sample loan with all required fields
+  // Create sample loan with all required fields (updated for new schema)
   const loan = await prisma.loan.upsert({
     where: { id: "loan-1" },
     update: {},
@@ -66,8 +66,6 @@ async function main() {
       id: "loan-1",
       name: "Q4 2024 AI Infrastructure Financing",
       currency: "USD",
-      observationPeriod: "ANNUAL",
-      marginRatchetBps: 25,
       principalAmount: 5000000,
       committedAmount: 5000000,
       drawnAmount: 3500000,
@@ -80,44 +78,99 @@ async function main() {
     },
   });
 
-  // Create sample KPIs
-  await prisma.kPI.upsert({
+  // Create sample KPIs with new structure
+  const kpi1 = await prisma.kPI.upsert({
     where: { id: "kpi-1" },
     update: {},
     create: {
       id: "kpi-1",
       name: "AI Carbon Intensity",
-      definition:
-        "Total carbon emissions from AI workloads divided by total AI compute hours, measured in tonnes CO2e per 1,000 AI compute hours",
-      metricFormula:
-        "(Total tCO₂e from AI GPU instances) / (Total AI compute hours) × 1000",
+      category: "ENVIRONMENTAL",
+      valueType: "INTENSITY",
+      direction: "LOWER_IS_BETTER",
       unit: "tCO₂e / 1,000 AI hours",
-      baselineValue: 12.5,
       targetValue: 9.0,
-      observationPeriod: "ANNUAL",
-      marginImpactBps: 15,
+      thresholdMin: 7.0,
+      thresholdMax: 11.0,
+      // calculationMethod: {
+      //   formula:
+      //     "(Total tCO₂e from AI GPU instances) / (Total AI compute hours) × 1000",
+      //   description:
+      //     "Total carbon emissions from AI workloads divided by total AI compute hours",
+      // },
+      // dataSources: [
+      //   {
+      //     type: "CLOUD",
+      //     provider: "AWS",
+      //     metric: "carbon-footprint",
+      //   },
+      // ],
+      frequency: "ANNUAL",
+      baselineValue: 12.5,
       status: "ACCEPTED",
+      effectiveFrom: new Date("2024-01-01"),
       loanId: loan.id,
     },
   });
 
-  await prisma.kPI.upsert({
+  const kpi2 = await prisma.kPI.upsert({
     where: { id: "kpi-2" },
     update: {},
     create: {
       id: "kpi-2",
       name: "Low-Carbon Region Usage",
-      definition:
-        "Percentage of AI workloads running in regions with carbon intensity below 300 gCO2/kWh",
-      metricFormula:
-        "(AI compute hours in low-carbon regions) / (Total AI compute hours) × 100",
+      category: "ENVIRONMENTAL",
+      valueType: "PERCENTAGE",
+      direction: "HIGHER_IS_BETTER",
       unit: "%",
-      baselineValue: 45.0,
       targetValue: 70.0,
-      observationPeriod: "ANNUAL",
-      marginImpactBps: 10,
+      thresholdMin: 60.0,
+      thresholdMax: 80.0,
+      // calculationMethod: {
+      //   formula:
+      //     "(AI compute hours in low-carbon regions) / (Total AI compute hours) × 100",
+      //   description:
+      //     "Percentage of AI workloads running in regions with carbon intensity below 300 gCO2/kWh",
+      // },
+      // dataSources: [
+      //   {
+      //     type: "CLOUD",
+      //     provider: "AWS",
+      //     metric: "region-usage",
+      //   },
+      // ],
+      frequency: "ANNUAL",
+      baselineValue: 45.0,
       status: "ACCEPTED",
+      effectiveFrom: new Date("2024-01-01"),
       loanId: loan.id,
+    },
+  });
+
+  // Create sample margin ratchets
+  await prisma.marginRatchet.upsert({
+    where: { id: "ratchet-1" },
+    update: {},
+    create: {
+      id: "ratchet-1",
+      loanId: loan.id,
+      kpiId: kpi1.id,
+      stepUpBps: 15,
+      stepDownBps: 15,
+      maxAdjustmentBps: 50,
+    },
+  });
+
+  await prisma.marginRatchet.upsert({
+    where: { id: "ratchet-2" },
+    update: {},
+    create: {
+      id: "ratchet-2",
+      loanId: loan.id,
+      kpiId: kpi2.id,
+      stepUpBps: 10,
+      stepDownBps: 10,
+      maxAdjustmentBps: 30,
     },
   });
 

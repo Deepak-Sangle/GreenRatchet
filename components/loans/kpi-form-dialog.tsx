@@ -1,6 +1,12 @@
 "use client";
 
 import { createKPI } from "@/app/actions/loans";
+import {
+  KpiCategorySchema,
+  KpiDirectionSchema,
+  KpiValueTypeSchema,
+  ObservationPeriodSchema,
+} from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,12 +27,33 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { CreateKPISchema, type CreateKPIInput } from "@/lib/validations/loan";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  KPI_CATEGORY_LABELS,
+  KPI_DIRECTION_LABELS,
+  KPI_FREQUENCY_LABELS,
+  KPI_VALUE_TYPE_LABELS,
+} from "@/lib/labels";
+import {
+  CreateKPIFormSchema,
+  type CreateKPIForm,
+} from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+
+// Get enum values from generated schemas
+const KPI_CATEGORIES = KpiCategorySchema.options;
+const KPI_VALUE_TYPES = KpiValueTypeSchema.options;
+const KPI_DIRECTIONS = KpiDirectionSchema.options;
+const KPI_FREQUENCIES = ObservationPeriodSchema.options;
 
 interface KPIFormDialogProps {
   loanId: string;
@@ -37,21 +64,25 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<CreateKPIInput>({
-    resolver: zodResolver(CreateKPISchema),
+  const form = useForm<CreateKPIForm>({
+    resolver: zodResolver(CreateKPIFormSchema),
     defaultValues: {
       name: "",
-      definition: "",
-      metricFormula: "",
+      category: "ENVIRONMENTAL",
+      valueType: "INTENSITY",
+      direction: "LOWER_IS_BETTER",
       unit: "",
       targetValue: 0,
-      baselineValue: 0,
-      observationPeriod: "ANNUAL",
-      marginImpactBps: 0,
+      thresholdMin: undefined,
+      thresholdMax: undefined,
+      frequency: "ANNUAL",
+      baselineValue: undefined,
+      effectiveFrom: undefined,
+      effectiveTo: undefined,
     },
   });
 
-  async function onSubmit(data: CreateKPIInput) {
+  async function onSubmit(data: CreateKPIForm) {
     setLoading(true);
     setError(null);
 
@@ -79,7 +110,8 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
         <DialogHeader>
           <DialogTitle>Add ESG KPI</DialogTitle>
           <DialogDescription>
-            Define a new AI-focused environmental KPI for this SLL deal.
+            Define a new sustainability KPI for this SLL deal. Configure margin
+            ratchets separately after creating the KPI.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -89,6 +121,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 {error}
               </div>
             )}
+
             <FormField
               control={form.control}
               name="name"
@@ -102,43 +135,124 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="definition"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Definition</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Total carbon emissions from AI workloads divided by total AI compute hours..."
-                      {...field}
-                      rows={3}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="metricFormula"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Metric Formula</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="(Total tCO₂e from AI GPU instances) / (Total AI compute hours) × 1000"
-                      {...field}
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    How this KPI will be calculated from cloud data
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {KPI_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {KPI_CATEGORY_LABELS[cat] || cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="valueType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Value Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select value type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {KPI_VALUE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {KPI_VALUE_TYPE_LABELS[type] || type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="direction"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Direction</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select direction" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {KPI_DIRECTIONS.map((dir) => (
+                          <SelectItem key={dir} value={dir}>
+                            {KPI_DIRECTION_LABELS[dir] || dir}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Whether lower or higher values are better
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="frequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Measurement Frequency</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {KPI_FREQUENCIES.map((freq) => (
+                          <SelectItem key={freq} value={freq}>
+                            {KPI_FREQUENCY_LABELS[freq] || freq}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -147,45 +261,11 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                   <FormItem>
                     <FormLabel>Unit</FormLabel>
                     <FormControl>
-                      <Input placeholder="tCO₂e / 1,000 AI hours" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="observationPeriod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observation Period</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Annual" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="baselineValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Baseline Value (Optional)</FormLabel>
-                    <FormControl>
                       <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="10.5"
+                        placeholder="tCO₂e / 1,000 compute hours"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
-                        }
                       />
                     </FormControl>
-                    <FormDescription>Current value</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -203,37 +283,223 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                         placeholder="8.0"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
+                          field.onChange(parseFloat(e.target.value) || 0)
                         }
                       />
                     </FormControl>
-                    <FormDescription>Goal to achieve</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            <FormField
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="baselineValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Baseline Value</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="10.5"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>Current value (optional)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="thresholdMin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Threshold Min</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="7.0"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="thresholdMax"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Threshold Max</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="9.0"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* <FormField
               control={form.control}
-              name="marginImpactBps"
+              name="calculationFormula"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Margin Impact (bps)</FormLabel>
+                  <FormLabel>Calculation Formula</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="5"
+                    <Textarea
+                      placeholder="(Total tCO₂e from GPU instances) / (Total compute hours) × 1000"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      rows={2}
                     />
                   </FormControl>
                   <FormDescription>
-                    Basis points impact on loan margin (+/- bps)
+                    How this KPI will be calculated from data sources
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="calculationDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Total carbon emissions from AI workloads divided by total compute hours..."
+                      {...field}
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Data Source</h4>
+              <div className="grid gap-4 md:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="dataSourceType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="CLOUD">Cloud Provider</SelectItem>
+                          <SelectItem value="API">External API</SelectItem>
+                          <SelectItem value="MANUAL">Manual Entry</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dataSourceProvider"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provider</FormLabel>
+                      <FormControl>
+                        <Input placeholder="AWS" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dataSourceMetric"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Metric</FormLabel>
+                      <FormControl>
+                        <Input placeholder="carbon-footprint" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div> */}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="effectiveFrom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effective From</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="effectiveTo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effective To (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"

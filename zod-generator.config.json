@@ -1,9 +1,12 @@
 {
   "$schema": "../node_modules/prisma-zod-generator/lib/config/schema.json",
-  "mode": "minimal",
+  "mode": "custom",
   "pureModels": true,
   "output": "../app/generated/schemas",
   "dateTimeStrategy": "coerce",
+  "decimalStrategy": "number",
+  "exportTypedSchemas": false,
+  "zodSchemaSuffix": "Schema",
   "useMultipleFiles": false,
   "variants": {
     "pure": { "enabled": true },
