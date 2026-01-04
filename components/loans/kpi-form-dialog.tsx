@@ -1,6 +1,7 @@
 "use client";
 
 import { createKPI } from "@/app/actions/loans";
+import { KPI } from "@/app/generated/prisma/client";
 import {
   KpiCategorySchema,
   KpiDirectionSchema,
@@ -46,7 +47,7 @@ import {
 } from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 // Get enum values from generated schemas
@@ -55,32 +56,79 @@ const KPI_VALUE_TYPES = KpiValueTypeSchema.options;
 const KPI_DIRECTIONS = KpiDirectionSchema.options;
 const KPI_FREQUENCIES = ObservationPeriodSchema.options;
 
-interface KPIFormDialogProps {
-  loanId: string;
+// Helper to format date for input[type="date"]
+function formatDateForInput(date: Date | string | undefined | null): string {
+  if (!date) return "";
+  const d = new Date(date);
+  return d.toISOString().split("T")[0];
 }
 
-export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
-  const [open, setOpen] = useState(false);
+export type KPIInitialData = KPI;
+
+interface KPIFormDialogProps {
+  loanId: string;
+  /** Optional: control dialog open state externally */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Optional: pre-fill form with initial data (for duplication) */
+  initialData?: KPIInitialData;
+  /** If true, hides the trigger button (use for controlled mode) */
+  hideTrigger?: boolean;
+}
+
+const defaultFormValues: CreateKPIForm = {
+  name: "",
+  category: "ENVIRONMENTAL",
+  valueType: "INTENSITY",
+  direction: "LOWER_IS_BETTER",
+  unit: "",
+  targetValue: 0,
+  thresholdMin: undefined,
+  thresholdMax: undefined,
+  frequency: "ANNUAL",
+  baselineValue: undefined,
+  effectiveFrom: "",
+  effectiveTo: undefined,
+};
+
+export function KPIFormDialog({
+  loanId,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  initialData,
+  hideTrigger = false,
+}: KPIFormDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Support both controlled and uncontrolled modes
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled
+    ? (value: boolean) => controlledOnOpenChange?.(value)
+    : setInternalOpen;
+
   const form = useForm<CreateKPIForm>({
     resolver: zodResolver(CreateKPIFormSchema),
-    defaultValues: {
-      name: "",
-      category: "ENVIRONMENTAL",
-      valueType: "INTENSITY",
-      direction: "LOWER_IS_BETTER",
-      unit: "",
-      targetValue: 0,
-      thresholdMin: undefined,
-      thresholdMax: undefined,
-      frequency: "ANNUAL",
-      baselineValue: undefined,
-      effectiveFrom: undefined,
-      effectiveTo: undefined,
-    },
+    defaultValues: defaultFormValues,
   });
+
+  // Reset form with initial data when dialog opens or initialData changes
+  useEffect(() => {
+    if (open && initialData) {
+      form.reset({
+        ...initialData,
+        name: `Copy of ${initialData.name}`,
+        effectiveFrom: formatDateForInput(initialData.effectiveFrom),
+        effectiveTo: initialData.effectiveTo
+          ? formatDateForInput(initialData.effectiveTo)
+          : undefined,
+      });
+    } else if (open && !initialData) {
+      form.reset(defaultFormValues);
+    }
+  }, [open, initialData, form]);
 
   async function onSubmit(data: CreateKPIForm) {
     setLoading(true);
@@ -93,25 +141,30 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
       setLoading(false);
     } else {
       setOpen(false);
-      form.reset();
+      form.reset(defaultFormValues);
       setLoading(false);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add KPI
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add KPI
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add ESG KPI</DialogTitle>
+          <DialogTitle>
+            {initialData ? "Duplicate ESG KPI" : "Add ESG KPI"}
+          </DialogTitle>
           <DialogDescription>
-            Define a new sustainability KPI for this SLL deal. Configure margin
-            ratchets separately after creating the KPI.
+            {initialData
+              ? "Create a new KPI based on an existing one. Modify the fields as needed."
+              : "Define a new sustainability KPI for this SLL deal. Configure margin ratchets separately after creating the KPI."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -143,10 +196,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -170,10 +220,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Value Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select value type" />
@@ -200,10 +247,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Direction</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select direction" />
@@ -230,10 +274,7 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Measurement Frequency</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select frequency" />
@@ -509,7 +550,11 @@ export function KPIFormDialog({ loanId }: KPIFormDialogProps) {
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Adding..." : "Add KPI"}
+                {loading
+                  ? "Creating..."
+                  : initialData
+                    ? "Create Duplicate"
+                    : "Add KPI"}
               </Button>
             </DialogFooter>
           </form>

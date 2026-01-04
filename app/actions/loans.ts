@@ -383,3 +383,59 @@ export async function deleteMarginRatchet(marginRatchetId: string) {
     return { error: "Failed to delete margin ratchet" };
   }
 }
+
+export async function deleteKPI(kpiId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { error: "Unauthorized" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id, role: "BORROWER" },
+    });
+
+    if (!user) {
+      return { error: "Only borrowers can delete KPIs" };
+    }
+
+    const kpi = await prisma.kPI.findUnique({
+      where: { id: kpiId },
+      include: { loan: true },
+    });
+
+    if (!kpi) {
+      return { error: "KPI not found" };
+    }
+
+    if (kpi.loan.borrowerOrgId !== user.organizationId) {
+      return { error: "You don't have permission to delete this KPI" };
+    }
+
+    // Delete the KPI (cascade will handle marginRatchets and results)
+    await prisma.kPI.delete({
+      where: { id: kpiId },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        action: "KPI_DELETED",
+        entity: "KPI",
+        entityId: kpiId,
+        details: JSON.stringify({
+          kpiName: kpi.name,
+        }),
+        userId: user.id,
+        loanId: kpi.loanId,
+      },
+    });
+
+    revalidatePath(`/loans/${kpi.loanId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting KPI:", error);
+    return { error: "Failed to delete KPI" };
+  }
+}

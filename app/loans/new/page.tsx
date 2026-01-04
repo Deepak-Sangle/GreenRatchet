@@ -56,7 +56,6 @@ export default function NewLoanPage() {
     defaultValues: {
       name: "",
       currency: "USD",
-      status: "PENDING",
       principalAmount: 0,
       committedAmount: -1,
       drawnAmount: -1,

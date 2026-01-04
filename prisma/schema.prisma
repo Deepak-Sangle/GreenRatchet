@@ -29,12 +29,6 @@ enum KPIResultStatus {
   PENDING
 }
 
-enum LoanStatus {
-  PENDING
-  ACTIVE
-  CLOSED
-}
-
 enum LoanType {
   FIXED_RATE // The interest rate is fixed for the entire loan term
   FLOATING_RATE // The interest rate is variable and changes based on market conditions
@@ -111,7 +105,6 @@ model Loan {
   lenderOrg       Organization?   @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
   startDate       DateTime
   maturityDate    DateTime
-  status          LoanStatus      @default(PENDING)
   // All the KPIs for this loan
   kpis            KPI[]
   auditLogs       AuditLog[]
@@ -142,30 +135,26 @@ enum KpiDirection {
 }
 
 enum KpiStatus {
-  DRAFT
   PROPOSED
   ACCEPTED
   REJECTED
-  ACTIVE
-  PAUSED
-  EXPIRED
 }
 
 model MarginRatchet {
-  id                   String            @id @default(uuid())
-  loanId               String
-  loan                 Loan              @relation(fields: [loanId], references: [id])
-  kpiId                String
-  kpi                  KPI               @relation(fields: [kpiId], references: [id])
+  id               String   @id @default(uuid())
+  loanId           String
+  loan             Loan     @relation(fields: [loanId], references: [id])
+  kpiId            String
+  kpi              KPI      @relation(fields: [kpiId], references: [id])
   // The basis points for margin ratchet; 1 bps = 0.01%
   // step up bps if there is no violation of KPI target
-  stepUpBps            Int
+  stepUpBps        Int
   // step down bps if there is violation of KPI target
-  stepDownBps          Int
+  stepDownBps      Int
   // Maximum adjustment bps for the margin ratchet
-  maxAdjustmentBps     Int
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  maxAdjustmentBps Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model KPI {

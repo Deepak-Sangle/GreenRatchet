@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import { CalculateKPIsButton } from "@/components/loans/calculate-kpis-button";
 import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
+import { KPIActions } from "@/components/loans/kpi-actions";
 import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
 import { KPIReviewActions } from "@/components/loans/kpi-review-actions";
+import { MarginRatchetActions } from "@/components/loans/margin-ratchet-actions";
 import { MarginRatchetDialog } from "@/components/loans/margin-ratchet-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +29,6 @@ import {
   KPI_DIRECTION_LABELS,
   KPI_FREQUENCY_LABELS,
   LOAN_TYPE_LABELS,
-  OBSERVATION_PERIOD_LABELS,
 } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { formatBps, formatCurrency, formatDate } from "@/lib/utils";
@@ -89,10 +90,7 @@ export default async function LoanDetailPage(props: {
 
   const hasLender = !!loan.lenderOrgId;
   const proposedKPIs = loan.kpis.filter((kpi) => kpi.status === "PROPOSED");
-  const acceptedKPIs = loan.kpis.filter(
-    (kpi) => kpi.status === "ACCEPTED" || kpi.status === "ACTIVE"
-  );
-  const draftKPIs = loan.kpis.filter((kpi) => kpi.status === "DRAFT");
+  const acceptedKPIs = loan.kpis.filter((kpi) => kpi.status === "ACCEPTED");
 
   // KPIs available for margin ratchets (accepted or active)
   const kpisForRatchets = acceptedKPIs.map((kpi) => ({
@@ -151,17 +149,6 @@ export default async function LoanDetailPage(props: {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <Badge
-                variant={
-                  loan.status === "ACTIVE"
-                    ? "success"
-                    : loan.status === "CLOSED"
-                      ? "secondary"
-                      : "warning"
-                }
-              >
-                {loan.status}
-              </Badge>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Principal Amount</p>
@@ -241,7 +228,7 @@ export default async function LoanDetailPage(props: {
                   : "Review proposed KPIs. Accept or reject each KPI."}
               </CardDescription>
             </div>
-            {isBorrower && <KPIFormDialog loanId={loan.id} />}
+            {<KPIFormDialog loanId={loan.id} />}
           </div>
         </CardHeader>
         <CardContent>
@@ -270,7 +257,7 @@ export default async function LoanDetailPage(props: {
                         <TableHead>Target</TableHead>
                         <TableHead>Direction</TableHead>
                         <TableHead>Frequency</TableHead>
-                        {isLender && <TableHead>Actions</TableHead>}
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -306,11 +293,16 @@ export default async function LoanDetailPage(props: {
                             {KPI_FREQUENCY_LABELS[kpi.frequency] ||
                               kpi.frequency}
                           </TableCell>
-                          {isLender && (
-                            <TableCell>
-                              <KPIReviewActions kpiId={kpi.id} />
-                            </TableCell>
-                          )}
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {isLender && <KPIReviewActions kpiId={kpi.id} />}
+                              <KPIActions
+                                kpi={kpi}
+                                loanId={loan.id}
+                                isBorrower={isBorrower}
+                              />
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -333,6 +325,7 @@ export default async function LoanDetailPage(props: {
                         <TableHead>Target</TableHead>
                         <TableHead>Direction</TableHead>
                         <TableHead>Ratchets</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -378,49 +371,12 @@ export default async function LoanDetailPage(props: {
                               </span>
                             )}
                           </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-
-              {draftKPIs.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    Draft KPIs
-                    <Badge variant="secondary">{draftKPIs.length}</Badge>
-                  </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>KPI Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Target</TableHead>
-                        <TableHead>Direction</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {draftKPIs.map((kpi) => (
-                        <TableRow key={kpi.id} className="opacity-60">
                           <TableCell>
-                            <div>
-                              <p className="font-medium">{kpi.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {kpi.unit}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {KPI_CATEGORY_LABELS[kpi.category] ||
-                                kpi.category}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{kpi.targetValue.toString()}</TableCell>
-                          <TableCell>
-                            {KPI_DIRECTION_LABELS[kpi.direction] ||
-                              kpi.direction}
+                            <KPIActions
+                              kpi={kpi}
+                              loanId={loan.id}
+                              isBorrower={isBorrower}
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -466,14 +422,24 @@ export default async function LoanDetailPage(props: {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Linked KPI</TableHead>
                   <TableHead>Step Up</TableHead>
                   <TableHead>Step Down</TableHead>
                   <TableHead>Max Adjustment</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loan.marginRatchets.map((ratchet) => (
                   <TableRow key={ratchet.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{ratchet.kpi.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ratchet.kpi.unit}
+                        </p>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <span className="text-green-600 font-medium">
                         {formatBps(ratchet.stepUpBps)}
@@ -488,6 +454,14 @@ export default async function LoanDetailPage(props: {
                       <Badge variant="outline">
                         ±{ratchet.maxAdjustmentBps} bps
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <MarginRatchetActions
+                        loanId={loan.id}
+                        ratchet={ratchet}
+                        kpis={kpisForRatchets}
+                        isBorrower={isBorrower}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -35,7 +35,7 @@ import {
 } from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings2 } from "lucide-react";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
 
 // Get enum values from generated schemas
@@ -50,12 +50,22 @@ interface MarginRatchetDialogProps {
   loanId: string;
   kpis: KPIOption[];
   defaultKpiId?: string;
+  defaultValues?: {
+    stepUpBps?: number;
+    stepDownBps?: number;
+    maxAdjustmentBps?: number;
+  };
+  triggerButton?: ReactNode;
+  mode?: "create" | "duplicate";
 }
 
 export function MarginRatchetDialog({
   loanId,
   kpis,
   defaultKpiId,
+  defaultValues,
+  triggerButton,
+  mode = "create",
 }: MarginRatchetDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +77,9 @@ export function MarginRatchetDialog({
       kpiId: defaultKpiId || "",
       observationStart: "",
       observationEnd: "",
-      stepUpBps: 0,
-      stepDownBps: 0,
-      maxAdjustmentBps: 0,
+      stepUpBps: defaultValues?.stepUpBps ?? 0,
+      stepDownBps: defaultValues?.stepDownBps ?? 0,
+      maxAdjustmentBps: defaultValues?.maxAdjustmentBps ?? 0,
     },
   });
 
@@ -89,22 +99,29 @@ export function MarginRatchetDialog({
     }
   }
 
+  const isDuplicate = mode === "duplicate";
+  const dialogTitle = isDuplicate
+    ? "Duplicate Margin Ratchet"
+    : "Configure Margin Ratchet";
+  const dialogDescription = isDuplicate
+    ? "Create a new margin ratchet based on the existing configuration. Modify the values as needed."
+    : "Define how the loan margin adjusts based on KPI performance. Step up increases interest rate when targets are not met, step down decreases interest rate when targets are met.";
+  const submitButtonText = isDuplicate ? "Create Duplicate" : "Create Ratchet";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Settings2 className="mr-2 h-4 w-4" />
-          Add Margin Ratchet
-        </Button>
+        {triggerButton || (
+          <Button variant="outline" size="sm">
+            <Settings2 className="mr-2 h-4 w-4" />
+            Add Margin Ratchet
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configure Margin Ratchet</DialogTitle>
-          <DialogDescription>
-            Define how the loan margin adjusts based on KPI performance. Step up
-            increases interest rate when targets are not met, step down decreases
-            interest rate when targets are met.
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -258,7 +275,7 @@ export function MarginRatchetDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Ratchet"}
+                {loading ? "Creating..." : submitButtonText}
               </Button>
             </DialogFooter>
           </form>

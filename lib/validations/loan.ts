@@ -19,7 +19,6 @@ const LoanCreateFields = LoanSchema.omit({
   lenderOrgId: true,
 }).required({
   name: true,
-  status: true,
   currency: true,
   principalAmount: true,
   committedAmount: true,

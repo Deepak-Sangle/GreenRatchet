@@ -8,7 +8,6 @@ import {
   KpiStatus,
   KpiValueType,
   LoanCurrency,
-  LoanStatus,
   LoanType,
   ObservationPeriod,
   UserRole,
@@ -41,12 +40,6 @@ export const OBSERVATION_PERIOD_LABELS: Record<ObservationPeriod, string> = {
   MONTHLY: "Monthly",
 };
 
-export const LOAN_STATUS_LABELS: Record<LoanStatus, string> = {
-  PENDING: "Pending",
-  ACTIVE: "Active",
-  CLOSED: "Closed",
-};
-
 export const CLOUD_PROVIDER_LABELS: Record<CloudProvider, string> = {
   AWS: "Amazon Web Services",
   GCP: "Google Cloud Platform",
@@ -72,8 +65,8 @@ export const KPI_VALUE_TYPE_LABELS: Record<KpiValueType, string> = {
 };
 
 export const KPI_DIRECTION_LABELS: Record<KpiDirection, string> = {
-  LOWER_IS_BETTER: "Lower is Better",
-  HIGHER_IS_BETTER: "Higher is Better",
+  LOWER_IS_BETTER: "Minimize",
+  HIGHER_IS_BETTER: "Maximize",
   TARGET_RANGE: "Target Range",
 };
 
@@ -84,11 +77,7 @@ export const KPI_FREQUENCY_LABELS: Record<ObservationPeriod, string> = {
 };
 
 export const KPI_STATUS_LABELS: Record<KpiStatus, string> = {
-  DRAFT: "Draft",
   PROPOSED: "Proposed",
   ACCEPTED: "Accepted",
   REJECTED: "Rejected",
-  ACTIVE: "Active",
-  PAUSED: "Paused",
-  EXPIRED: "Expired",
 };

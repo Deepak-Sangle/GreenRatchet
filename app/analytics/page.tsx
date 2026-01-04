@@ -27,7 +27,7 @@ export default async function AnalyticsPage() {
           borrowerLoans: {
             include: {
               kpis: {
-                where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
+                where: { status: { in: ["ACCEPTED"] } },
                 include: {
                   results: {
                     orderBy: { createdAt: "desc" },
@@ -40,7 +40,7 @@ export default async function AnalyticsPage() {
           lenderLoans: {
             include: {
               kpis: {
-                where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
+                where: { status: { in: ["ACCEPTED"] } },
                 include: {
                   results: {
                     orderBy: { createdAt: "desc" },

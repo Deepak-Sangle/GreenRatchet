@@ -20,7 +20,7 @@ export async function GET(
         borrowerOrg: true,
         lenderOrg: true,
         kpis: {
-          where: { status: { in: ["ACCEPTED", "ACTIVE"] } },
+          where: { status: { in: ["ACCEPTED"] } },
           include: {
             results: {
               orderBy: { createdAt: "desc" },
@@ -68,7 +68,6 @@ export async function GET(
         drawnAmount: loan.drawnAmount,
         startDate: loan.startDate,
         maturityDate: loan.maturityDate,
-        status: loan.status,
         borrower: loan.borrowerOrg.name,
         lender: loan.lenderOrg?.name || null,
       },
