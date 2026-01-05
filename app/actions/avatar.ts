@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteAvatar, uploadAvatar } from "@/lib/services/storage";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function updateAvatarAction(formData: FormData) {
   try {
@@ -37,10 +37,10 @@ export async function updateAvatarAction(formData: FormData) {
       };
     }
 
-    // Get current user to check for existing avatar
+    // Get current user to get organization info and existing avatar
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { avatarUrl: true },
+      select: { avatarUrl: true, organizationId: true },
     });
 
     // Upload new avatar
@@ -64,6 +64,10 @@ export async function updateAvatarAction(formData: FormData) {
 
     // Revalidate the shared dashboard layout (covers all authenticated pages)
     revalidatePath("/", "layout");
+    // Also revalidate specific page caches that show user info
+    if (user?.organizationId) {
+      revalidateTag(`org-${user.organizationId}`);
+    }
 
     return {
       success: true,

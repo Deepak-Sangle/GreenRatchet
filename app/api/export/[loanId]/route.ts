@@ -75,10 +75,9 @@ export async function GET(
         // const calcMethod = getCalculationMethod(kpi);
         return {
           name: kpi.name,
-          category: kpi.category,
+          type: kpi.type,
           valueType: kpi.valueType,
           direction: kpi.direction,
-          unit: kpi.unit,
           baselineValue: kpi.baselineValue?.toString() || null,
           targetValue: kpi.targetValue.toString(),
           thresholdMin: kpi.thresholdMin?.toString() || null,

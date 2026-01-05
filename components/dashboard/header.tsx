@@ -34,7 +34,7 @@ export function Header({ user, organizationName }: HeaderProps) {
               priority
             />
             <div className="flex flex-col">
-              <h1 className="text-lg font-heading font-bold tracking-tight text-foreground">
+              <h1 className="text-lg font-heading font-bold tracking-tight text-emerald-700">
                 GreenRatchet
               </h1>
               <p className="text-[11px] font-medium text-muted-foreground/80 tracking-wide uppercase">

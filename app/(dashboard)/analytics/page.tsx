@@ -7,10 +7,62 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { KPI_CATEGORY_LABELS } from "@/lib/labels";
+import { KPI_TYPE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
+import { getKPIUnit } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+async function getAnalyticsData(userId: string, organizationId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          organization: {
+            include: {
+              borrowerLoans: {
+                include: {
+                  kpis: {
+                    where: { status: { in: ["ACCEPTED"] } },
+                    include: {
+                      results: {
+                        orderBy: { createdAt: "desc" },
+                        take: 6,
+                      },
+                    },
+                  },
+                },
+              },
+              lenderLoans: {
+                include: {
+                  kpis: {
+                    where: { status: { in: ["ACCEPTED"] } },
+                    include: {
+                      results: {
+                        orderBy: { createdAt: "desc" },
+                        take: 6,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    },
+    [`analytics-${userId}-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [`analytics-${userId}`, `org-${organizationId}`],
+    }
+  )();
+}
 
 export default async function AnalyticsPage() {
   const session = await auth();
@@ -19,41 +71,18 @@ export default async function AnalyticsPage() {
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // First get basic user info to check organization
+  const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
-      organization: {
-        include: {
-          borrowerLoans: {
-            include: {
-              kpis: {
-                where: { status: { in: ["ACCEPTED"] } },
-                include: {
-                  results: {
-                    orderBy: { createdAt: "desc" },
-                    take: 6,
-                  },
-                },
-              },
-            },
-          },
-          lenderLoans: {
-            include: {
-              kpis: {
-                where: { status: { in: ["ACCEPTED"] } },
-                include: {
-                  results: {
-                    orderBy: { createdAt: "desc" },
-                    take: 6,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, organizationId: true, role: true },
   });
+
+  if (!basicUser || !basicUser.organizationId) {
+    redirect("/auth/signin");
+  }
+
+  // Get cached analytics data
+  const user = await getAnalyticsData(basicUser.id, basicUser.organizationId);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");
@@ -80,10 +109,10 @@ export default async function AnalyticsPage() {
       return (
         // method?.description ||
         // method?.formula ||
-        `${KPI_CATEGORY_LABELS[kpi.category]} KPI`
+        `${KPI_TYPE_LABELS[kpi.type]} KPI`
       );
     } catch {
-      return `${KPI_CATEGORY_LABELS[kpi.category]} KPI`;
+      return `${KPI_TYPE_LABELS[kpi.type]} KPI`;
     }
   };
 
@@ -112,6 +141,7 @@ export default async function AnalyticsPage() {
         <div className="space-y-6">
           {allKPIs.map((kpi) => {
             const latestResult = kpi.results[0];
+            const unit = getKPIUnit(kpi);
 
             return (
               <Card key={kpi.id}>
@@ -141,7 +171,12 @@ export default async function AnalyticsPage() {
                         Latest Value
                       </p>
                       <p className="text-2xl font-bold">
-                        {latestResult.actualValue.toFixed(2)} {kpi.unit}
+                        {latestResult.actualValue.toFixed(2)}
+                        {unit && (
+                          <span className="ml-2 text-base font-normal text-muted-foreground">
+                            {unit}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div>
@@ -149,7 +184,12 @@ export default async function AnalyticsPage() {
                         Target
                       </p>
                       <p className="text-2xl font-bold">
-                        {latestResult.targetValue.toFixed(2)} {kpi.unit}
+                        {latestResult.targetValue.toFixed(2)}
+                        {unit && (
+                          <span className="ml-2 text-base font-normal text-muted-foreground">
+                            {unit}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div>

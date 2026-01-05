@@ -115,23 +115,20 @@ model Loan {
   marginRatchets  MarginRatchet[]
 }
 
-enum KpiCategory {
-  ENVIRONMENTAL
-  OPERATIONAL
-  GOVERNANCE
+enum KpiType {
+  CO2_EMISSION
+  AI_COMPUTE_HOURS
 }
 
 enum KpiValueType {
   ABSOLUTE
-  INTENSITY
   PERCENTAGE
-  SCORE
+  RATIO
 }
 
 enum KpiDirection {
   LOWER_IS_BETTER
   HIGHER_IS_BETTER
-  TARGET_RANGE
 }
 
 enum KpiStatus {
@@ -143,9 +140,9 @@ enum KpiStatus {
 model MarginRatchet {
   id               String   @id @default(uuid())
   loanId           String
-  loan             Loan     @relation(fields: [loanId], references: [id])
+  loan             Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
   kpiId            String
-  kpi              KPI      @relation(fields: [kpiId], references: [id])
+  kpi              KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   // The basis points for margin ratchet; 1 bps = 0.01%
   // step up bps if there is no violation of KPI target
   stepUpBps        Int
@@ -160,10 +157,9 @@ model MarginRatchet {
 model KPI {
   id             String            @id @default(cuid())
   name           String
-  category       KpiCategory
+  type           KpiType
   valueType      KpiValueType
   direction      KpiDirection
-  unit           String
   targetValue    Float
   thresholdMin   Float?
   thresholdMax   Float?

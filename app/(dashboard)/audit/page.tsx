@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -16,8 +15,47 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { formatDate, getKPIUnit } from "@/lib/utils";
+import { unstable_cache } from "next/cache";
+import { redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+async function getAuditLogsData(userId: string, organizationId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.auditLog.findMany({
+        where: {
+          OR: [
+            { userId: userId },
+            {
+              loan: {
+                OR: [
+                  { borrowerOrgId: organizationId },
+                  { lenderOrgId: organizationId },
+                ],
+              },
+            },
+          ],
+        },
+        include: {
+          user: true,
+          loan: true,
+          kpi: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+    },
+    [`audit-${userId}-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [`audit-${userId}`, `org-${organizationId}`],
+    }
+  )();
+}
 
 export default async function AuditTrailPage() {
   const session = await auth();
@@ -26,37 +64,21 @@ export default async function AuditTrailPage() {
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // First get basic user info to check organization
+  const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
+    select: { id: true, organizationId: true },
   });
 
-  if (!user || !user.organizationId) {
+  if (!basicUser || !basicUser.organizationId) {
     redirect("/auth/signin");
   }
 
-  // Get audit logs for the user's organization
-  const auditLogs = await prisma.auditLog.findMany({
-    where: {
-      OR: [
-        { userId: user.id },
-        {
-          loan: {
-            OR: [
-              { borrowerOrgId: user.organizationId },
-              { lenderOrgId: user.organizationId },
-            ],
-          },
-        },
-      ],
-    },
-    include: {
-      user: true,
-      loan: true,
-      kpi: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  // Get cached audit logs data
+  const auditLogs = await getAuditLogsData(
+    basicUser.id,
+    basicUser.organizationId
+  );
 
   const actionBadgeVariant = (action: string) => {
     if (action.includes("CREATED")) return "default";
@@ -114,7 +136,9 @@ export default async function AuditTrailPage() {
                           {log.action.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{log.entity}</TableCell>
+                      <TableCell className="font-medium">
+                        {log.entity}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {log.user?.name || "System"}
                       </TableCell>
@@ -131,8 +155,11 @@ export default async function AuditTrailPage() {
                         )}
                         {details.actualValue !== undefined && (
                           <div>
-                            <strong>Value:</strong> {details.actualValue} (
-                            {details.status})
+                            <strong>Value:</strong> {details.actualValue}
+                            {log.kpi && getKPIUnit(log.kpi) && (
+                              <span> {getKPIUnit(log.kpi)}</span>
+                            )}{" "}
+                            ({details.status})
                           </div>
                         )}
                         {details.provider && (
@@ -161,7 +188,8 @@ export default async function AuditTrailPage() {
           <p className="text-sm text-muted-foreground">
             Every action in the system is logged with timestamp, user, and
             details. KPI calculations include data source, formula, inputs, and
-            step-by-step execution for complete transparency and reproducibility.
+            step-by-step execution for complete transparency and
+            reproducibility.
           </p>
         </CardContent>
       </Card>

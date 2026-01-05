@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { fetchCloudUsageData } from "@/lib/services/cloud-data";
 import { calculateKPI } from "@/lib/services/kpi-calculator";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 /**
  * Trigger KPI calculation for a specific loan
@@ -110,6 +110,10 @@ export async function triggerKPICalculation(loanId: string) {
 
     revalidatePath(`/loans/${loanId}`);
     revalidatePath("/analytics");
+    revalidateTag(`loan-${loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`analytics-${user.id}`);
+    revalidateTag(`audit-${user.id}`);
 
     return { success: true, resultsCreated };
   } catch (error) {

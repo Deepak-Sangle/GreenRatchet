@@ -10,9 +10,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { formatBps, formatDate } from "@/lib/utils";
+import { formatBps, formatDate, getKPIUnit } from "@/lib/utils";
 import { Eye } from "lucide-react";
 import { useState } from "react";
+
+import { KPI } from "@/app/generated/prisma/client";
 
 interface MarginRatchetViewDialogProps {
   ratchet: {
@@ -22,12 +24,7 @@ interface MarginRatchetViewDialogProps {
     maxAdjustmentBps: number;
     createdAt: Date;
     updatedAt: Date;
-    kpi: {
-      id: string;
-      name: string;
-      unit: string;
-      targetValue: number;
-    };
+    kpi: KPI;
   };
 }
 
@@ -35,6 +32,7 @@ export function MarginRatchetViewDialog({
   ratchet,
 }: MarginRatchetViewDialogProps) {
   const [open, setOpen] = useState(false);
+  const unit = getKPIUnit(ratchet.kpi);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -60,7 +58,8 @@ export function MarginRatchetViewDialog({
             <div className="rounded-lg border p-3 bg-muted/30">
               <p className="font-medium">{ratchet.kpi.name}</p>
               <p className="text-sm text-muted-foreground">
-                Target: {ratchet.kpi.targetValue} {ratchet.kpi.unit}
+                Target: {ratchet.kpi.targetValue}
+                {unit && <span className="ml-1">{unit}</span>}
               </p>
             </div>
           </div>

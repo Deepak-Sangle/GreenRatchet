@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { AWSConnectionDialog } from "@/components/cloud/aws-connection-dialog";
+import { GCPConnectionDialog } from "@/components/cloud/gcp-connection-dialog";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,14 +9,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AWSConnectionDialog } from "@/components/cloud/aws-connection-dialog";
-import { GCPConnectionDialog } from "@/components/cloud/gcp-connection-dialog";
+import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
-import { CheckCircle2, XCircle, Cloud } from "lucide-react";
+import { CheckCircle2, Cloud, XCircle } from "lucide-react";
+import { unstable_cache } from "next/cache";
+import { redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
 
 // TODO: Replace with your actual AWS account ID
 const GREENRATCHET_AWS_ACCOUNT_ID = "123456789012";
+
+async function getCloudConnectionsData(userId: string, organizationId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          organization: {
+            include: {
+              cloudConnections: {
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+        },
+      });
+    },
+    [`cloud-${userId}-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [`cloud-${userId}`, `org-${organizationId}`],
+    }
+  )();
+}
 
 export default async function CloudConnectionsPage() {
   const session = await auth();
@@ -24,18 +52,21 @@ export default async function CloudConnectionsPage() {
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // First get basic user info to check organization
+  const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
-      organization: {
-        include: {
-          cloudConnections: {
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      },
-    },
+    select: { id: true, organizationId: true },
   });
+
+  if (!basicUser || !basicUser.organizationId) {
+    redirect("/auth/signin");
+  }
+
+  // Get cached cloud connections data
+  const user = await getCloudConnectionsData(
+    basicUser.id,
+    basicUser.organizationId
+  );
 
   if (!user || !user.organization) {
     redirect("/auth/signin");
@@ -66,9 +97,10 @@ export default async function CloudConnectionsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            By connecting your cloud providers, GreenRatchet automatically calculates
-            ESG KPIs using real-time cloud usage data. All calculations are versioned,
-            auditable, and transparent. No manual PDFs. No verification delays.
+            By connecting your cloud providers, GreenRatchet automatically
+            calculates ESG KPIs using real-time cloud usage data. All
+            calculations are versioned, auditable, and transparent. No manual
+            PDFs. No verification delays.
           </p>
         </CardContent>
       </Card>
@@ -106,11 +138,13 @@ export default async function CloudConnectionsPage() {
                     <strong>Role ARN:</strong> {awsConnection.roleArn}
                   </p>
                   <p>
-                    <strong>Connected:</strong> {formatDate(awsConnection.createdAt)}
+                    <strong>Connected:</strong>{" "}
+                    {formatDate(awsConnection.createdAt)}
                   </p>
                   {awsConnection.lastSync && (
                     <p>
-                      <strong>Last Sync:</strong> {formatDate(awsConnection.lastSync)}
+                      <strong>Last Sync:</strong>{" "}
+                      {formatDate(awsConnection.lastSync)}
                     </p>
                   )}
                 </div>
@@ -135,7 +169,9 @@ export default async function CloudConnectionsPage() {
                   <Cloud className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Google Cloud Platform</CardTitle>
+                  <CardTitle className="text-lg">
+                    Google Cloud Platform
+                  </CardTitle>
                   <CardDescription>GCP Billing & Compute</CardDescription>
                 </div>
               </div>
@@ -154,11 +190,13 @@ export default async function CloudConnectionsPage() {
                     <strong>Project ID:</strong> {gcpConnection.projectId}
                   </p>
                   <p>
-                    <strong>Connected:</strong> {formatDate(gcpConnection.createdAt)}
+                    <strong>Connected:</strong>{" "}
+                    {formatDate(gcpConnection.createdAt)}
                   </p>
                   {gcpConnection.lastSync && (
                     <p>
-                      <strong>Last Sync:</strong> {formatDate(gcpConnection.lastSync)}
+                      <strong>Last Sync:</strong>{" "}
+                      {formatDate(gcpConnection.lastSync)}
                     </p>
                   )}
                 </div>
@@ -183,17 +221,21 @@ export default async function CloudConnectionsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             <div>
-              <h4 className="font-medium text-sm mb-1">1. Identify AI Workloads</h4>
+              <h4 className="font-medium text-sm mb-1">
+                1. Identify AI Workloads
+              </h4>
               <p className="text-sm text-muted-foreground">
-                Detect GPU instances (P3, P4, A100, etc.) and ML services (SageMaker,
-                Vertex AI) from cloud billing and compute metadata.
+                Detect GPU instances (P3, P4, A100, etc.) and ML services
+                (SageMaker, Vertex AI) from cloud billing and compute metadata.
               </p>
             </div>
             <div>
-              <h4 className="font-medium text-sm mb-1">2. Calculate Energy Usage</h4>
+              <h4 className="font-medium text-sm mb-1">
+                2. Calculate Energy Usage
+              </h4>
               <p className="text-sm text-muted-foreground">
-                Multiply instance hours by GPU power consumption (TDP) to estimate
-                total energy consumption in kWh.
+                Multiply instance hours by GPU power consumption (TDP) to
+                estimate total energy consumption in kWh.
               </p>
             </div>
             <div>
@@ -201,15 +243,15 @@ export default async function CloudConnectionsPage() {
                 3. Apply Regional Carbon Intensity
               </h4>
               <p className="text-sm text-muted-foreground">
-                Use regional grid carbon intensity data (gCO₂/kWh) for each AWS/GCP
-                region to convert energy to carbon emissions.
+                Use regional grid carbon intensity data (gCO₂/kWh) for each
+                AWS/GCP region to convert energy to carbon emissions.
               </p>
             </div>
             <div>
               <h4 className="font-medium text-sm mb-1">4. Track Over Time</h4>
               <p className="text-sm text-muted-foreground">
-                Store monthly immutable snapshots with full calculation metadata for
-                auditability and trend analysis.
+                Store monthly immutable snapshots with full calculation metadata
+                for auditability and trend analysis.
               </p>
             </div>
           </div>

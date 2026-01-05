@@ -107,17 +107,9 @@ export function calculateKPI(
   } else if (kpi.direction === "HIGHER_IS_BETTER") {
     status = actualValue >= targetValue ? "PASSED" : "FAILED";
   } else {
-    // TARGET_RANGE - check if within thresholds
-    const thresholdMin = kpi.thresholdMin
-      ? Number(kpi.thresholdMin)
-      : targetValue * 0.9;
-    const thresholdMax = kpi.thresholdMax
-      ? Number(kpi.thresholdMax)
-      : targetValue * 1.1;
-    status =
-      actualValue >= thresholdMin && actualValue <= thresholdMax
-        ? "PASSED"
-        : "FAILED";
+    // Fallback to LOWER_IS_BETTER
+    // should never happen
+    status = actualValue <= targetValue ? "PASSED" : "FAILED";
   }
 
   // Build carbon intensity map

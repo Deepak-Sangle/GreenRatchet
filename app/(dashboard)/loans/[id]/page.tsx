@@ -25,16 +25,51 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  KPI_CATEGORY_LABELS,
   KPI_DIRECTION_LABELS,
   KPI_FREQUENCY_LABELS,
+  KPI_TYPE_LABELS,
   LOAN_TYPE_LABELS,
 } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
-import { formatBps, formatCurrency, formatDate } from "@/lib/utils";
+import { formatBps, formatCurrency, formatDate, getKPIUnit } from "@/lib/utils";
 import { ArrowLeft, Download, TrendingDown, TrendingUp } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+async function getLoanData(loanId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.loan.findUnique({
+        where: { id: loanId },
+        include: {
+          borrowerOrg: true,
+          lenderOrg: true,
+          kpis: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              marginRatchets: true,
+            },
+          },
+          marginRatchets: {
+            include: {
+              kpi: true,
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+    },
+    [`loan-${loanId}`],
+    {
+      revalidate: 60,
+      tags: [`loan-${loanId}`],
+    }
+  )();
+}
 
 export default async function LoanDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -54,25 +89,8 @@ export default async function LoanDetailPage(props: {
     redirect("/auth/signin");
   }
 
-  const loan = await prisma.loan.findUnique({
-    where: { id: params.id },
-    include: {
-      borrowerOrg: true,
-      lenderOrg: true,
-      kpis: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          marginRatchets: true,
-        },
-      },
-      marginRatchets: {
-        include: {
-          kpi: true,
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  // Get cached loan data
+  const loan = await getLoanData(params.id);
 
   if (!loan) {
     notFound();
@@ -253,7 +271,7 @@ export default async function LoanDetailPage(props: {
                     <TableHeader>
                       <TableRow>
                         <TableHead>KPI Name</TableHead>
-                        <TableHead>Category</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Target</TableHead>
                         <TableHead>Direction</TableHead>
                         <TableHead>Frequency</TableHead>
@@ -266,18 +284,21 @@ export default async function LoanDetailPage(props: {
                           <TableCell>
                             <div>
                               <p className="font-medium">{kpi.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {kpi.unit}
-                              </p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {KPI_CATEGORY_LABELS[kpi.category] ||
-                                kpi.category}
+                              {KPI_TYPE_LABELS[kpi.type] || kpi.type}
                             </Badge>
                           </TableCell>
-                          <TableCell>{kpi.targetValue.toString()}</TableCell>
+                          <TableCell>
+                            {kpi.targetValue.toString()}
+                            {getKPIUnit(kpi) && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                {getKPIUnit(kpi)}
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <span className="flex items-center gap-1 text-sm">
                               {kpi.direction === "LOWER_IS_BETTER" ? (
@@ -320,7 +341,7 @@ export default async function LoanDetailPage(props: {
                     <TableHeader>
                       <TableRow>
                         <TableHead>KPI Name</TableHead>
-                        <TableHead>Category</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Baseline</TableHead>
                         <TableHead>Target</TableHead>
                         <TableHead>Direction</TableHead>
@@ -334,21 +355,29 @@ export default async function LoanDetailPage(props: {
                           <TableCell>
                             <div>
                               <p className="font-medium">{kpi.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {kpi.unit}
-                              </p>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {KPI_CATEGORY_LABELS[kpi.category] ||
-                                kpi.category}
+                              {KPI_TYPE_LABELS[kpi.type] || kpi.type}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {kpi.baselineValue?.toString() || "—"}
+                            {kpi.baselineValue && getKPIUnit(kpi) && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                {getKPIUnit(kpi)}
+                              </span>
+                            )}
                           </TableCell>
-                          <TableCell>{kpi.targetValue.toString()}</TableCell>
+                          <TableCell>
+                            {kpi.targetValue.toString()}
+                            {getKPIUnit(kpi) && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                {getKPIUnit(kpi)}
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <span className="flex items-center gap-1 text-sm">
                               {kpi.direction === "LOWER_IS_BETTER" ? (
@@ -435,9 +464,6 @@ export default async function LoanDetailPage(props: {
                     <TableCell>
                       <div>
                         <p className="font-medium">{ratchet.kpi.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {ratchet.kpi.unit}
-                        </p>
                       </div>
                     </TableCell>
                     <TableCell>

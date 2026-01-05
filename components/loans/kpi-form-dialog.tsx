@@ -1,10 +1,10 @@
 "use client";
 
-import { createKPI } from "@/app/actions/loans";
+import { createKPI, editKPI } from "@/app/actions/loans";
 import { KPI } from "@/app/generated/prisma/client";
 import {
-  KpiCategorySchema,
   KpiDirectionSchema,
+  KpiTypeSchema,
   KpiValueTypeSchema,
   ObservationPeriodSchema,
 } from "@/app/generated/schemas/schemas";
@@ -36,11 +36,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  KPI_CATEGORY_LABELS,
   KPI_DIRECTION_LABELS,
   KPI_FREQUENCY_LABELS,
+  KPI_TYPE_LABELS,
   KPI_VALUE_TYPE_LABELS,
 } from "@/lib/labels";
+import { getKPIUnit } from "@/lib/utils";
 import {
   CreateKPIFormSchema,
   type CreateKPIForm,
@@ -51,7 +52,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 // Get enum values from generated schemas
-const KPI_CATEGORIES = KpiCategorySchema.options;
+const KPI_TYPES = KpiTypeSchema.options;
 const KPI_VALUE_TYPES = KpiValueTypeSchema.options;
 const KPI_DIRECTIONS = KpiDirectionSchema.options;
 const KPI_FREQUENCIES = ObservationPeriodSchema.options;
@@ -70,18 +71,21 @@ interface KPIFormDialogProps {
   /** Optional: control dialog open state externally */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** Optional: pre-fill form with initial data (for duplication) */
+  /** Optional: pre-fill form with initial data (for duplication or editing) */
   initialData?: KPIInitialData;
   /** If true, hides the trigger button (use for controlled mode) */
   hideTrigger?: boolean;
+  /** Mode: create, duplicate, or edit */
+  mode?: "create" | "duplicate" | "edit";
+  /** KPI ID (required for edit mode) */
+  kpiId?: string;
 }
 
 const defaultFormValues: CreateKPIForm = {
   name: "",
-  category: "ENVIRONMENTAL",
-  valueType: "INTENSITY",
+  type: "CO2_EMISSION",
+  valueType: "ABSOLUTE",
   direction: "LOWER_IS_BETTER",
-  unit: "",
   targetValue: 0,
   thresholdMin: undefined,
   thresholdMax: undefined,
@@ -97,6 +101,8 @@ export function KPIFormDialog({
   onOpenChange: controlledOnOpenChange,
   initialData,
   hideTrigger = false,
+  mode = "create",
+  kpiId,
 }: KPIFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +125,10 @@ export function KPIFormDialog({
     if (open && initialData) {
       form.reset({
         ...initialData,
-        name: `Copy of ${initialData.name}`,
+        name:
+          mode === "duplicate"
+            ? `Copy of ${initialData.name}`
+            : initialData.name,
         effectiveFrom: formatDateForInput(initialData.effectiveFrom),
         effectiveTo: initialData.effectiveTo
           ? formatDateForInput(initialData.effectiveTo)
@@ -128,13 +137,16 @@ export function KPIFormDialog({
     } else if (open && !initialData) {
       form.reset(defaultFormValues);
     }
-  }, [open, initialData, form]);
+  }, [open, initialData, form, mode]);
 
   async function onSubmit(data: CreateKPIForm) {
     setLoading(true);
     setError(null);
 
-    const result = await createKPI(loanId, data);
+    const result =
+      mode === "edit" && kpiId
+        ? await editKPI(kpiId, data)
+        : await createKPI(loanId, data);
 
     if (result?.error) {
       setError(result.error);
@@ -159,12 +171,18 @@ export function KPIFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Duplicate ESG KPI" : "Add ESG KPI"}
+            {mode === "edit"
+              ? "Edit ESG KPI"
+              : mode === "duplicate"
+                ? "Duplicate ESG KPI"
+                : "Add ESG KPI"}
           </DialogTitle>
           <DialogDescription>
-            {initialData
-              ? "Create a new KPI based on an existing one. Modify the fields as needed."
-              : "Define a new sustainability KPI for this SLL deal. Configure margin ratchets separately after creating the KPI."}
+            {mode === "edit"
+              ? "Update the KPI details. Changes will be saved immediately."
+              : mode === "duplicate"
+                ? "Create a new KPI based on an existing one. Modify the fields as needed."
+                : "Define a new sustainability KPI for this SLL deal. Configure margin ratchets separately after creating the KPI."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -192,20 +210,28 @@ export function KPIFormDialog({
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="category"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Type</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // Trigger validation for valueType when type changes
+                        // This validates the refinement rules for type/valueType combinations
+                        form.trigger("valueType");
+                      }}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {KPI_CATEGORIES.map((cat) => (
+                        {KPI_TYPES.map((cat) => (
                           <SelectItem key={cat} value={cat}>
-                            {KPI_CATEGORY_LABELS[cat] || cat}
+                            {KPI_TYPE_LABELS[cat] || cat}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -220,7 +246,15 @@ export function KPIFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Value Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // Trigger validation for valueType immediately
+                        // This validates the refinement rules for type/valueType combinations
+                        form.trigger("valueType");
+                      }}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select value type" />
@@ -297,40 +331,51 @@ export function KPIFormDialog({
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="unit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="tCO₂e / 1,000 compute hours"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="targetValue"
+                render={({ field }) => {
+                  return (
+                    <FormItem>
+                      <FormLabel>Target Value</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="8.0"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               <FormField
                 control={form.control}
                 name="targetValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Target Value</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="8.0"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const unit = getKPIUnit({
+                    type: form.watch("type"),
+                    valueType: form.watch("valueType"),
+                  });
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          value={unit ?? "N/A"}
+                          placeholder={unit ?? "N/A"}
+                          readOnly
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
@@ -357,7 +402,7 @@ export function KPIFormDialog({
                         }
                       />
                     </FormControl>
-                    <FormDescription>Current value (optional)</FormDescription>
+                    <FormDescription>Current value</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -384,6 +429,7 @@ export function KPIFormDialog({
                         }
                       />
                     </FormControl>
+                    <FormDescription>Performance floor</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -410,6 +456,7 @@ export function KPIFormDialog({
                         }
                       />
                     </FormControl>
+                    <FormDescription>Performance ceiling</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -551,10 +598,14 @@ export function KPIFormDialog({
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading
-                  ? "Creating..."
-                  : initialData
-                    ? "Create Duplicate"
-                    : "Add KPI"}
+                  ? mode === "edit"
+                    ? "Saving..."
+                    : "Creating..."
+                  : mode === "edit"
+                    ? "Save Changes"
+                    : mode === "duplicate"
+                      ? "Create Duplicate"
+                      : "Add KPI"}
               </Button>
             </DialogFooter>
           </form>

@@ -10,8 +10,52 @@ import {
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { Cloud, FileText, Plus, TrendingUp } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+async function getDashboardData(userId: string, organizationId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          organization: {
+            include: {
+              borrowerLoans: {
+                include: {
+                  kpis: true,
+                  lenderOrg: true,
+                  borrowerOrg: true,
+                },
+                orderBy: { createdAt: "desc" },
+              },
+              lenderLoans: {
+                include: {
+                  kpis: true,
+                  borrowerOrg: true,
+                  lenderOrg: true,
+                },
+                orderBy: { createdAt: "desc" },
+              },
+              cloudConnections: {
+                where: { isActive: true },
+              },
+            },
+          },
+        },
+      });
+    },
+    [`dashboard-${userId}-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [`dashboard-${userId}`, `org-${organizationId}`],
+    }
+  )();
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -20,34 +64,18 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // First get basic user info to check organization
+  const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
-      organization: {
-        include: {
-          borrowerLoans: {
-            include: {
-              kpis: true,
-              lenderOrg: true,
-              borrowerOrg: true,
-            },
-            orderBy: { createdAt: "desc" },
-          },
-          lenderLoans: {
-            include: {
-              kpis: true,
-              borrowerOrg: true,
-              lenderOrg: true,
-            },
-            orderBy: { createdAt: "desc" },
-          },
-          cloudConnections: {
-            where: { isActive: true },
-          },
-        },
-      },
-    },
+    select: { id: true, organizationId: true, role: true, name: true },
   });
+
+  if (!basicUser || !basicUser.organizationId) {
+    redirect("/auth/signin");
+  }
+
+  // Get cached dashboard data
+  const user = await getDashboardData(basicUser.id, basicUser.organizationId);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");

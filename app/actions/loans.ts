@@ -12,7 +12,7 @@ import {
   type CreateMarginRatchetForm,
   type UpdateKPIStatus,
 } from "@/lib/validations/loan";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createLoan(data: CreateLoanForm) {
   try {
@@ -56,6 +56,9 @@ export async function createLoan(data: CreateLoanForm) {
 
     revalidatePath("/dashboard");
     revalidatePath("/loans");
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`dashboard-${user.id}`);
+    revalidateTag(`loans-${user.id}`);
 
     return { success: true, loanId: loan.id };
   } catch (error) {
@@ -118,11 +121,87 @@ export async function createKPI(loanId: string, data: CreateKPIForm) {
     });
 
     revalidatePath(`/loans/${loanId}`);
+    revalidatePath("/analytics");
+    revalidateTag(`loan-${loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`analytics-${user.id}`);
+    revalidateTag(`audit-${user.id}`);
 
     return { success: true, kpiId: kpi.id };
   } catch (error) {
     console.error("Error creating KPI:", error);
     return { error: "Failed to create KPI" };
+  }
+}
+
+export async function editKPI(kpiId: string, data: CreateKPIForm) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { error: "Unauthorized" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { organization: true },
+    });
+
+    if (!user || user.role !== "BORROWER") {
+      return { error: "Only borrowers can edit KPIs" };
+    }
+
+    // Verify KPI exists and belongs to borrower's organization
+    const existingKPI = await prisma.kPI.findUnique({
+      where: { id: kpiId },
+      include: { loan: true },
+    });
+
+    if (!existingKPI) {
+      return { error: "KPI not found" };
+    }
+
+    if (existingKPI.loan.borrowerOrgId !== user.organizationId) {
+      return { error: "You don't have permission to edit this KPI" };
+    }
+
+    const validated = await CreateKPIFormSchema.parseAsync(data);
+
+    // Extract form-specific fields, transform to KPI model structure
+    const { effectiveFrom, effectiveTo, ...kpiFields } = validated;
+
+    const kpi = await prisma.kPI.update({
+      where: { id: kpiId },
+      data: {
+        ...kpiFields,
+        effectiveFrom: new Date(effectiveFrom),
+        effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        action: "KPI_UPDATED",
+        entity: "KPI",
+        entityId: kpi.id,
+        details: JSON.stringify({ kpiName: kpi.name }),
+        userId: user.id,
+        loanId: kpi.loanId,
+        kpiId: kpi.id,
+      },
+    });
+
+    revalidatePath(`/loans/${kpi.loanId}`);
+    revalidatePath("/analytics");
+    revalidateTag(`loan-${kpi.loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`analytics-${user.id}`);
+    revalidateTag(`audit-${user.id}`);
+
+    return { success: true, kpiId: kpi.id };
+  } catch (error) {
+    console.error("Error editing KPI:", error);
+    return { error: "Failed to edit KPI" };
   }
 }
 
@@ -183,6 +262,11 @@ export async function updateKPIStatus(kpiId: string, data: UpdateKPIStatus) {
     });
 
     revalidatePath(`/loans/${kpi.loanId}`);
+    revalidatePath("/analytics");
+    revalidateTag(`loan-${kpi.loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`analytics-${user.id}`);
+    revalidateTag(`audit-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -246,6 +330,13 @@ export async function inviteLender(loanId: string, lenderEmail: string) {
     });
 
     revalidatePath(`/loans/${loanId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/loans");
+    revalidateTag(`loan-${loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    if (lenderUser.organizationId) {
+      revalidateTag(`org-${lenderUser.organizationId}`);
+    }
 
     return { success: true };
   } catch (error) {
@@ -321,11 +412,96 @@ export async function createMarginRatchet(
     });
 
     revalidatePath(`/loans/${loanId}`);
+    revalidateTag(`loan-${loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
 
     return { success: true, marginRatchetId: marginRatchet.id };
   } catch (error) {
     console.error("Error creating margin ratchet:", error);
     return { error: "Failed to create margin ratchet" };
+  }
+}
+
+export async function editMarginRatchet(
+  marginRatchetId: string,
+  data: CreateMarginRatchetForm
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { error: "Unauthorized" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user || user.role !== "BORROWER") {
+      return { error: "Only borrowers can edit margin ratchets" };
+    }
+
+    // Verify margin ratchet exists and belongs to borrower's organization
+    const existingRatchet = await prisma.marginRatchet.findUnique({
+      where: { id: marginRatchetId },
+      include: { loan: true, kpi: true },
+    });
+
+    if (!existingRatchet) {
+      return { error: "Margin ratchet not found" };
+    }
+
+    if (existingRatchet.loan.borrowerOrgId !== user.organizationId) {
+      return {
+        error: "You don't have permission to edit this margin ratchet",
+      };
+    }
+
+    const validated = await CreateMarginRatchetFormSchema.parseAsync(data);
+
+    // Verify KPI belongs to the same loan
+    const kpi = await prisma.kPI.findUnique({
+      where: { id: validated.kpiId },
+    });
+
+    if (!kpi || kpi.loanId !== existingRatchet.loanId) {
+      return { error: "KPI not found for this loan" };
+    }
+
+    // Transform form dates to Date objects, spread the rest directly
+    const { observationStart, observationEnd, ...restFields } = validated;
+    const marginRatchet = await prisma.marginRatchet.update({
+      where: { id: marginRatchetId },
+      data: {
+        ...restFields,
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        action: "MARGIN_RATCHET_UPDATED",
+        entity: "MARGIN_RATCHET",
+        entityId: marginRatchet.id,
+        details: JSON.stringify({
+          kpiId: kpi.id,
+          kpiName: kpi.name,
+          stepUpBps: marginRatchet.stepUpBps,
+          stepDownBps: marginRatchet.stepDownBps,
+        }),
+        userId: user.id,
+        loanId: existingRatchet.loanId,
+        kpiId: kpi.id,
+      },
+    });
+
+    revalidatePath(`/loans/${existingRatchet.loanId}`);
+    revalidateTag(`loan-${existingRatchet.loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+
+    return { success: true, marginRatchetId: marginRatchet.id };
+  } catch (error) {
+    console.error("Error editing margin ratchet:", error);
+    return { error: "Failed to edit margin ratchet" };
   }
 }
 
@@ -376,6 +552,8 @@ export async function deleteMarginRatchet(marginRatchetId: string) {
     });
 
     revalidatePath(`/loans/${marginRatchet.loanId}`);
+    revalidateTag(`loan-${marginRatchet.loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
 
     return { success: true };
   } catch (error) {
@@ -432,6 +610,10 @@ export async function deleteKPI(kpiId: string) {
     });
 
     revalidatePath(`/loans/${kpi.loanId}`);
+    revalidatePath("/analytics");
+    revalidateTag(`loan-${kpi.loanId}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`analytics-${user.id}`);
 
     return { success: true };
   } catch (error) {

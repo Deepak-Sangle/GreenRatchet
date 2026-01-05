@@ -8,7 +8,7 @@ import {
   type ConnectAWSInput,
   type ConnectGCPInput,
 } from "@/lib/validations/cloud";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function connectAWS(data: ConnectAWSInput) {
   try {
@@ -53,6 +53,10 @@ export async function connectAWS(data: ConnectAWSInput) {
     });
 
     revalidatePath("/cloud");
+    revalidatePath("/dashboard");
+    revalidateTag(`cloud-${user.id}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -107,6 +111,10 @@ export async function connectGCP(data: ConnectGCPInput) {
     });
 
     revalidatePath("/cloud");
+    revalidatePath("/dashboard");
+    revalidateTag(`cloud-${user.id}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -156,6 +164,10 @@ export async function disconnectCloud(connectionId: string) {
     });
 
     revalidatePath("/cloud");
+    revalidatePath("/dashboard");
+    revalidateTag(`cloud-${user.id}`);
+    revalidateTag(`org-${user.organizationId}`);
+    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { createMarginRatchet } from "@/app/actions/loans";
+import { createMarginRatchet, editMarginRatchet } from "@/app/actions/loans";
 import { ObservationPeriodSchema } from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +56,8 @@ interface MarginRatchetDialogProps {
     maxAdjustmentBps?: number;
   };
   triggerButton?: ReactNode;
-  mode?: "create" | "duplicate";
+  mode?: "create" | "duplicate" | "edit";
+  ratchetId?: string;
 }
 
 export function MarginRatchetDialog({
@@ -66,6 +67,7 @@ export function MarginRatchetDialog({
   defaultValues,
   triggerButton,
   mode = "create",
+  ratchetId,
 }: MarginRatchetDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,10 @@ export function MarginRatchetDialog({
     setLoading(true);
     setError(null);
 
-    const result = await createMarginRatchet(loanId, data);
+    const result =
+      mode === "edit" && ratchetId
+        ? await editMarginRatchet(ratchetId, data)
+        : await createMarginRatchet(loanId, data);
 
     if (result?.error) {
       setError(result.error);
@@ -99,14 +104,24 @@ export function MarginRatchetDialog({
     }
   }
 
-  const isDuplicate = mode === "duplicate";
-  const dialogTitle = isDuplicate
-    ? "Duplicate Margin Ratchet"
-    : "Configure Margin Ratchet";
-  const dialogDescription = isDuplicate
-    ? "Create a new margin ratchet based on the existing configuration. Modify the values as needed."
-    : "Define how the loan margin adjusts based on KPI performance. Step up increases interest rate when targets are not met, step down decreases interest rate when targets are met.";
-  const submitButtonText = isDuplicate ? "Create Duplicate" : "Create Ratchet";
+  const dialogTitle =
+    mode === "edit"
+      ? "Edit Margin Ratchet"
+      : mode === "duplicate"
+        ? "Duplicate Margin Ratchet"
+        : "Configure Margin Ratchet";
+  const dialogDescription =
+    mode === "edit"
+      ? "Update the margin ratchet configuration. Changes will be saved immediately."
+      : mode === "duplicate"
+        ? "Create a new margin ratchet based on the existing configuration. Modify the values as needed."
+        : "Define how the loan margin adjusts based on KPI performance. Step up increases interest rate when targets are not met, step down decreases interest rate when targets are met.";
+  const submitButtonText =
+    mode === "edit"
+      ? "Save Changes"
+      : mode === "duplicate"
+        ? "Create Duplicate"
+        : "Create Ratchet";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

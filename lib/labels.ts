@@ -3,9 +3,9 @@
 
 import {
   CloudProvider,
-  KpiCategory,
   KpiDirection,
   KpiStatus,
+  KpiType,
   KpiValueType,
   LoanCurrency,
   LoanType,
@@ -51,23 +51,20 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   LENDER: "Lender",
 };
 
-export const KPI_CATEGORY_LABELS: Record<KpiCategory, string> = {
-  ENVIRONMENTAL: "Environmental",
-  OPERATIONAL: "Operational",
-  GOVERNANCE: "Governance",
+export const KPI_TYPE_LABELS: Record<KpiType, string> = {
+  CO2_EMISSION: "CO2 Emission",
+  AI_COMPUTE_HOURS: "AI Compute Hours",
 };
 
 export const KPI_VALUE_TYPE_LABELS: Record<KpiValueType, string> = {
   ABSOLUTE: "Absolute Value",
-  INTENSITY: "Intensity",
+  RATIO: "Ratio",
   PERCENTAGE: "Percentage",
-  SCORE: "Score",
 };
 
 export const KPI_DIRECTION_LABELS: Record<KpiDirection, string> = {
   LOWER_IS_BETTER: "Minimize",
   HIGHER_IS_BETTER: "Maximize",
-  TARGET_RANGE: "Target Range",
 };
 
 export const KPI_FREQUENCY_LABELS: Record<ObservationPeriod, string> = {

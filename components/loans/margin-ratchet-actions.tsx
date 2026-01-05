@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { MarginRatchetDialog } from "./margin-ratchet-dialog";
 import { MarginRatchetViewDialog } from "./margin-ratchet-view-dialog";
@@ -60,6 +60,27 @@ export function MarginRatchetActions({
     <div className="flex items-center gap-1">
       {/* View Dialog */}
       <MarginRatchetViewDialog ratchet={ratchet} />
+
+      {/* Edit Button - Opens dialog with pre-filled values for editing */}
+      {isBorrower && kpis.length > 0 && (
+        <MarginRatchetDialog
+          loanId={loanId}
+          kpis={kpis}
+          defaultKpiId={ratchet.kpi.id}
+          defaultValues={{
+            stepUpBps: ratchet.stepUpBps,
+            stepDownBps: ratchet.stepDownBps,
+            maxAdjustmentBps: ratchet.maxAdjustmentBps,
+          }}
+          triggerButton={
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          }
+          mode="edit"
+          ratchetId={ratchet.id}
+        />
+      )}
 
       {/* Duplicate Button - Opens create dialog with pre-filled values */}
       {isBorrower && kpis.length > 0 && (

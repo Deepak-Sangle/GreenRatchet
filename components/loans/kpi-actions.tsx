@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, Eye, Trash2 } from "lucide-react";
+import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { KPIFormDialog } from "./kpi-form-dialog";
 import { KPIData, KPIViewDialog } from "./kpi-view-dialog";
@@ -25,6 +25,7 @@ export function KPIActions({ kpi, loanId, isBorrower }: KPIActionsProps) {
   const [viewOpen, setViewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +60,14 @@ export function KPIActions({ kpi, loanId, isBorrower }: KPIActionsProps) {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setEditOpen(true)}
+              title="Edit KPI"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setDuplicateOpen(true)}
               title="Duplicate KPI"
             >
@@ -80,6 +89,17 @@ export function KPIActions({ kpi, loanId, isBorrower }: KPIActionsProps) {
       {/* View Dialog */}
       <KPIViewDialog kpi={kpi} open={viewOpen} onOpenChange={setViewOpen} />
 
+      {/* Edit Dialog - opens KPI form pre-filled with current KPI data */}
+      <KPIFormDialog
+        loanId={loanId}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        initialData={kpi}
+        hideTrigger
+        mode="edit"
+        kpiId={kpi.id}
+      />
+
       {/* Duplicate Dialog - opens KPI form pre-filled with current KPI data */}
       <KPIFormDialog
         loanId={loanId}
@@ -87,6 +107,7 @@ export function KPIActions({ kpi, loanId, isBorrower }: KPIActionsProps) {
         onOpenChange={setDuplicateOpen}
         initialData={kpi}
         hideTrigger
+        mode="duplicate"
       />
 
       {/* Delete Confirmation Dialog */}

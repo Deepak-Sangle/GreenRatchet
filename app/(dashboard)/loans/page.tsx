@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,10 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -20,7 +16,52 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
+import { Plus } from "lucide-react";
+import { unstable_cache } from "next/cache";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+// Enable caching for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+async function getLoansData(userId: string, organizationId: string) {
+  return unstable_cache(
+    async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          organization: {
+            include: {
+              borrowerLoans: {
+                include: {
+                  kpis: true,
+                  lenderOrg: true,
+                  borrowerOrg: true,
+                },
+                orderBy: { createdAt: "desc" },
+              },
+              lenderLoans: {
+                include: {
+                  kpis: true,
+                  borrowerOrg: true,
+                  lenderOrg: true,
+                },
+                orderBy: { createdAt: "desc" },
+              },
+            },
+          },
+        },
+      });
+    },
+    [`loans-${userId}-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [`loans-${userId}`, `org-${organizationId}`],
+    }
+  )();
+}
 
 export default async function LoansPage() {
   const session = await auth();
@@ -29,31 +70,18 @@ export default async function LoansPage() {
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // First get basic user info to check organization
+  const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
-      organization: {
-        include: {
-          borrowerLoans: {
-            include: {
-              kpis: true,
-              lenderOrg: true,
-              borrowerOrg: true,
-            },
-            orderBy: { createdAt: "desc" },
-          },
-          lenderLoans: {
-            include: {
-              kpis: true,
-              borrowerOrg: true,
-              lenderOrg: true,
-            },
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      },
-    },
+    select: { id: true, organizationId: true, role: true },
   });
+
+  if (!basicUser || !basicUser.organizationId) {
+    redirect("/auth/signin");
+  }
+
+  // Get cached loans data
+  const user = await getLoansData(basicUser.id, basicUser.organizationId);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");
@@ -110,9 +138,7 @@ export default async function LoansPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Deal Name</TableHead>
-                  <TableHead>
-                    {isBorrower ? "Lender" : "Borrower"}
-                  </TableHead>
+                  <TableHead>{isBorrower ? "Lender" : "Borrower"}</TableHead>
                   <TableHead>KPIs</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>

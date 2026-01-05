@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
-  KPI_CATEGORY_LABELS,
   KPI_DIRECTION_LABELS,
   KPI_FREQUENCY_LABELS,
   KPI_STATUS_LABELS,
+  KPI_TYPE_LABELS,
   KPI_VALUE_TYPE_LABELS,
 } from "@/lib/labels";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getKPIUnit } from "@/lib/utils";
 import { Target, TrendingDown, TrendingUp } from "lucide-react";
 
 export type KPIData = KPI & {
@@ -40,6 +40,8 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
         : kpi.status === "PROPOSED"
           ? "warning"
           : "secondary";
+
+  const unit = getKPIUnit(kpi);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,9 +66,9 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
             </h4>
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Category</span>
+                <span className="text-muted-foreground">Type</span>
                 <Badge variant="outline">
-                  {KPI_CATEGORY_LABELS[kpi.category] || kpi.category}
+                  {KPI_TYPE_LABELS[kpi.type] || kpi.type}
                 </Badge>
               </div>
               <div className="flex justify-between">
@@ -76,10 +78,6 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Unit</span>
-                <span className="font-medium">{kpi.unit}</span>
-              </div>
-              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Direction</span>
                 <span className="flex items-center gap-1 font-medium">
                   {kpi.direction === "LOWER_IS_BETTER" ? (
@@ -107,12 +105,22 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                 <p className="text-xs text-muted-foreground mb-1">Target</p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400">
                   {kpi.targetValue}
+                  {unit && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      {unit}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800">
                 <p className="text-xs text-muted-foreground mb-1">Baseline</p>
                 <p className="text-xl font-bold">
                   {kpi.baselineValue !== null ? kpi.baselineValue : "—"}
+                  {unit && kpi.baselineValue !== null && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      {unit}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -124,6 +132,11 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                   </p>
                   <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
                     {kpi.thresholdMin !== null ? kpi.thresholdMin : "—"}
+                    {unit && kpi.thresholdMin !== null && (
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        {unit}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
@@ -132,6 +145,11 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                   </p>
                   <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
                     {kpi.thresholdMax !== null ? kpi.thresholdMax : "—"}
+                    {unit && kpi.thresholdMax !== null && (
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        {unit}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -189,7 +207,7 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                     <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
                       <p className="text-xs text-muted-foreground">Step Down</p>
                       <p className="font-bold text-red-600 dark:text-red-400">
-                        +{ratchet.stepDownBps} bps
+                        -{ratchet.stepDownBps} bps
                       </p>
                     </div>
                     <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800">
