@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/dashboard/header";
 import { Nav } from "@/components/dashboard/nav";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
-export default async function AuditLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -25,19 +25,20 @@ export default async function AuditLayout({
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-background">
       <Header
         user={{
           name: user.name,
           email: user.email,
           role: user.role,
+          avatarUrl: user.avatarUrl,
         }}
         organizationName={user.organization.name}
       />
       <div className="flex flex-1 overflow-hidden">
         <Nav role={user.role} />
-        <main className="flex-1 overflow-y-auto bg-background p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-mesh p-8 scrollbar-thin">
+          <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

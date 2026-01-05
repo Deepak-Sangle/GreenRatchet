@@ -10,6 +10,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -49,6 +53,19 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        soft: "0 2px 8px -2px rgba(0, 0, 0, 0.05), 0 4px 16px -4px rgba(0, 0, 0, 0.08)",
+        "soft-lg":
+          "0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.1)",
+        glow: "0 0 20px -5px hsl(var(--primary) / 0.3)",
+      },
+      backgroundImage: {
+        "gradient-subtle":
+          "linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%)",
+        "gradient-primary":
+          "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(160 60% 35%) 100%)",
+        mesh: "radial-gradient(at 40% 20%, hsl(var(--accent) / 0.3) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(var(--primary) / 0.15) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(var(--accent) / 0.2) 0px, transparent 50%)",
       },
     },
   },

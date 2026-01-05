@@ -12,11 +12,13 @@ const LoanCreateFields = LoanSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  // all these ids are added by the server
   createdByUserId: true,
-  startDate: true,
-  maturityDate: true,
   borrowerOrgId: true,
   lenderOrgId: true,
+  // startDate and maturityDate are required but we set that below
+  startDate: true,
+  maturityDate: true,
 }).required({
   name: true,
   currency: true,

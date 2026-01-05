@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -84,7 +83,7 @@ export function MarginRatchetViewDialog({
               <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
                 <p className="text-xs text-muted-foreground mb-1">Step Down</p>
                 <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                  {formatBps(ratchet.stepDownBps)}
+                  {formatBps(-1 * ratchet.stepDownBps)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   When target missed
@@ -94,9 +93,9 @@ export function MarginRatchetViewDialog({
                 <p className="text-xs text-muted-foreground mb-1">
                   Max Adjustment
                 </p>
-                <Badge variant="outline" className="text-base font-bold">
+                <p className="text-lg font-bold text-slate-600 dark:text-slate-400">
                   ±{ratchet.maxAdjustmentBps} bps
-                </Badge>
+                </p>
               </div>
             </div>
           </div>

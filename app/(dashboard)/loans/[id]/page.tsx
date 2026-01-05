@@ -122,8 +122,8 @@ export default async function LoanDetailPage(props: {
             {acceptedKPIs.length > 0 && (
               <Link href={`/api/export/${loan.id}`} target="_blank">
                 <Button variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Export KPI Schedule
+                  <Download className="h-4" />
+                  Export Loan Data
                 </Button>
               </Link>
             )}
@@ -426,7 +426,7 @@ export default async function LoanDetailPage(props: {
                   <TableHead>Step Up</TableHead>
                   <TableHead>Step Down</TableHead>
                   <TableHead>Max Adjustment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -447,7 +447,7 @@ export default async function LoanDetailPage(props: {
                     </TableCell>
                     <TableCell>
                       <span className="text-red-600 font-medium">
-                        {formatBps(ratchet.stepDownBps)}
+                        {formatBps(-1 * ratchet.stepDownBps)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -455,7 +455,7 @@ export default async function LoanDetailPage(props: {
                         ±{ratchet.maxAdjustmentBps} bps
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <MarginRatchetActions
                         loanId={loan.id}
                         ratchet={ratchet}

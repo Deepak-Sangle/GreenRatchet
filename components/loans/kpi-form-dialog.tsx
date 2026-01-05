@@ -151,7 +151,7 @@ export function KPIFormDialog({
       {!hideTrigger && (
         <DialogTrigger asChild>
           <Button>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4" />
             Add KPI
           </Button>
         </DialogTrigger>
