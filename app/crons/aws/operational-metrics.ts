@@ -42,6 +42,7 @@ interface EC2UsageMetrics {
   instanceId: string;
   instanceType: string;
   region: string;
+  metadata: Record<string, any>; // Raw EC2 instance metadata from AWS
   cpuUtilization: MetricData[]; // Percentage
   networkIn: MetricData[]; // Bytes
   networkOut: MetricData[]; // Bytes
@@ -54,6 +55,7 @@ interface S3UsageMetrics {
   bucketName: string;
   region: string;
   storageClass: string; // StandardStorage, StandardIAStorage, GlacierStorage, etc.
+  metadata: Record<string, any>; // Raw S3 bucket metadata from AWS
   numberOfObjects: MetricData[]; // Count
   bucketSizeBytes: MetricData[]; // Bytes
   bytesUploaded: MetricData[]; // Bytes
@@ -66,6 +68,7 @@ interface EBSUsageMetrics {
   volumeType: string;
   volumeSizeGB: number; // Volume size in GB
   region: string;
+  metadata: Record<string, any>; // Raw EBS volume metadata from AWS
   volumeReadBytes: MetricData[]; // Bytes
   volumeWriteBytes: MetricData[]; // Bytes
   volumeReadOps: MetricData[]; // Count
@@ -79,6 +82,7 @@ interface RDSUsageMetrics {
   engine: string;
   region: string;
   allocatedStorageGB: number; // Allocated storage in GB
+  metadata: Record<string, any>; // Raw RDS instance metadata from AWS
   cpuUtilization: MetricData[]; // Percentage
   databaseConnections: MetricData[]; // Count
   readIOPS: MetricData[]; // Count/Second
@@ -194,6 +198,7 @@ export async function calculateEC2Metrics(
       instanceId,
       instanceType,
       region,
+      metadata: instance,
       cpuUtilization: parseMetricDataResult(
         results.find((r) => r.Id === "cpuUtilization")!
       ),
@@ -381,6 +386,11 @@ export async function calculateS3Metrics(
         bucketName,
         region,
         storageClass,
+        metadata: {
+          bucketName,
+          region,
+          storageClass,
+        },
         numberOfObjects,
         bucketSizeBytes,
         bytesUploaded,
@@ -480,6 +490,7 @@ export async function calculateEBSMetrics(
       volumeType,
       volumeSizeGB,
       region,
+      metadata: volume,
       volumeReadBytes: parseMetricDataResult(
         results.find((r) => r.Id === "volumeReadBytes")!
       ),
@@ -627,6 +638,7 @@ export async function calculateRDSMetrics(
       engine,
       region,
       allocatedStorageGB,
+      metadata: dbInstance,
       cpuUtilization: parseMetricDataResult(
         results.find((r) => r.Id === "cpuUtilization")!
       ),
@@ -708,30 +720,19 @@ async function processAndStoreServiceMetrics(
   const serviceData = metrics
     .map((metric) => {
       let serviceId: string;
-      let additionalData: Record<string, any>;
+
+      // Use the metadata field which contains AWS resource info (not metrics)
+      const additionalData = metric.metadata;
 
       if (metric.serviceName === "EC2") {
         serviceId = metric.instanceId;
-        additionalData = {
-          instanceType: metric.instanceType,
-        };
       } else if (metric.serviceName === "S3") {
         // Include storage class in serviceId to track different classes separately
         serviceId = `${metric.bucketName}/${metric.storageClass}`;
-        additionalData = {
-          storageClass: metric.storageClass,
-        };
       } else if (metric.serviceName === "EBS") {
         serviceId = metric.volumeId;
-        additionalData = {
-          volumeType: metric.volumeType,
-        };
       } else if (metric.serviceName === "RDS") {
         serviceId = metric.dbInstanceIdentifier;
-        additionalData = {
-          dbInstanceClass: metric.dbInstanceClass,
-          engine: metric.engine,
-        };
       } else {
         return null;
       }
