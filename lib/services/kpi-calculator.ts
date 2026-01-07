@@ -27,6 +27,7 @@ export interface KPICalculationResult {
 
 /**
  * Calculate KPI value from cloud usage data
+ * Dummy implementation for now
  */
 export function calculateKPI(
   kpi: KPI,

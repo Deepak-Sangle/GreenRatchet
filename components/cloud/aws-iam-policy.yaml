@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  GreenRatchet IAM Role - Read-only access for ESG metrics collection
+
+Parameters:
+  ExternalId:
+    Type: String
+    Description: External ID for secure cross-account access (strongly recommended)
+    Default: ""
+    AllowedPattern: "^[a-zA-Z0-9+=,.@:/_-]*$"
+    ConstraintDescription: External ID can contain alphanumeric characters and +=,.@:/_- symbols
+
+Conditions:
+  HasExternalId: !Not [!Equals [!Ref ExternalId, ""]]
+
+Resources:
+  GreenRatchetRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GreenRatchetReadOnly
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::869442501222:root
+            Action: sts:AssumeRole
+            Condition: !If
+              - HasExternalId
+              - StringEquals:
+                  sts:ExternalId: !Ref ExternalId
+              - !Ref AWS::NoValue
+
+      Policies:
+        - PolicyName: GreenRatchetUsageRead
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Operational Metrics - CloudWatch
+              - Sid: CloudWatchReadAccess
+                Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricData
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:ListMetrics
+                Resource: "*"
+
+              # Operational Metrics - EC2
+              - Sid: EC2ReadAccess
+                Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeInstanceStatus
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeVolumeStatus
+                  - ec2:DescribeRegions
+                  - ec2:DescribeAvailabilityZones
+                Resource: "*"
+
+              # Operational Metrics - RDS
+              - Sid: RDSReadAccess
+                Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                  - rds:DescribeDBClusters
+                  - rds:ListTagsForResource
+                Resource: "*"
+
+              # Operational Metrics - S3
+              - Sid: S3ReadAccess
+                Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                  - s3:GetBucketLocation
+                  - s3:GetBucketTagging
+                  - s3:ListBucket
+                Resource: "*"
+
+              # Embodied Metrics - Cost Explorer
+              - Sid: CostExplorerReadAccess
+                Effect: Allow
+                Action:
+                  - ce:GetCostAndUsage
+                  - ce:GetCostForecast
+                  - ce:GetDimensionValues
+                  - ce:GetTags
+                Resource: "*"
+
+              # Future Support - Additional AWS Services
+              - Sid: AdditionalServicesReadAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                  - dynamodb:ListTables
+                  - docdb:DescribeDBClusters
+                  - docdb:DescribeDBInstances
+                  - redshift:DescribeClusters
+                  - neptune:DescribeDBClusters
+                  - cassandra:Select
+                Resource: "*"
+
+Outputs:
+  RoleArn:
+    Description: |
+      The ARN of the GreenRatchet IAM role - copy this to the GreenRatchet app
+      This role provides read-only access to operational and embodied metrics across all regions
+    Value: !GetAtt GreenRatchetRole.Arn
+    Export:
+      Name: GreenRatchetRoleArn
+
+  RoleName:
+    Description: The name of the IAM role created
+    Value: !Ref GreenRatchetRole
+
+  ExternalIdUsed:
+    Description: The External ID configured for this role (if any)
+    Value: !If [HasExternalId, !Ref ExternalId, "Not configured"]
+
+  PermissionsGranted:
+    Description: Summary of permissions granted to this role
+    Value: |
+      CloudWatch (GetMetricData), EC2 (DescribeInstances, DescribeVolumes),
+      RDS (DescribeDBInstances), S3 (ListBuckets, GetBucketLocation),
+      Cost Explorer (GetCostAndUsage), and additional services for future support

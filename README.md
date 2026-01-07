@@ -206,6 +206,14 @@ GreenRatchet/
 - [ ] Webhook integrations for legal systems
 - [ ] Azure cloud support
 
+# How we calculate CO2e and Energy Consumption from Cloud Usage
+1. Firstly, we calculate cloud usage ourself by looking at each service and their usage w.r.t. machine type, avg cpu/gpu load, storage, network in / out, etc.
+2. Then we use the OxygenIT APIs to get the Energy consumption and the CO2e emission
+3. We take both operational metrics (scope 2) via cloudwatch to get running co2e as well as the embodied metrics (scope 3) via billing usage to get constant co2e emission.
+4. We may additionally enrich the information using electricitymaps api, but they are paid only
+5. We then calculate various other KPIs that we have defined
+6. The KPIs now run as a cron jobs
+
 ## Support
 
 For issues or questions, please open an issue on GitHub.

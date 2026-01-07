@@ -246,7 +246,7 @@ export default async function LoanDetailPage(props: {
                   : "Review proposed KPIs. Accept or reject each KPI."}
               </CardDescription>
             </div>
-            {<KPIFormDialog loanId={loan.id} />}
+            {<KPIFormDialog hideTrigger={isLender} loanId={loan.id} />}
           </div>
         </CardHeader>
         <CardContent>

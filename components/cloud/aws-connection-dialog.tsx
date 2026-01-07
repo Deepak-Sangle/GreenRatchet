@@ -22,23 +22,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CFN_TEMPLATE_URL } from "@/lib/constants";
 import {
   ConnectAWSSchema,
   type ConnectAWSInput,
 } from "@/lib/validations/cloud";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink } from "lucide-react";
-import { useState } from "react";
+import {
+  AlertTriangle,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Shield,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-interface AWSConnectionDialogProps {
-  accountId: string; // Your AWS account ID for the trust policy
+// Generate a cryptographically random external ID
+function generateExternalId(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
 }
 
-export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
+export function AWSConnectionDialog() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const form = useForm<ConnectAWSInput>({
     resolver: zodResolver(ConnectAWSSchema),
@@ -48,7 +61,32 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
     },
   });
 
-  const cloudFormationUrl = `https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://greenratchet-cfn.s3.amazonaws.com/esg-assurance-role.yaml&stackName=GreenRatchet-ESG-Role&param_ExternalAccountId=${accountId}`;
+  const externalId = form.watch("externalId");
+
+  // Generate external ID when dialog opens
+  useEffect(() => {
+    if (open && !form.getValues("externalId")) {
+      form.setValue("externalId", generateExternalId());
+    }
+  }, [open, form]);
+
+  const regenerateExternalId = useCallback(() => {
+    form.setValue("externalId", generateExternalId());
+  }, [form]);
+
+  const copyExternalId = useCallback(async () => {
+    const id = form.getValues("externalId");
+    if (id) {
+      await navigator.clipboard.writeText(id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [form]);
+
+  // Build CloudFormation URL with the External ID parameter
+  const cloudFormationUrl = externalId
+    ? `https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=${encodeURIComponent(CFN_TEMPLATE_URL)}&stackName=GreenRatchet-ESG-Role&param_ExternalId=${encodeURIComponent(externalId)}`
+    : `https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=${encodeURIComponent(CFN_TEMPLATE_URL)}&stackName=GreenRatchet-ESG-Role`;
 
   async function onSubmit(data: ConnectAWSInput) {
     setLoading(true);
@@ -69,7 +107,7 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="w-full">
+        <Button size="lg" variant="outline" className="w-full">
           Connect AWS
         </Button>
       </DialogTrigger>
@@ -83,15 +121,79 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Step 1: External ID Configuration */}
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-amber-500" />
+                <h4 className="font-medium text-sm">
+                  Step 1: Configure External ID (Strongly Recommended)
+                </h4>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                External IDs prevent confused deputy attacks. We&apos;ve
+                generated a unique ID for you. This ID will be passed to the
+                CloudFormation template automatically.
+              </p>
+
+              <div className="flex items-center gap-2 p-3 bg-background rounded-lg border">
+                <Input
+                  value={externalId}
+                  onChange={(e) => form.setValue("externalId", e.target.value)}
+                  placeholder="Enter or generate an External ID"
+                  className="font-mono text-sm border-0 p-0 h-auto focus-visible:ring-0"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyExternalId}
+                  className="shrink-0"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={regenerateExternalId}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  New
+                </Button>
+              </div>
+
+              {!externalId && (
+                <div className="flex items-center gap-2 text-amber-600 text-sm">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>
+                    Without an External ID, your IAM role may be vulnerable to
+                    confused deputy attacks.
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 2: Deploy CloudFormation */}
           <Card className="border-primary/20 bg-accent/30">
             <CardContent className="pt-6 space-y-3">
               <h4 className="font-medium text-sm">
-                Step 1: Deploy CloudFormation Stack
+                Step 2: Deploy CloudFormation Stack
               </h4>
               <p className="text-sm text-muted-foreground">
                 Click the button below to deploy an IAM role in your AWS
                 account. This role grants read-only access to Cost Explorer,
-                EC2, and EKS for carbon emissions calculation.
+                Cost Explorer, CloudWatch, and AWS services that potentially
+                generate carbon emissions.
+                {externalId && (
+                  <span className="block mt-1 text-primary">
+                    The External ID above will be pre-filled in the stack
+                    parameters.
+                  </span>
+                )}
               </p>
               <a
                 href={cloudFormationUrl}
@@ -106,10 +208,11 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
             </CardContent>
           </Card>
 
-          <Card className="border-primary/20 bg-accent/30">
+          {/* Step 3: Enter Role ARN */}
+          <Card className="border-primary/20 bg-blue-50">
             <CardContent className="pt-6 space-y-3">
               <h4 className="font-medium text-sm">
-                Step 2: Enter Role Details
+                Step 3: Enter Role Details
               </h4>
               <p className="text-sm text-muted-foreground">
                 After the stack is created, copy the Role ARN from the
@@ -133,7 +236,7 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
                     <FormLabel>Role ARN</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="arn:aws:iam::123456789012:role/GreenRatchet-ESG-Role"
+                        placeholder="arn:aws:iam::123456789012:role/GreenRatchetReadOnly"
                         {...field}
                       />
                     </FormControl>
@@ -149,12 +252,22 @@ export function AWSConnectionDialog({ accountId }: AWSConnectionDialogProps) {
                 name="externalId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>External ID (Optional)</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      External ID
+                      <span className="text-xs text-amber-600 font-normal">
+                        (Strongly Recommended)
+                      </span>
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="your-external-id" {...field} />
+                      <Input
+                        placeholder="your-external-id"
+                        className="font-mono"
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription>
-                      Additional security layer (optional)
+                      Must match the External ID used when creating the
+                      CloudFormation stack
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
