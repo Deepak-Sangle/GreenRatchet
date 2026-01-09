@@ -236,7 +236,7 @@ export function AWSConnectionDialog() {
                     <FormLabel>Role ARN</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="arn:aws:iam::123456789012:role/GreenRatchetReadOnly"
+                        placeholder="arn:aws:iam::123456789012:role/ccf"
                         {...field}
                       />
                     </FormControl>

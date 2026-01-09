@@ -2,6 +2,8 @@
  * Application-wide constants
  */
 
+import z from "zod";
+
 /**
  * GreenRatchet's AWS account ID - used for cross-account IAM role trust policies
  */
@@ -50,3 +52,52 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/gif",
   "image/webp",
 ];
+
+/**
+ * Supported cloud services for usage tracking
+ */
+export const CloudServiceSchema = z.enum([
+  "EC2",
+  "EBS",
+  "ElastiCache",
+  "RDS",
+  "S3",
+  "Lambda",
+]);
+export type CloudService = z.infer<typeof CloudServiceSchema>;
+export const CLOUD_SERVICES = CloudServiceSchema.options;
+
+/**
+ * Human-readable labels for cloud services
+ */
+export const CLOUD_SERVICE_LABELS: Record<CloudService, string> = {
+  EC2: "EC2",
+  EBS: "EBS",
+  ElastiCache: "ElastiCache",
+  RDS: "RDS",
+  S3: "S3",
+  Lambda: "Lambda",
+};
+
+export const TimeRangeSchema = z.enum(["7d", "30d", "90d", "1y", "custom"]);
+export type TimeRangeValue = z.infer<typeof TimeRangeSchema>;
+export const TIME_RANGE_OPTIONS = TimeRangeSchema.options.map((option) => ({
+  value: option,
+  label: option,
+}));
+
+export const CloudMetricSchema = z.enum(["co2e", "kilowattHours", "cost"]);
+export type CloudMetricValue = z.infer<typeof CloudMetricSchema>;
+
+/**
+ * Metric options for cloud usage charts
+ */
+export const CLOUD_METRIC_OPTIONS = [
+  { value: "co2e", label: "CO₂e (kg)", color: "hsl(var(--chart-1))" },
+  {
+    value: "kilowattHours",
+    label: "Energy (kWh)",
+    color: "hsl(var(--chart-2))",
+  },
+  { value: "cost", label: "Cost ($)", color: "hsl(var(--chart-3))" },
+] as const;

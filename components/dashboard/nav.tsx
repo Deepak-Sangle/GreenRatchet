@@ -2,14 +2,24 @@
 
 import { cn } from "@/lib/utils";
 import {
+  Activity,
   BarChart3,
   Cloud,
   FileText,
+  Gauge,
   History,
   LayoutDashboard,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  exact?: boolean;
+}
 
 interface NavProps {
   role: string;
@@ -18,7 +28,7 @@ interface NavProps {
 export function Nav({ role }: NavProps) {
   const pathname = usePathname();
 
-  const navItems = [
+  const navItems: NavItem[] = [
     {
       label: "Dashboard",
       href: "/dashboard",
@@ -30,13 +40,19 @@ export function Nav({ role }: NavProps) {
       icon: FileText,
     },
     ...(role === "BORROWER"
-      ? [
+      ? ([
           {
             label: "Cloud Connections",
             href: "/cloud",
             icon: Cloud,
+            exact: true,
           },
-        ]
+          {
+            label: "Cloud Usage",
+            href: "/cloud/usage",
+            icon: Gauge,
+          },
+        ] satisfies NavItem[])
       : []),
     {
       label: "KPI Analytics",
@@ -56,8 +72,9 @@ export function Nav({ role }: NavProps) {
       <div className="space-y-1.5 flex-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = item.exact
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link
@@ -87,10 +104,22 @@ export function Nav({ role }: NavProps) {
 
       {/* Bottom section */}
       <div className="mt-auto pt-4 border-t border-border/40">
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 flex items-center justify-between">
           <p className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wide">
             GreenRatchet v1.0
           </p>
+          <a
+            href="https://stats.uptimerobot.com/CniKWG5yWE"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-1.5 text-muted-foreground/60 hover:text-emerald-500 transition-colors duration-200"
+            title="API Status"
+          >
+            <Activity className="h-3.5 w-3.5 group-hover:animate-pulse" />
+            <span className="text-[10px] font-medium uppercase tracking-wide">
+              Status
+            </span>
+          </a>
         </div>
       </div>
     </nav>

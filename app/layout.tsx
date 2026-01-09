@@ -17,6 +17,11 @@ const bricolage = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "GreenRatchet",
   description: "Sustainability-Linked Loan Management Platform",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

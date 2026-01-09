@@ -40,6 +40,11 @@ enum LoanType {
   CREDIT_CARD // The loan is a credit card that can be used as needed
 }
 
+enum CloudServiceSource {
+  OPERATIONAL_METRICS
+  EMBODIED_METRICS
+}
+
 model User {
   id             String        @id @default(cuid())
   name           String?
@@ -50,7 +55,7 @@ model User {
   image          String?
   role           UserRole
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditLogs      AuditLog[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -70,6 +75,7 @@ model Organization {
   cloudConnections CloudConnection[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  auditLogs        AuditLog[]
 }
 
 enum LoanCurrency {
@@ -111,7 +117,7 @@ model Loan {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   createdByUserId String
-  createdByUser   User            @relation(fields: [createdByUserId], references: [id])
+  createdByUser   User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   marginRatchets  MarginRatchet[]
 }
 
@@ -193,23 +199,48 @@ model KPIResult {
 }
 
 model CloudConnection {
-  id                String         @id @default(cuid())
+  id                String           @id @default(cuid())
   provider          CloudProvider
   // AWS specific
   roleArn           String?
   externalId        String?
+  accountId         String?
   // GCP specific
-  serviceAccountKey String?        @db.Text
+  serviceAccountKey String?          @db.Text
   projectId         String?
   // Common
-  isActive          Boolean        @default(true)
+  isActive          Boolean          @default(true)
   lastSync          DateTime?
   organizationId    String
-  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditLogs         AuditLog[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  cloudServices     CloudService[]
+  footprintData     CloudFootprint[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model CloudFootprint {
+  id                String          @id @default(cuid())
+  cloudConnectionId String
+  cloudConnection   CloudConnection @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
+  timestamp         DateTime
+  periodStartDate   DateTime
+  periodEndDate     DateTime
+  cloudProvider     String
+  kilowattHours     Float
+  // CO2e is in MTCO2e here
+  co2e              Float
+  cost              Float
+  accountId         String
+  serviceName       String
+  region            String
+  tags              String?         @db.Text // JSON string
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([cloudConnectionId])
+  @@index([periodStartDate, periodEndDate])
+  @@index([serviceName])
 }
 
 model AuditLog {
@@ -219,88 +250,16 @@ model AuditLog {
   entityId          String
   details           String           @db.Text // JSON string
   userId            String?
-  user              User?            @relation(fields: [userId], references: [id])
+  user              User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   loanId            String?
-  loan              Loan?            @relation(fields: [loanId], references: [id])
+  loan              Loan?            @relation(fields: [loanId], references: [id], onDelete: Cascade)
   kpiId             String?
-  kpi               KPI?             @relation(fields: [kpiId], references: [id])
+  kpi               KPI?             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   kpiResultId       String?
-  kpiResult         KPIResult?       @relation(fields: [kpiResultId], references: [id])
+  kpiResult         KPIResult?       @relation(fields: [kpiResultId], references: [id], onDelete: Cascade)
   cloudConnectionId String?
-  cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id])
+  organizationId    String?
+  organization      Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
   createdAt         DateTime         @default(now())
-}
-
-// Model for each service (of AWS for now) that is present in the CloudConnection
-// Services we currently support are EC2, S3, EBS, RDS, DynamoDB, DocumentDB, Redshift, Neptune, Keyspaces
-// additionalData will have info like instance type, storage, etc.
-model CloudService {
-  id                   String                    @id @default(cuid())
-  serviceName          String
-  serviceId            String
-  region               String // AWS region (e.g., us-east-1, eu-west-1) or "global" for region-agnostic services
-  additionalData       Json
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  cloudUsageDatas      CloudOperationalMetrics[]
-  cloudEmbodiedMetrics CloudEmbodiedMetrics[]
-  cloudConnectionId    String
-  cloudConnection      CloudConnection           @relation(fields: [cloudConnectionId], references: [id])
-
-  @@index([cloudConnectionId, region])
-  @@index([serviceName, region])
-}
-
-// Model for Cloud Usage Data that we get every hour - this 
-// This will have each service's (of AWS for now) usage data  like compute, storage, networking, instance types, etc.
-// This traps the operational metrics (scope 2) via cloudwatch to get running co2e per service
-model CloudOperationalMetrics {
-  id             String       @id @default(cuid())
-  // Whose usage data is this? -> CloudService
-  cloudServiceId String
-  // Need to add correct fields, but I need to know what data i can actually get from the APIs
-  cloudService   CloudService @relation(fields: [cloudServiceId], references: [id], onDelete: Cascade)
-  periodStart    DateTime // Start of measurement period (typically hourly)
-  periodEnd      DateTime // End of measurement period (typically hourly)
-  // vCpu hours doesn't make sense since we are calculating this record every hour
-  // vCpuHours         Float?
-  // This model would only have the analytics like that are present in the `Monitoring` tab of each service
-  averageCpuLoad Float? // Services that requires this field for OxygenIT API to work - EC2, 
-  network        Float? // Services - EC2, RDS (called exchange), DyanamoDB, DocumentDB, Redshift, Neptune, Keyspaces
-  instanceType   String? // Services - EC2
-  region         String // Services - all
-  storageBytes   Float? // Services - S3, EBS, RDS, DynamoDB, DocumentDB, Redshift, Neptune, Keyspaces
-  storageClass   String? // Services - S3
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([cloudServiceId, periodStart, periodEnd])
-  @@map("CloudUsageData")
-}
-
-// Model for Embodied Carbon Metrics - calculated monthly from AWS Cost Explorer
-// This captures billing cost and usage hours per service/region/instance type
-// Used for embodied carbon calculations (scope 3 - manufacturing, shipping, disposal)
-model CloudEmbodiedMetrics {
-  id                String       @id @default(cuid())
-  cloudServiceId    String
-  cloudService      CloudService @relation(fields: [cloudServiceId], references: [id], onDelete: Cascade)
-  periodStart       DateTime // Start of billing period (typically month start)
-  periodEnd         DateTime // End of billing period (typically month end)
-  region            String // AWS region (e.g., us-east-1)
-  instanceType      String? // EC2/RDS instance type, EBS volume type, etc.
-  serviceName       String // EC2, S3, RDS, DynamoDB, DocumentDB, Redshift, Neptune, Keyspaces, EBS
-  usageType         String? // Detailed usage type from Cost Explorer (e.g., BoxUsage:t2.micro)
-  instanceHours     Float? // Total hours instances were running
-  storageGBHours    Float? // Total GB-hours of storage
-  requestCount      Float? // Number of requests (for S3, DynamoDB, etc.)
-  dataTransferGB    Float? // Data transfer in GB
-  totalCost         Float // Total cost in USD for this service/region/type
-  unblendedCost     Float? // Unblended cost (without reserved instance discounts)
-  additionalMetrics Json? // Flexible field for service-specific metrics
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  @@index([cloudServiceId, periodStart, periodEnd])
-  @@index([serviceName, region, periodStart])
 }

@@ -69,20 +69,22 @@ export async function fetchCloudUsageData(
 function generateMockCloudData(): CloudUsageData {
   const provider: "AWS" | "GCP" = Math.random() > 0.5 ? "AWS" : "GCP";
 
-  const regions = provider === "AWS"
-    ? ["us-east-1", "us-west-2", "eu-west-1", "eu-north-1"]
-    : ["us-central1", "us-west1", "europe-west1"];
+  const regions =
+    provider === "AWS"
+      ? ["us-east-1", "us-west-2", "eu-west-1", "eu-north-1"]
+      : ["us-central1", "us-west1", "europe-west1"];
 
-  const instanceTypes = provider === "AWS"
-    ? [
-        { type: "p3.2xlarge", hours: 1200, isGPU: true },
-        { type: "p4d.24xlarge", hours: 450, isGPU: true },
-        { type: "g4dn.xlarge", hours: 800, isGPU: true },
-      ]
-    : [
-        { type: "a2-highgpu-1g", hours: 950, isGPU: true },
-        { type: "n1-standard-16-v100", hours: 600, isGPU: true },
-      ];
+  const instanceTypes =
+    provider === "AWS"
+      ? [
+          { type: "p3.2xlarge", hours: 1200, isGPU: true },
+          { type: "p4d.24xlarge", hours: 450, isGPU: true },
+          { type: "g4dn.xlarge", hours: 800, isGPU: true },
+        ]
+      : [
+          { type: "a2-highgpu-1g", hours: 950, isGPU: true },
+          { type: "n1-standard-16-v100", hours: 600, isGPU: true },
+        ];
 
   let totalAIComputeHours = 0;
   let totalEnergyKwh = 0;

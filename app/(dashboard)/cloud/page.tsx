@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import { AWSConnectionDialog } from "@/components/cloud/aws-connection-dialog";
+import { DisconnectCloudButton } from "@/components/cloud/disconnect-cloud-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Cloud, Database, Server, XCircle } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -75,7 +76,8 @@ export default async function CloudConnectionsPage() {
       <div>
         <h1 className="text-3xl font-bold">Cloud Connections</h1>
         <p className="text-muted-foreground mt-2">
-          Connect your cloud providers to enable automated ESG data collection
+          Connect your cloud providers and infrastructure to enable automated
+          ESG data collection
         </p>
       </div>
 
@@ -94,7 +96,7 @@ export default async function CloudConnectionsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -135,6 +137,12 @@ export default async function CloudConnectionsPage() {
                     </p>
                   )}
                 </div>
+                <div className="pt-2">
+                  <DisconnectCloudButton
+                    connectionId={awsConnection.id}
+                    provider="AWS"
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -148,8 +156,8 @@ export default async function CloudConnectionsPage() {
           </CardContent>
         </Card>
 
-        {/* TODO: Add GCP connection card */}
-        {/* <Card>
+        {/* Google Cloud Platform - Coming Soon */}
+        <Card className="opacity-60">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -162,43 +170,79 @@ export default async function CloudConnectionsPage() {
                   </CardTitle>
                 </div>
               </div>
+              <Badge variant="secondary">Coming Soon</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {gcpConnection ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium">Connected</span>
-                  <Badge variant="success">Active</Badge>
-                </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    <strong>Project ID:</strong> {gcpConnection.projectId}
-                  </p>
-                  <p>
-                    <strong>Connected:</strong>{" "}
-                    {formatDate(gcpConnection.createdAt)}
-                  </p>
-                  {gcpConnection.lastSync && (
-                    <p>
-                      <strong>Last Sync:</strong>{" "}
-                      {formatDate(gcpConnection.lastSync)}
-                    </p>
-                  )}
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <XCircle className="h-5 w-5" />
+                <span className="text-sm">Not connected</span>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <XCircle className="h-5 w-5" />
-                  <span className="text-sm">Not connected</span>
-                </div>
-                <GCPConnectionDialog />
-              </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                GCP integration is under development and will be available soon.
+              </p>
+            </div>
           </CardContent>
-        </Card> */}
+        </Card>
+
+        {/* Microsoft Azure - Coming Soon */}
+        <Card className="opacity-60">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-sky-100 flex items-center justify-center">
+                  <Server className="h-6 w-6 text-sky-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Microsoft Azure</CardTitle>
+                </div>
+              </div>
+              <Badge variant="secondary">Coming Soon</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <XCircle className="h-5 w-5" />
+                <span className="text-sm">Not connected</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Azure integration is under development and will be available
+                soon.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* On-Premise - Coming Soon */}
+        <Card className="opacity-60">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <Database className="h-6 w-6 text-slate-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">On-Premise</CardTitle>
+                </div>
+              </div>
+              <Badge variant="secondary">Coming Soon</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <XCircle className="h-5 w-5" />
+                <span className="text-sm">Not connected</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                On-premise infrastructure integration is under development and
+                will be available soon.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
