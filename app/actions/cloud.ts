@@ -382,7 +382,7 @@ export interface CloudUsageResponse {
  */
 function aggregateByDate(
   footprints: Array<{
-    periodStartDate: string;
+    periodStartDate: Date;
     co2e: number;
     kilowattHours: number;
     cost: number;
@@ -391,7 +391,7 @@ function aggregateByDate(
   const dateMap = new Map<string, CloudUsageDataPoint>();
 
   for (const footprint of footprints) {
-    const dateKey = footprint.periodStartDate.split("T")[0];
+    const dateKey = footprint.periodStartDate.toISOString().split("T")[0];
     const existing = dateMap.get(dateKey);
 
     if (existing) {
