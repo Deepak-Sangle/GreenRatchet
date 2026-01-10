@@ -219,24 +219,30 @@ model CloudConnection {
   updatedAt         DateTime         @updatedAt
 }
 
+enum CloudFootprintType {
+  OPERATIONAL_METRICS
+  EMBODIED_METRICS
+}
+
 model CloudFootprint {
-  id                String          @id @default(cuid())
+  id                String             @id @default(cuid())
   cloudConnectionId String
-  cloudConnection   CloudConnection @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
+  cloudConnection   CloudConnection    @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
   timestamp         DateTime
   periodStartDate   DateTime
   periodEndDate     DateTime
   cloudProvider     String
-  kilowattHours     Float
+  kilowattHours     Float?
   // CO2e is in MTCO2e here
   co2e              Float
-  cost              Float
-  accountId         String
+  serviceType       String?
+  type              CloudFootprintType @default(OPERATIONAL_METRICS)
+  cost              Float?
   serviceName       String
   region            String
-  tags              String?         @db.Text // JSON string
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  tags              String?            @db.Text // JSON string
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([cloudConnectionId])
   @@index([periodStartDate, periodEndDate])

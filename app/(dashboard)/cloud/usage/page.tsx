@@ -2,6 +2,7 @@
 
 import {
   backfillCloudUsageAction,
+  exportCloudUsageCSV,
   getCloudUsageData,
   type CloudUsageResponse,
 } from "@/app/actions/cloud";
@@ -34,10 +35,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  AGGREGATION_PERIOD_OPTIONS,
+  AWS_CLOUD_CONSTANTS,
+  AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH,
   CLOUD_METRIC_OPTIONS,
   CLOUD_SERVICE_LABELS,
   CLOUD_SERVICES,
   TIME_RANGE_OPTIONS,
+  type AggregationPeriodValue,
   type CloudMetricValue,
   type CloudService,
   type TimeRangeValue,
@@ -51,7 +56,11 @@ import {
   Calendar,
   Cloud,
   Database,
+  Download,
+  ExternalLink,
+  FileSpreadsheet,
   Filter,
+  Info,
   Leaf,
   RefreshCw,
   TrendingUp,
@@ -65,6 +74,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   Tooltip as RechartsTooltip,
@@ -108,9 +118,28 @@ function formatMetricValue(value: number, metric: CloudMetricValue): string {
     .exhaustive();
 }
 
-/** Formats date for chart display */
-function formatChartDate(dateString: string): string {
-  return format(new Date(dateString), "MMM d");
+/** Formats date for chart display based on aggregation period */
+function formatChartDate(
+  dateString: string,
+  aggregation: AggregationPeriodValue
+): string {
+  return match(aggregation)
+    .with("day", () => format(new Date(dateString), "MMM d"))
+    .with("week", () => {
+      // For week format (YYYY-Www), extract and display as "Week N"
+      const weekMatch = dateString.match(/W(\d+)/);
+      return weekMatch ? `Week ${weekMatch[1]}` : dateString;
+    })
+    .with("month", () => format(new Date(dateString + "-01"), "MMM yyyy"))
+    .exhaustive();
+}
+
+/** Gets aggregation label for display */
+function getAggregationLabel(aggregation: AggregationPeriodValue): string {
+  const option = AGGREGATION_PERIOD_OPTIONS.find(
+    (o) => o.value === aggregation
+  );
+  return option?.label.toLowerCase() ?? "daily";
 }
 
 /** Gets the metric label for display */
@@ -126,48 +155,6 @@ function getMetricIcon(metric: CloudMetricValue): React.ReactNode {
     .with("kilowattHours", () => <Zap className="h-4 w-4" />)
     .with("cost", () => <TrendingUp className="h-4 w-4" />)
     .exhaustive();
-}
-
-/** Custom tooltip for charts */
-function CustomTooltip({
-  active,
-  payload,
-  label,
-  metric,
-}: {
-  active?: boolean;
-  payload?: Array<{
-    value: number;
-    name: string;
-    color: string;
-    dataKey: string;
-  }>;
-  label?: string;
-  metric: CloudMetricValue;
-}) {
-  if (!active || !payload || payload.length === 0) return null;
-
-  return (
-    <div className="rounded-lg border bg-popover p-3 shadow-lg">
-      <p className="text-sm font-medium text-muted-foreground mb-2">
-        {label && format(new Date(label), "MMM d, yyyy")}
-      </p>
-      {payload.map((entry, index) => {
-        const metricKey = entry.dataKey as CloudMetricValue;
-        return (
-          <div
-            key={index}
-            className="flex items-center justify-between gap-4 text-sm"
-          >
-            <span style={{ color: entry.color }}>{entry.name}</span>
-            <span className="font-medium">
-              {formatMetricValue(entry.value, metricKey)}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 /** Service toggle button component */
@@ -196,6 +183,80 @@ function ServiceToggle({
   );
 }
 
+/** Gets relevant emissions factors for regions in use */
+function getRelevantEmissionsFactors(
+  availableRegions: string[]
+): Array<{ region: string; factor: number }> {
+  return availableRegions
+    .map((region) => ({
+      region,
+      factor: AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH[region] ?? 0,
+    }))
+    .filter((item) => item.factor > 0)
+    .sort((a, b) => a.region.localeCompare(b.region));
+}
+
+/** Exports calculation constants to CSV */
+function exportConstantsToCSV(availableRegions: string[]): void {
+  const csvLines: string[] = [];
+
+  // Header
+  csvLines.push("Calculation Constants for Cloud Carbon Footprint\n");
+
+  // Key Constants
+  csvLines.push("\nKey Constants");
+  csvLines.push("Constant,Value,Unit");
+  csvLines.push(
+    `Power Usage Effectiveness (PUE),${AWS_CLOUD_CONSTANTS.PUE_AVG},ratio`
+  );
+  csvLines.push(
+    `SSD Coefficient,${AWS_CLOUD_CONSTANTS.SSDCOEFFICIENT},Wh/TB-hour`
+  );
+  csvLines.push(
+    `HDD Coefficient,${AWS_CLOUD_CONSTANTS.HDDCOEFFICIENT},Wh/TB-hour`
+  );
+  csvLines.push(
+    `Memory Coefficient,${AWS_CLOUD_CONSTANTS.MEMORY_COEFFICIENT},kWh/GB`
+  );
+  csvLines.push(
+    `Networking Coefficient,${AWS_CLOUD_CONSTANTS.NETWORKING_COEFFICIENT},kWh/GB`
+  );
+  csvLines.push(
+    `Average CPU Utilization,${AWS_CLOUD_CONSTANTS.AVG_CPU_UTILIZATION_2020},%`
+  );
+  csvLines.push(
+    `Server Expected Lifespan,${AWS_CLOUD_CONSTANTS.SERVER_EXPECTED_LIFESPAN},hours`
+  );
+
+  // Regional Emissions Factors
+  csvLines.push("\n\nRegional Emissions Factors (Active Regions)");
+  csvLines.push("Region,Emissions Factor (mtCO2e/kWh)");
+  const emissionsFactors = getRelevantEmissionsFactors(availableRegions);
+  for (const { region, factor } of emissionsFactors) {
+    csvLines.push(`${region},${factor}`);
+  }
+
+  // Storage Replication Factors
+  csvLines.push("\n\nStorage Replication Factors");
+  csvLines.push("Service,Replication Factor");
+  for (const [service, factor] of Object.entries(
+    AWS_CLOUD_CONSTANTS.REPLICATION_FACTORS
+  )) {
+    csvLines.push(`${service},${factor}`);
+  }
+
+  const csv = csvLines.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `cloud-constants-${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function CloudUsagePage() {
   const [data, setData] = useState<CloudUsageResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,11 +272,16 @@ export default function CloudUsagePage() {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [selectedMetric, setSelectedMetric] =
     useState<CloudMetricValue>("co2e");
+  const [aggregationPeriod, setAggregationPeriod] =
+    useState<AggregationPeriodValue>("day");
 
   // Backfill state
   const [backfillDialogOpen, setBackfillDialogOpen] = useState(false);
   const [backfillLoading, setBackfillLoading] = useState(false);
   const [backfillError, setBackfillError] = useState<string | null>(null);
+
+  // Export state
+  const [exportLoading, setExportLoading] = useState(false);
 
   // CO2 comparison state
   const [selectedComparisonIndex, setSelectedComparisonIndex] = useState(0);
@@ -259,6 +325,7 @@ export default function CloudUsagePage() {
           ? new Date(customEndDate)
           : undefined,
       metric: selectedMetric,
+      aggregation: aggregationPeriod,
     });
 
     if (result.error) {
@@ -276,6 +343,7 @@ export default function CloudUsagePage() {
     customStartDate,
     customEndDate,
     selectedMetric,
+    aggregationPeriod,
   ]);
 
   // Initial fetch
@@ -291,6 +359,7 @@ export default function CloudUsagePage() {
     setCustomStartDate("");
     setCustomEndDate("");
     setSelectedMetric("co2e");
+    setAggregationPeriod("day");
   }, []);
 
   /** Handles backfill action */
@@ -309,11 +378,44 @@ export default function CloudUsagePage() {
     }
   }, []);
 
+  /** Handles CSV export */
+  const handleExport = useCallback(async () => {
+    if (!data?.footprints) return;
+
+    setExportLoading(true);
+
+    const result = await exportCloudUsageCSV(data.footprints);
+
+    setExportLoading(false);
+
+    if (result.error) {
+      alert(result.error);
+    } else if (result.csv !== undefined) {
+      // Create blob and download
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `cloud-usage-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  }, [data]);
+
   /** Prepares time series data for the chart */
-  const timeSeriesChartData = data?.timeSeries.map((point) => ({
-    date: point.date,
-    [yAxisMetric]: point[yAxisMetric],
-  }));
+  const timeSeriesChartData = data?.timeSeries.map((point) => {
+    const operationalKey = `operational_${yAxisMetric}` as keyof typeof point;
+    const embodiedKey = `embodied_${yAxisMetric}` as keyof typeof point;
+
+    return {
+      date: point.date,
+      [yAxisMetric]: point[yAxisMetric],
+      operational: point[operationalKey] ?? 0,
+      embodied: point[embodiedKey] ?? 0,
+    };
+  });
 
   /** Prepares service data for the pie chart */
   const serviceChartData = data?.byService.map((service) => ({
@@ -357,7 +459,7 @@ export default function CloudUsagePage() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  Backfill cloud usage data for the last 2 years. This process
+                  Backfill cloud usage data for the last 1 year. This process
                   runs in the background and may take several minutes to
                   complete.
                 </p>
@@ -399,7 +501,7 @@ export default function CloudUsagePage() {
                 <p>
                   Your cloud usage data backfill has been initiated
                   successfully. This process will retrieve and process data from
-                  the last 2 years.
+                  the last 1 year.
                 </p>
                 <div className="rounded-md bg-muted p-3 space-y-2">
                   <p className="text-sm font-medium text-foreground">
@@ -433,14 +535,40 @@ export default function CloudUsagePage() {
                 <Filter className="h-5 w-5 text-muted-foreground" />
                 <CardTitle className="text-lg">Filters</CardTitle>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="text-muted-foreground"
-              >
-                Reset
-              </Button>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      disabled={exportLoading || loading || !data}
+                      className="gap-2"
+                    >
+                      <Download
+                        className={cn(
+                          "h-4 w-4",
+                          exportLoading && "animate-pulse"
+                        )}
+                      />
+                      Export CSV
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Export cloud usage data as CSV based on current filters
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-muted-foreground"
+                >
+                  Reset
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -513,21 +641,21 @@ export default function CloudUsagePage() {
                 </>
               )}
 
-              {/* Metric Selection */}
+              {/* Aggregation Period Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Metric</Label>
+                <Label className="text-sm font-medium">Aggregation</Label>
                 <Select
-                  value={selectedMetric}
+                  value={aggregationPeriod}
                   onValueChange={(v) =>
-                    setSelectedMetric(v as CloudMetricValue)
+                    setAggregationPeriod(v as AggregationPeriodValue)
                   }
                 >
                   <SelectTrigger>
-                    <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Select metric" />
+                    <BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select aggregation" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CLOUD_METRIC_OPTIONS.map((option) => (
+                    {AGGREGATION_PERIOD_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -588,9 +716,9 @@ export default function CloudUsagePage() {
               <Cloud className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Usage Data</h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                No cloud usage data found for the selected filters. Connect a
-                cloud provider and sync data to see your environmental
-                footprint.
+                No cloud usage data found for the selected filters. Either
+                change the filters or connect a cloud provider and sync data to
+                see your environmental footprint.
               </p>
             </CardContent>
           </Card>
@@ -657,6 +785,60 @@ export default function CloudUsagePage() {
               </Card>
             </div>
 
+            {/* Metrics Explanation Card */}
+            <Card className="border-primary/20 bg-accent/20">
+              <CardHeader>
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-semibold text-sm">
+                      Understanding Operational vs Embodied Metrics
+                    </h3>
+                    <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-primary" />
+                          <span className="font-medium">
+                            Operational Metrics
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                          Energy consumed and emissions produced during the
+                          active use of cloud resources (compute, storage,
+                          networking). Measured in real-time based on actual
+                          workload.
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: "hsl(152, 58%, 58%)" }}
+                          />
+                          <span className="font-medium">Embodied Metrics</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                          Emissions from manufacturing, transporting, and
+                          disposing of hardware infrastructure. Amortized over
+                          the expected lifespan of the equipment (typically 4
+                          years for servers).{" "}
+                          <a
+                            href="https://www.oxygenit.io/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            Source: OxygenIT
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+
             {/* Charts */}
             <Tabs defaultValue="timeseries" className="space-y-4">
               <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
@@ -685,8 +867,9 @@ export default function CloudUsagePage() {
                           {getMetricLabel(yAxisMetric)} Over Time
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Daily breakdown of{" "}
-                          {getMetricLabel(yAxisMetric).toLowerCase()}
+                          {getAggregationLabel(aggregationPeriod)} breakdown of{" "}
+                          {getMetricLabel(yAxisMetric).toLowerCase()}{" "}
+                          (operational vs embodied)
                         </p>
                       </div>
                       <Badge variant="secondary">
@@ -703,7 +886,7 @@ export default function CloudUsagePage() {
                         >
                           <defs>
                             <linearGradient
-                              id="colorMetric"
+                              id="colorOperational"
                               x1="0"
                               y1="0"
                               x2="0"
@@ -720,6 +903,24 @@ export default function CloudUsagePage() {
                                 stopOpacity={0}
                               />
                             </linearGradient>
+                            <linearGradient
+                              id="colorEmbodied"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="hsl(152, 58%, 58%)"
+                                stopOpacity={0.3}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="hsl(152, 58%, 58%)"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
                           </defs>
                           <CartesianGrid
                             strokeDasharray="3 3"
@@ -728,7 +929,9 @@ export default function CloudUsagePage() {
                           />
                           <XAxis
                             dataKey="date"
-                            tickFormatter={formatChartDate}
+                            tickFormatter={(date) =>
+                              formatChartDate(date, aggregationPeriod)
+                            }
                             stroke="hsl(var(--muted-foreground))"
                             fontSize={12}
                             tickLine={false}
@@ -744,11 +947,37 @@ export default function CloudUsagePage() {
                             }
                           />
                           <RechartsTooltip
-                            formatter={(value: number | undefined) =>
-                              formatMetricValue(value ?? 0, yAxisMetric)
-                            }
+                            formatter={(
+                              value: number | undefined,
+                              name?: string
+                            ) => {
+                              const label =
+                                name === "operational"
+                                  ? "Operational"
+                                  : name === "embodied"
+                                    ? "Embodied"
+                                    : (name ?? "Value");
+                              return [
+                                formatMetricValue(value ?? 0, yAxisMetric),
+                                label,
+                              ];
+                            }}
                             labelFormatter={(label: string) =>
-                              format(new Date(label), "MMM d, yyyy")
+                              match(aggregationPeriod)
+                                .with("day", () =>
+                                  format(new Date(label), "MMM d, yyyy")
+                                )
+                                .with("week", () => {
+                                  const weekMatch =
+                                    label.match(/(\d{4})-W(\d+)/);
+                                  return weekMatch
+                                    ? `Week ${weekMatch[2]}, ${weekMatch[1]}`
+                                    : label;
+                                })
+                                .with("month", () =>
+                                  format(new Date(label + "-01"), "MMMM yyyy")
+                                )
+                                .exhaustive()
                             }
                             contentStyle={{
                               backgroundColor: "hsl(var(--popover))",
@@ -756,12 +985,33 @@ export default function CloudUsagePage() {
                               borderRadius: "var(--radius)",
                             }}
                           />
+                          <Legend
+                            verticalAlign="top"
+                            height={36}
+                            iconType="line"
+                            formatter={(value) => {
+                              return value === "operational"
+                                ? "Operational Metrics"
+                                : value === "embodied"
+                                  ? "Embodied Metrics"
+                                  : value;
+                            }}
+                          />
                           <Area
                             type="monotone"
-                            dataKey={yAxisMetric}
+                            dataKey="operational"
+                            name="Operational"
                             stroke="hsl(var(--primary))"
                             strokeWidth={2}
-                            fill="url(#colorMetric)"
+                            fill="url(#colorOperational)"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="embodied"
+                            name="Embodied"
+                            stroke="hsl(152, 58%, 58%)"
+                            strokeWidth={2}
+                            fill="url(#colorEmbodied)"
                           />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -985,27 +1235,124 @@ export default function CloudUsagePage() {
                 </CardContent>
               </Card>
 
-              {/* Right Half - Reserved for Future Content */}
-              <div className="hidden lg:block" />
-            </div>
+              {/* Calculation Constants Card - Right Half */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary" />
+                        Calculation Methodology
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Constants used for carbon footprint calculations
+                      </p>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            exportConstantsToCSV(data.availableRegions)
+                          }
+                          className="gap-2"
+                        >
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Export
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Download calculation constants as CSV</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Key Constants */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Key Constants
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
+                        <span className="text-muted-foreground">
+                          Average Power Usage Effectiveness (PUE)
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {AWS_CLOUD_CONSTANTS.PUE_AVG}
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
+                        <span className="text-muted-foreground">
+                          Memory Coefficient
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {AWS_CLOUD_CONSTANTS.MEMORY_COEFFICIENT} kWh/GB
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
+                        <span className="text-muted-foreground">
+                          SSD Coefficient
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {AWS_CLOUD_CONSTANTS.SSDCOEFFICIENT} Wh/TB
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
+                        <span className="text-muted-foreground">
+                          HDD Coefficient
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {AWS_CLOUD_CONSTANTS.HDDCOEFFICIENT} Wh/TB
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Info Card */}
-            <Card className="border-primary/20 bg-accent/30">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  About Cloud Carbon Footprint
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Carbon emissions are calculated using regional grid carbon
-                  intensity factors and Power Usage Effectiveness (PUE) for each
-                  data center. Energy consumption is estimated based on cloud
-                  resource utilization patterns. All calculations follow the
-                  Cloud Jewels methodology developed by Etsy.
-                </p>
-              </CardContent>
-            </Card>
+                  {/* Regional Emissions Factors */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center justify-between">
+                      <span>Emissions Factors (Active Regions)</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {data.availableRegions.length} regions
+                      </Badge>
+                    </h4>
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-2">
+                      {getRelevantEmissionsFactors(data.availableRegions)
+                        .slice(0, 8)
+                        .map(({ region, factor }) => (
+                          <div
+                            key={region}
+                            className="flex items-center justify-between text-xs p-1.5 rounded hover:bg-muted/30 transition-colors"
+                          >
+                            <span className="text-muted-foreground font-mono">
+                              {region}
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {factor.toFixed(7)} mtCO₂e/kWh
+                            </span>
+                          </div>
+                        ))}
+                      {data.availableRegions.length > 8 && (
+                        <p className="text-xs text-muted-foreground italic pt-1">
+                          +{data.availableRegions.length - 8} more regions
+                          (export for full list)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Methodology Note */}
+                  <div className="pt-2 border-t text-xs text-muted-foreground">
+                    <p>
+                      Calculations use region-specific grid carbon intensity and
+                      PUE. Export for full methodology details.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </>
         )}
       </div>

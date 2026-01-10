@@ -1,4 +1,5 @@
 import {
+  AggregationPeriodSchema,
   CloudMetricSchema,
   CloudServiceSchema,
   TimeRangeSchema,
@@ -24,6 +25,7 @@ export const CloudUsageFilterSchema = z.object({
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   metric: CloudMetricSchema.default(CloudMetricSchema.options[0]),
+  aggregation: AggregationPeriodSchema.default("day"),
 });
 
 export type ConnectAWSInput = z.infer<typeof ConnectAWSSchema>;

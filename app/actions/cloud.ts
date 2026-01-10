@@ -205,7 +205,7 @@ export async function disconnectCloud(connectionId: string) {
 }
 
 /**
- * Triggers a backfill of cloud usage data for the last 2 years
+ * Triggers a backfill of cloud usage data for the last 1 year
  */
 export async function backfillCloudUsageAction(): Promise<{
   success?: boolean;
@@ -243,11 +243,11 @@ export async function backfillCloudUsageAction(): Promise<{
 
     const availableRegions = await getAllAvailableRegions();
 
-    // 5. Calculate date range (last 2 years)
+    // 5. Calculate date range (last 1 year)
     const endDate = new Date();
     // take only the date part (no hours, minutes, seconds)
     endDate.setHours(0, 0, 0, 0);
-    const startDate = subYears(endDate, 2);
+    const startDate = subYears(endDate, 1);
     startDate.setHours(0, 0, 0, 0);
 
     // 6. Trigger sync for each connection (fire and forget)
@@ -270,6 +270,8 @@ export async function backfillCloudUsageAction(): Promise<{
           config: {
             AWS: {
               INCLUDE_ESTIMATES: true,
+              INCLUDE_EMBODIED_METRICS: true,
+              INCLUDE_OPERATIONAL_METRICS: true,
               USE_BILLING_DATA: false,
               accounts: [{ id: connection.accountId }],
               CURRENT_REGIONS: availableRegions,
@@ -344,6 +346,13 @@ export interface CloudUsageDataPoint {
   co2e: number; // in metric tons (mtCO2e)
   kilowattHours: number;
   cost: number;
+  // Separate metrics by type
+  operational_co2e?: number;
+  operational_kilowattHours?: number;
+  operational_cost?: number;
+  embodied_co2e?: number;
+  embodied_kilowattHours?: number;
+  embodied_cost?: number;
 }
 
 export interface CloudUsageByService {
@@ -361,10 +370,25 @@ export interface CloudUsageByRegion {
   cost: number;
 }
 
+export interface CloudFootprint {
+  co2e: number;
+  kilowattHours: number;
+  cost: number | null;
+  periodStartDate: Date;
+  serviceName: string;
+  cloudProvider: string;
+  region: string;
+  tags: string | null;
+  periodEndDate: Date;
+  type: string;
+  serviceType: string | null;
+}
+
 export interface CloudUsageResponse {
   timeSeries: CloudUsageDataPoint[];
   byService: CloudUsageByService[];
   byRegion: CloudUsageByRegion[];
+  footprints: CloudFootprint[];
   totals: {
     co2e: number; // in metric tons (mtCO2e)
     kilowattHours: number;
@@ -378,35 +402,106 @@ export interface CloudUsageResponse {
 }
 
 /**
- * Aggregates footprint data by date
+ * Gets the ISO week key for a date (YYYY-Www format)
+ */
+function getWeekKey(date: Date): string {
+  const tempDate = new Date(date);
+  // Set to nearest Thursday: current date + 4 - current day number
+  tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+  // Get first day of year
+  const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+  // Calculate full weeks to nearest Thursday
+  const weekNo = Math.ceil(
+    ((tempDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+  );
+  // Return ISO week format
+  return `${tempDate.getFullYear()}-W${weekNo.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Gets the month key for a date (YYYY-MM format)
+ */
+function getMonthKey(date: Date): string {
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+}
+
+function getDayKey(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+/**
+ * Gets the date key based on aggregation period
+ */
+function getDateKey(date: Date, aggregation: "day" | "week" | "month"): string {
+  return match(aggregation)
+    .with("day", () => getDayKey(date))
+    .with("week", () => getWeekKey(date))
+    .with("month", () => getMonthKey(date))
+    .exhaustive();
+}
+
+/**
+ * Aggregates footprint data by date with support for day, week, and month aggregation
  */
 function aggregateByDate(
   footprints: Array<{
     periodStartDate: Date;
     co2e: number;
     kilowattHours: number;
-    cost: number;
-  }>
+    cost: number | null;
+    type: string;
+  }>,
+  aggregation: "day" | "week" | "month" = "day"
 ): CloudUsageDataPoint[] {
   const dateMap = new Map<string, CloudUsageDataPoint>();
 
   for (const footprint of footprints) {
-    const dateKey = footprint.periodStartDate.toISOString().split("T")[0];
+    const dateKey = getDateKey(footprint.periodStartDate, aggregation);
     const existing = dateMap.get(dateKey);
+    const isOperational = footprint.type === "OPERATIONAL_METRICS";
+    const cost = footprint.cost ?? 0;
 
     if (existing) {
       dateMap.set(dateKey, {
         date: dateKey,
         co2e: existing.co2e + footprint.co2e,
         kilowattHours: existing.kilowattHours + footprint.kilowattHours,
-        cost: existing.cost + footprint.cost,
+        cost: existing.cost + cost,
+        operational_co2e: isOperational
+          ? (existing.operational_co2e ?? 0) + footprint.co2e
+          : existing.operational_co2e,
+        operational_kilowattHours: isOperational
+          ? (existing.operational_kilowattHours ?? 0) + footprint.kilowattHours
+          : existing.operational_kilowattHours,
+        operational_cost: isOperational
+          ? (existing.operational_cost ?? 0) + cost
+          : existing.operational_cost,
+        embodied_co2e: !isOperational
+          ? (existing.embodied_co2e ?? 0) + footprint.co2e
+          : existing.embodied_co2e,
+        embodied_kilowattHours: !isOperational
+          ? (existing.embodied_kilowattHours ?? 0) + footprint.kilowattHours
+          : existing.embodied_kilowattHours,
+        embodied_cost: !isOperational
+          ? (existing.embodied_cost ?? 0) + cost
+          : existing.embodied_cost,
       });
     } else {
       dateMap.set(dateKey, {
         date: dateKey,
         co2e: footprint.co2e,
         kilowattHours: footprint.kilowattHours,
-        cost: footprint.cost,
+        cost: cost,
+        operational_co2e: isOperational ? footprint.co2e : undefined,
+        operational_kilowattHours: isOperational
+          ? footprint.kilowattHours
+          : undefined,
+        operational_cost: isOperational ? cost : undefined,
+        embodied_co2e: !isOperational ? footprint.co2e : undefined,
+        embodied_kilowattHours: !isOperational
+          ? footprint.kilowattHours
+          : undefined,
+        embodied_cost: !isOperational ? cost : undefined,
       });
     }
   }
@@ -424,7 +519,7 @@ function aggregateByService(
     serviceName: string;
     co2e: number;
     kilowattHours: number;
-    cost: number;
+    cost: number | null;
   }>,
   serviceLabels: Record<CloudService, string>
 ): CloudUsageByService[] {
@@ -439,7 +534,7 @@ function aggregateByService(
         ...existing,
         co2e: existing.co2e + footprint.co2e,
         kilowattHours: existing.kilowattHours + footprint.kilowattHours,
-        cost: existing.cost + footprint.cost,
+        cost: existing.cost + (footprint.cost ?? 0),
       });
     } else {
       serviceMap.set(service, {
@@ -447,7 +542,7 @@ function aggregateByService(
         label: serviceLabels[service] ?? service,
         co2e: footprint.co2e,
         kilowattHours: footprint.kilowattHours,
-        cost: footprint.cost,
+        cost: footprint.cost ?? 0,
       });
     }
   }
@@ -463,7 +558,7 @@ function aggregateByRegion(
     region: string;
     co2e: number;
     kilowattHours: number;
-    cost: number;
+    cost: number | null;
   }>
 ): CloudUsageByRegion[] {
   const regionMap = new Map<string, CloudUsageByRegion>();
@@ -476,14 +571,14 @@ function aggregateByRegion(
         region: footprint.region,
         co2e: existing.co2e + footprint.co2e,
         kilowattHours: existing.kilowattHours + footprint.kilowattHours,
-        cost: existing.cost + footprint.cost,
+        cost: existing.cost + (footprint.cost ?? 0),
       });
     } else {
       regionMap.set(footprint.region, {
         region: footprint.region,
         co2e: footprint.co2e,
         kilowattHours: footprint.kilowattHours,
-        cost: footprint.cost,
+        cost: footprint.cost ?? 0,
       });
     }
   }
@@ -498,41 +593,21 @@ function calculateTotals(
   footprints: Array<{
     co2e: number;
     kilowattHours: number;
-    cost: number;
+    cost: number | null;
   }>
 ): { co2e: number; kilowattHours: number; cost: number } {
-  return footprints.reduce(
+  return footprints.reduce<{
+    co2e: number;
+    kilowattHours: number;
+    cost: number;
+  }>(
     (totals, footprint) => ({
       co2e: totals.co2e + footprint.co2e,
       kilowattHours: totals.kilowattHours + footprint.kilowattHours,
-      cost: totals.cost + footprint.cost,
+      cost: totals.cost + (footprint.cost ?? 0),
     }),
     { co2e: 0, kilowattHours: 0, cost: 0 }
   );
-}
-
-/**
- * Generates a stable cache key from filter parameters and connection IDs
- */
-function generateCacheKey(
-  userId: string,
-  organizationId: string,
-  validated: CloudUsageFilterInput,
-  startDate: Date,
-  endDate: Date,
-  connectionIds: string[]
-): string {
-  const filterHash = JSON.stringify({
-    services: validated.services.sort(),
-    regions: validated.regions.sort(),
-    timeRange: validated.timeRange,
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    metric: validated.metric,
-    connectionIds: connectionIds.sort(),
-  });
-
-  return `cloud-usage-${userId}-${organizationId}-${Buffer.from(filterHash).toString("base64").slice(0, 16)}`;
 }
 
 export async function getAllAvailableRegions(): Promise<string[]> {
@@ -587,15 +662,20 @@ async function fetchCloudUsageDataInternal(
   }
 
   // 8. Fetch footprint data
-  const footprints = await prisma.cloudFootprint.findMany({
+  const footprints: CloudFootprint[] = await prisma.cloudFootprint.findMany({
     where: whereClause,
     select: {
       periodStartDate: true,
       serviceName: true,
       region: true,
+      cloudProvider: true,
+      tags: true,
+      periodEndDate: true,
       co2e: true,
       kilowattHours: true,
       cost: true,
+      type: true,
+      serviceType: true,
     },
     orderBy: { periodStartDate: "asc" },
   });
@@ -604,7 +684,7 @@ async function fetchCloudUsageDataInternal(
   const availableRegions = await getAllAvailableRegions();
 
   // 10. Aggregate the data
-  const timeSeries = aggregateByDate(footprints);
+  const timeSeries = aggregateByDate(footprints, validated.aggregation);
   const byService = aggregateByService(footprints, CLOUD_SERVICE_LABELS);
   const byRegion = aggregateByRegion(footprints);
   const totals = calculateTotals(footprints);
@@ -614,6 +694,7 @@ async function fetchCloudUsageDataInternal(
     byService,
     byRegion,
     totals,
+    footprints,
     availableRegions,
     dateRange: {
       startDate: startDate.toISOString(),
@@ -669,6 +750,7 @@ export async function getCloudUsageData(
       return {
         data: {
           timeSeries: [],
+          footprints: [],
           byService: [],
           byRegion: [],
           totals: { co2e: 0, kilowattHours: 0, cost: 0 },
@@ -686,14 +768,14 @@ export async function getCloudUsageData(
     // Generate cache key based on filters and connection IDs
     // organizationId is guaranteed to be non-null due to check above
     const organizationId = user.organizationId;
-    const cacheKey = generateCacheKey(
-      user.id,
-      organizationId,
-      validated,
-      startDate,
-      endDate,
-      connectionIds
-    );
+    // const cacheKey = generateCacheKey(
+    //   user.id,
+    //   organizationId,
+    //   validated,
+    //   startDate,
+    //   endDate,
+    //   connectionIds
+    // );
 
     const data = await fetchCloudUsageDataInternal(
       user.id,
@@ -736,6 +818,97 @@ export async function getCloudUsageData(
         error instanceof Error
           ? error.message
           : "Failed to fetch cloud usage data",
+    };
+  }
+}
+
+/**
+ * Exports cloud usage data as CSV based on filters
+ */
+export async function exportCloudUsageCSV(
+  footprints: CloudFootprint[]
+): Promise<{ csv?: string; error?: string }> {
+  try {
+    // 1. Auth check
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: "Unauthorized" };
+    }
+
+    // 2. Get user
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { organization: true },
+    });
+
+    // 3. Authorization - only borrowers can export cloud usage
+    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+      return { error: "Only borrowers can export cloud usage data" };
+    }
+
+    // 9. Convert to CSV
+    if (footprints.length === 0) {
+      return { csv: "" };
+    }
+
+    // CSV header
+    const headers = [
+      "Period Start",
+      "Period End",
+      "Cloud Provider",
+      "Service Name",
+      "Region",
+      "Energy (kWh)",
+      "CO2e (mtCO2e)",
+      "Cost ($)",
+      "Metric Type",
+      "Service Type",
+      "Tags",
+    ];
+
+    // CSV rows
+    const rows = footprints.map((fp) => [
+      fp.periodStartDate.toLocaleString(),
+      fp.periodEndDate.toLocaleString(),
+      fp.cloudProvider,
+      fp.serviceName,
+      fp.region,
+      fp.kilowattHours.toString(),
+      fp.co2e.toString(),
+      fp.cost?.toString() ?? "N/A",
+      fp.type,
+      fp.serviceType ?? "N/A",
+      fp.tags ?? "",
+    ]);
+
+    // Combine header and rows with proper CSV escaping
+    const csvLines = [headers, ...rows].map((row) =>
+      row
+        .map((cell) => {
+          // Escape quotes and wrap in quotes if needed
+          const cellStr = cell.toString();
+          if (
+            cellStr.includes(",") ||
+            cellStr.includes('"') ||
+            cellStr.includes("\n")
+          ) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        })
+        .join(",")
+    );
+
+    const csv = csvLines.join("\n");
+
+    return { csv };
+  } catch (error) {
+    console.error("Error exporting cloud usage data:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to export cloud usage data",
     };
   }
 }
