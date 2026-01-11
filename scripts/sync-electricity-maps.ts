@@ -59,7 +59,9 @@ async function main(daysToSync: number): Promise<void> {
     console.log(`\n${progress} Syncing ${formatDate(date)}...`);
 
     try {
-      const result = await syncAllRegionsForDate(date, AWS_REGIONS);
+      const result = await syncAllRegionsForDate(date, AWS_REGIONS, {
+        functions: ["carbonIntensity", "carbonIntensityFossilOnly"],
+      });
 
       totalSuccess += result.totalSuccess;
       totalErrors += result.totalErrors;

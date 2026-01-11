@@ -44,6 +44,15 @@ export interface RenewableEnergyApiResponse extends BaseApiResponse {
 }
 
 export interface CarbonIntensityApiResponse extends BaseApiResponse {
+  carbonIntensity: number;
+  datetime: string;
+  createdAt: string;
+  emissionFactorType: string;
+  isEstimated: boolean | null;
+  estimationMethod: string | null;
+}
+
+export interface CarbonIntensityFossilOnlyApiResponse extends BaseApiResponse {
   unit: "gCO2eq/kWh";
   data: Array<{
     datetime: string;
@@ -86,32 +95,42 @@ function buildQueryString(params: ElectricityMapsRequestParams): string {
 async function fetchElectricityMapsData<T>(
   endpoint: string,
   params: ElectricityMapsRequestParams
-): Promise<T> {
-  const authToken = process.env.ELECTRICITY_MAPS_API_KEY;
+): Promise<T | null> {
+  try {
+    const authToken = process.env.ELECTRICITY_MAPS_API_KEY;
 
-  if (!authToken) {
-    throw new Error("ELECTRICITY_MAPS_API_KEY environment variable is not set");
-  }
+    if (!authToken) {
+      console.error("ELECTRICITY_MAPS_API_KEY environment variable is not set");
+      return null;
+    }
 
-  const url = `${BASE_URL}${endpoint}?${buildQueryString(params)}`;
+    const url = `${BASE_URL}${endpoint}?${buildQueryString(params)}`;
 
-  const response = await fetch(url, {
-    headers: { "auth-token": authToken },
-    next: { revalidate: 3600 },
-  });
+    const response = await fetch(url, {
+      headers: { "auth-token": authToken },
+      next: { revalidate: 3600 },
+    });
 
-  if (!response.ok) {
-    throw new Error(
-      `ElectricityMaps API error: ${response.status} ${response.statusText}`
+    if (!response.ok) {
+      console.error(
+        `ElectricityMaps API error: ${response.status} ${response.statusText}`
+      );
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(
+      `Failed to fetch ElectricityMaps data from ${endpoint}:`,
+      error instanceof Error ? error.message : String(error)
     );
+    return null;
   }
-
-  return response.json();
 }
 
 export async function getCarbonFreeEnergy(
   params: ElectricityMapsRequestParams
-): Promise<CarbonFreeEnergyApiResponse> {
+): Promise<CarbonFreeEnergyApiResponse | null> {
   return fetchElectricityMapsData<CarbonFreeEnergyApiResponse>(
     "/carbon-free-energy/past",
     params
@@ -120,17 +139,26 @@ export async function getCarbonFreeEnergy(
 
 export async function getRenewableEnergy(
   params: ElectricityMapsRequestParams
-): Promise<RenewableEnergyApiResponse> {
+): Promise<RenewableEnergyApiResponse | null> {
   return fetchElectricityMapsData<RenewableEnergyApiResponse>(
     "/renewable-energy/past",
     params
   );
 }
 
+export async function getCarbonIntensity(
+  params: ElectricityMapsRequestParams
+): Promise<CarbonIntensityApiResponse | null> {
+  return fetchElectricityMapsData<CarbonIntensityApiResponse>(
+    "/carbon-intensity/past",
+    params
+  );
+}
+
 export async function getCarbonIntensityFossilOnly(
   params: ElectricityMapsRequestParams
-): Promise<CarbonIntensityApiResponse> {
-  return fetchElectricityMapsData<CarbonIntensityApiResponse>(
+): Promise<CarbonIntensityFossilOnlyApiResponse | null> {
+  return fetchElectricityMapsData<CarbonIntensityFossilOnlyApiResponse>(
     "/carbon-intensity-fossil-only/past",
     params
   );
@@ -138,7 +166,7 @@ export async function getCarbonIntensityFossilOnly(
 
 export async function getElectricityMix(
   params: ElectricityMapsRequestParams
-): Promise<ElectricityMixApiResponse> {
+): Promise<ElectricityMixApiResponse | null> {
   return fetchElectricityMapsData<ElectricityMixApiResponse>(
     "/electricity-mix/past",
     params

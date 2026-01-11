@@ -1,13 +1,14 @@
 /**
  * ElectricityMaps Data Sync Service
  * Fetches and stores grid energy data for each region/provider combination
- */ 
+ */
 
 import { ElectricityMapsProvider } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   formatDateTimeForAPI,
   getCarbonFreeEnergy,
+  getCarbonIntensity,
   getCarbonIntensityFossilOnly,
   getElectricityMix,
   getRenewableEnergy,
@@ -24,6 +25,17 @@ interface SyncParams {
 interface SyncResult {
   success: boolean;
   error?: string;
+}
+
+type SyncFunctionName =
+  | "carbonFreeEnergy"
+  | "renewableEnergy"
+  | "carbonIntensity"
+  | "carbonIntensityFossilOnly"
+  | "electricityMix";
+
+interface SyncOptions {
+  functions?: SyncFunctionName[];
 }
 
 function toEstimationMethodEnum(method: string | null): string | null {
@@ -43,19 +55,30 @@ function toLowercaseProvider(
 async function hasExistingDataForDate(
   dataCenterRegion: string,
   dataCenterProvider: PrismaProvider,
-  date: Date
+  date: Date,
+  functionsToCheck: SyncFunctionName[]
 ): Promise<boolean> {
   const where = { dataCenterRegion, dataCenterProvider, datetime: date };
 
-  const [carbonFree, renewable, carbonIntensity, electricityMix] =
-    await Promise.all([
+  const checks: Record<SyncFunctionName, () => Promise<unknown>> = {
+    carbonFreeEnergy: () =>
       prisma.gridCarbonFreeEnergy.findFirst({ where, select: { id: true } }),
+    renewableEnergy: () =>
       prisma.gridRenewableEnergy.findFirst({ where, select: { id: true } }),
+    carbonIntensity: () =>
       prisma.gridCarbonIntensity.findFirst({ where, select: { id: true } }),
+    carbonIntensityFossilOnly: () =>
+      prisma.gridCarbonIntensityFossilOnly.findFirst({
+        where,
+        select: { id: true },
+      }),
+    electricityMix: () =>
       prisma.gridElectricityMix.findFirst({ where, select: { id: true } }),
-    ]);
+  };
 
-  return !!carbonFree && !!renewable && !!carbonIntensity && !!electricityMix;
+  const results = await Promise.all(functionsToCheck.map((fn) => checks[fn]()));
+
+  return results.every((result) => !!result);
 }
 
 async function syncCarbonFreeEnergy(params: SyncParams): Promise<SyncResult> {
@@ -64,6 +87,10 @@ async function syncCarbonFreeEnergy(params: SyncParams): Promise<SyncResult> {
     dataCenterProvider: toLowercaseProvider(params.dataCenterProvider),
     datetime: formatDateTimeForAPI(params.date),
   });
+
+  if (!response) {
+    return { success: false, error: "Failed to fetch carbon free energy data" };
+  }
 
   const upsertBlock = {
     zone: response.zone,
@@ -102,6 +129,10 @@ async function syncRenewableEnergy(params: SyncParams): Promise<SyncResult> {
     datetime: formatDateTimeForAPI(params.date),
   });
 
+  if (!response) {
+    return { success: false, error: "Failed to fetch renewable energy data" };
+  }
+
   const upsertBlock = {
     zone: response.zone,
     dataCenterRegion: params.dataCenterRegion,
@@ -133,15 +164,69 @@ async function syncRenewableEnergy(params: SyncParams): Promise<SyncResult> {
 }
 
 async function syncCarbonIntensity(params: SyncParams): Promise<SyncResult> {
+  const response = await getCarbonIntensity({
+    dataCenterRegion: params.dataCenterRegion,
+    dataCenterProvider: toLowercaseProvider(params.dataCenterProvider),
+    datetime: formatDateTimeForAPI(params.date),
+  });
+
+  if (!response) {
+    return { success: false, error: "Failed to fetch carbon intensity data" };
+  }
+
+  const upsertBlock = {
+    zone: response.zone,
+    dataCenterRegion: params.dataCenterRegion,
+    dataCenterProvider: params.dataCenterProvider,
+    datetime: new Date(response.datetime),
+    carbonIntensity: response.carbonIntensity,
+    emissionFactorType: response.emissionFactorType,
+    isEstimated: response.isEstimated ?? false,
+    estimationMethod: toEstimationMethodEnum(response.estimationMethod),
+    temporalGranularity: toTemporalGranularityEnum(
+      response.temporalGranularity
+    ),
+    apiUpdatedAt: new Date(response.updatedAt),
+    apiCreatedAt: new Date(response.createdAt),
+  };
+
+  await prisma.gridCarbonIntensity.upsert({
+    where: {
+      dataCenterRegion_dataCenterProvider_datetime: {
+        dataCenterRegion: params.dataCenterRegion,
+        dataCenterProvider: params.dataCenterProvider,
+        datetime: new Date(response.datetime),
+      },
+    },
+    update: upsertBlock,
+    create: upsertBlock,
+  });
+
+  return { success: true };
+}
+
+async function syncCarbonIntensityFossilOnly(
+  params: SyncParams
+): Promise<SyncResult> {
   const response = await getCarbonIntensityFossilOnly({
     dataCenterRegion: params.dataCenterRegion,
     dataCenterProvider: toLowercaseProvider(params.dataCenterProvider),
     datetime: formatDateTimeForAPI(params.date),
   });
 
+  if (!response) {
+    return {
+      success: false,
+      error: "Failed to fetch carbon intensity fossil only data",
+    };
+  }
+
   const dataPoint = response.data[0];
   if (!dataPoint) {
-    return { success: false, error: "No carbon intensity data returned" };
+    return {
+      success: false,
+      error: "No carbon intensity fossil only data returned",
+    };
   }
 
   const upsertBlock = {
@@ -160,7 +245,7 @@ async function syncCarbonIntensity(params: SyncParams): Promise<SyncResult> {
     apiCreatedAt: new Date(dataPoint.createdAt),
   };
 
-  await prisma.gridCarbonIntensity.upsert({
+  await prisma.gridCarbonIntensityFossilOnly.upsert({
     where: {
       dataCenterRegion_dataCenterProvider_datetime: {
         dataCenterRegion: params.dataCenterRegion,
@@ -181,6 +266,10 @@ async function syncElectricityMix(params: SyncParams): Promise<SyncResult> {
     dataCenterProvider: toLowercaseProvider(params.dataCenterProvider),
     datetime: formatDateTimeForAPI(params.date),
   });
+
+  if (!response) {
+    return { success: false, error: "Failed to fetch electricity mix data" };
+  }
 
   const dataPoint = response.data.at(0);
   if (!dataPoint) {
@@ -231,13 +320,23 @@ async function syncElectricityMix(params: SyncParams): Promise<SyncResult> {
  * Syncs all ElectricityMaps data for a given region/provider/date
  */
 export async function syncElectricityMapsData(
-  params: SyncParams
+  params: SyncParams,
+  options: SyncOptions = {}
 ): Promise<{ success: boolean; errors: string[] }> {
+  const functionsToRun: SyncFunctionName[] = options.functions ?? [
+    "carbonFreeEnergy",
+    "renewableEnergy",
+    "carbonIntensity",
+    "carbonIntensityFossilOnly",
+    "electricityMix",
+  ];
+
   if (
     await hasExistingDataForDate(
       params.dataCenterRegion,
       params.dataCenterProvider,
-      params.date
+      params.date,
+      functionsToRun
     )
   ) {
     console.log(
@@ -245,15 +344,25 @@ export async function syncElectricityMapsData(
     );
     return { success: true, errors: [] };
   }
-  const syncFunctions = [
-    { name: "carbonFreeEnergy", fn: syncCarbonFreeEnergy },
-    { name: "renewableEnergy", fn: syncRenewableEnergy },
-    { name: "carbonIntensity", fn: syncCarbonIntensity },
-    { name: "electricityMix", fn: syncElectricityMix },
-  ];
+
+  const syncFunctions: Record<
+    SyncFunctionName,
+    { name: string; fn: (params: SyncParams) => Promise<SyncResult> }
+  > = {
+    carbonFreeEnergy: { name: "carbonFreeEnergy", fn: syncCarbonFreeEnergy },
+    renewableEnergy: { name: "renewableEnergy", fn: syncRenewableEnergy },
+    carbonIntensity: { name: "carbonIntensity", fn: syncCarbonIntensity },
+    carbonIntensityFossilOnly: {
+      name: "carbonIntensityFossilOnly",
+      fn: syncCarbonIntensityFossilOnly,
+    },
+    electricityMix: { name: "electricityMix", fn: syncElectricityMix },
+  };
+
+  const selectedFunctions = functionsToRun.map((key) => syncFunctions[key]);
 
   const results = await Promise.allSettled(
-    syncFunctions.map(async ({ name, fn }) => {
+    selectedFunctions.map(async ({ name, fn }) => {
       const result = await fn(params);
       return result.success
         ? { name, error: null }
@@ -263,7 +372,7 @@ export async function syncElectricityMapsData(
 
   const errors = results.reduce<string[]>((acc, result, index) => {
     if (result.status === "rejected") {
-      return [...acc, `${syncFunctions[index].name}: ${result.reason}`];
+      return [...acc, `${selectedFunctions[index].name}: ${result.reason}`];
     }
     if (result.value.error) {
       return [...acc, `${result.value.name}: ${result.value.error}`];
@@ -279,15 +388,19 @@ export async function syncElectricityMapsData(
  */
 export async function syncAllRegionsForDate(
   date: Date,
-  regions: Array<{ region: string; provider: PrismaProvider }>
+  regions: Array<{ region: string; provider: PrismaProvider }>,
+  options: SyncOptions = {}
 ): Promise<{ totalSuccess: number; totalErrors: number; errors: string[] }> {
   const results = await Promise.all(
     regions.map(async ({ region, provider }) => {
-      const result = await syncElectricityMapsData({
-        dataCenterRegion: region,
-        dataCenterProvider: provider,
-        date,
-      });
+      const result = await syncElectricityMapsData(
+        {
+          dataCenterRegion: region,
+          dataCenterProvider: provider,
+          date,
+        },
+        options
+      );
       return { region, provider, ...result };
     })
   );

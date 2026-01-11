@@ -6,6 +6,8 @@ import {
   getCloudUsageData,
   type CloudUsageResponse,
 } from "@/app/actions/cloud";
+import { getTodayCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
+import { CarbonIntensityMap } from "@/components/cloud/carbon-intensity-map";
 import { CO2ComparisonCarousel } from "@/components/co2-comparison-carousel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -276,6 +278,19 @@ export default function CloudUsagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Carbon intensity map state
+  const [carbonIntensityData, setCarbonIntensityData] = useState<
+    Array<{
+      region: string;
+      zone: string;
+      provider: string;
+      value: number;
+      datetime: Date;
+      isEstimated: boolean;
+    }>
+  >([]);
+  const [carbonIntensityLoading, setCarbonIntensityLoading] = useState(true);
+
   // Filter state
   const [selectedServices, setSelectedServices] = useState<CloudService[]>([
     ...CLOUD_SERVICES,
@@ -372,6 +387,21 @@ export default function CloudUsagePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  /** Fetches carbon intensity data */
+  const fetchCarbonIntensity = useCallback(async () => {
+    setCarbonIntensityLoading(true);
+    const result = await getTodayCarbonIntensityAction();
+    if (result.data) {
+      setCarbonIntensityData(result.data);
+    }
+    setCarbonIntensityLoading(false);
+  }, []);
+
+  // Fetch carbon intensity on mount
+  useEffect(() => {
+    fetchCarbonIntensity();
+  }, [fetchCarbonIntensity]);
 
   /** Resets all filters to defaults */
   const resetFilters = useCallback(() => {
@@ -1596,6 +1626,11 @@ export default function CloudUsagePage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Carbon Intensity Map */}
+            {!carbonIntensityLoading && carbonIntensityData.length > 0 && (
+              <CarbonIntensityMap data={carbonIntensityData} />
+            )}
           </>
         )}
       </div>

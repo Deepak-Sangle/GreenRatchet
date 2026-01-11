@@ -276,7 +276,6 @@ enum ElectricityMapsProvider {
   GCP
 }
 
-
 model GridCarbonFreeEnergy {
   id                  String                  @id @default(cuid())
   zone                String
@@ -323,7 +322,28 @@ model GridCarbonIntensity {
   dataCenterRegion    String
   dataCenterProvider  ElectricityMapsProvider
   datetime            DateTime
-  value               Float // gCO2eq/kWh
+  carbonIntensity     Float // gCO2eq/kWh
+  emissionFactorType  String // "lifecycle" or "direct"
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridCarbonIntensityFossilOnly {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float // gCO2eq/kWh 
   emissionFactorType  String // "lifecycle" or "direct"
   isEstimated         Boolean
   estimationMethod    String?
