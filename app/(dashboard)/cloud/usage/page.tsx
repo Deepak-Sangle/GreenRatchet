@@ -39,8 +39,8 @@ import {
   AWS_CLOUD_CONSTANTS,
   AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH,
   CLOUD_METRIC_OPTIONS,
-  CLOUD_SERVICE_LABELS,
   CLOUD_SERVICES,
+  CLOUD_SERVICE_LABELS,
   TIME_RANGE_OPTIONS,
   type AggregationPeriodValue,
   type CloudMetricValue,
@@ -114,6 +114,20 @@ function formatMetricValue(value: number, metric: CloudMetricValue): string {
         ? `${(value / 1000).toFixed(3)} MWh`
         : `${value.toFixed(3)} kWh`
     )
+    .with("cost", () => `$${value.toFixed(2)}`)
+    .exhaustive();
+}
+
+/** Formats metric value for chart axis ticks (compact format) */
+function formatAxisTick(value: number, metric: CloudMetricValue): string {
+  return match(metric)
+    .with("co2e", () => {
+      if (value < 1) {
+        return `${(value * 1000).toFixed(1)}kg`;
+      }
+      return `${value.toFixed(2)}mt`;
+    })
+    .with("kilowattHours", () => `${value.toFixed(1)}`)
     .with("cost", () => `$${value.toFixed(2)}`)
     .exhaustive();
 }
@@ -286,8 +300,19 @@ export default function CloudUsagePage() {
   // CO2 comparison state
   const [selectedComparisonIndex, setSelectedComparisonIndex] = useState(0);
 
-  // Y-axis scale selection for timeline chart
-  const [yAxisMetric, setYAxisMetric] = useState<CloudMetricValue>("co2e");
+  // Active tab state for export
+  const [activeTab, setActiveTab] = useState<
+    "timeseries" | "services" | "regions" | "instancetypes"
+  >("timeseries");
+
+  // Y-axis scale selection for timeline chart (independent from main filter)
+  const [yAxisMetric, setYAxisMetric] =
+    useState<CloudMetricValue>(selectedMetric);
+
+  // Sync yAxisMetric with selectedMetric when selectedMetric changes
+  useEffect(() => {
+    setYAxisMetric(selectedMetric);
+  }, [selectedMetric]);
 
   /** Toggles a service in the filter */
   const toggleService = useCallback((service: CloudService) => {
@@ -324,7 +349,6 @@ export default function CloudUsagePage() {
         timeRange === "custom" && customEndDate
           ? new Date(customEndDate)
           : undefined,
-      metric: selectedMetric,
       aggregation: aggregationPeriod,
     });
 
@@ -332,7 +356,6 @@ export default function CloudUsagePage() {
       setError(result.error);
     } else if (result.data) {
       setData(result.data);
-      console.log("Data is: ", JSON.stringify(result.data, null, 2));
     }
 
     setLoading(false);
@@ -342,7 +365,6 @@ export default function CloudUsagePage() {
     timeRange,
     customStartDate,
     customEndDate,
-    selectedMetric,
     aggregationPeriod,
   ]);
 
@@ -404,6 +426,73 @@ export default function CloudUsagePage() {
     }
   }, [data]);
 
+  /** Handles tab-specific CSV export */
+  const handleTabExport = useCallback(() => {
+    if (!data) return;
+
+    const csvLines: string[] = [];
+    const timestamp = new Date().toISOString().split("T")[0];
+
+    match(activeTab)
+      .with("timeseries", () => {
+        csvLines.push("Timeline Data Export");
+        csvLines.push(
+          `Date,Total ${getMetricLabel(yAxisMetric)},Operational ${getMetricLabel(yAxisMetric)},Embodied ${getMetricLabel(yAxisMetric)}`
+        );
+
+        data.timeSeries.forEach((point) => {
+          const operationalKey =
+            `operational_${yAxisMetric}` as keyof typeof point;
+          const embodiedKey = `embodied_${yAxisMetric}` as keyof typeof point;
+          csvLines.push(
+            `${point.date},${point[yAxisMetric]},${point[operationalKey] ?? 0},${point[embodiedKey] ?? 0}`
+          );
+        });
+      })
+      .with("services", () => {
+        csvLines.push("Services Data Export");
+        csvLines.push(`Service,CO2e (mtCO2e),Energy (kWh),Cost ($)`);
+
+        data.byService.forEach((service) => {
+          csvLines.push(
+            `${service.label},${service.co2e},${service.kilowattHours},${service.cost}`
+          );
+        });
+      })
+      .with("regions", () => {
+        csvLines.push("Regions Data Export");
+        csvLines.push(`Region,CO2e (mtCO2e),Energy (kWh),Cost ($)`);
+
+        data.byRegion.forEach((region) => {
+          csvLines.push(
+            `${region.region},${region.co2e},${region.kilowattHours},${region.cost}`
+          );
+        });
+      })
+      .with("instancetypes", () => {
+        csvLines.push("Instance Types Data Export (Embodied Metrics)");
+        csvLines.push(`Instance Type,Service,CO2e (mtCO2e),Energy (kWh)`);
+
+        data.byInstanceType.forEach((instanceType) => {
+          csvLines.push(
+            `${instanceType.instanceType},${instanceType.serviceName},${instanceType.co2e},${instanceType.kilowattHours}`
+          );
+        });
+      })
+      .exhaustive();
+
+    const csv = csvLines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cloud-${activeTab}-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [data, activeTab, yAxisMetric]);
+
   /** Prepares time series data for the chart */
   const timeSeriesChartData = data?.timeSeries.map((point) => {
     const operationalKey = `operational_${yAxisMetric}` as keyof typeof point;
@@ -428,6 +517,15 @@ export default function CloudUsagePage() {
   const regionChartData = data?.byRegion.map((region) => ({
     region: region.region,
     [selectedMetric]: region[selectedMetric],
+  }));
+
+  /** Prepares instance type data for the bar chart */
+  const instanceTypeChartData = data?.byInstanceType.map((instanceType) => ({
+    instanceType: instanceType.instanceType,
+    serviceName: instanceType.serviceName,
+    co2e: instanceType.co2e,
+    kilowattHours: instanceType.kilowattHours,
+    cost: instanceType.cost,
   }));
 
   return (
@@ -575,7 +673,7 @@ export default function CloudUsagePage() {
             {/* Services Filter */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Services</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 py-1.5">
                 {CLOUD_SERVICES.map((service) => (
                   <ServiceToggle
                     key={service}
@@ -840,21 +938,71 @@ export default function CloudUsagePage() {
             </Card>
 
             {/* Charts */}
-            <Tabs defaultValue="timeseries" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-                <TabsTrigger value="timeseries" className="gap-2">
-                  <Activity className="h-4 w-4" />
-                  Timeline
-                </TabsTrigger>
-                <TabsTrigger value="services" className="gap-2">
-                  <Cloud className="h-4 w-4" />
-                  Services
-                </TabsTrigger>
-                <TabsTrigger value="regions" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Regions
-                </TabsTrigger>
-              </TabsList>
+            <Tabs
+              defaultValue="timeseries"
+              className="space-y-4"
+              onValueChange={(value) =>
+                setActiveTab(
+                  value as
+                    | "timeseries"
+                    | "services"
+                    | "regions"
+                    | "instancetypes"
+                )
+              }
+            >
+              <div className="flex items-center justify-between gap-4">
+                <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
+                  <TabsTrigger value="timeseries" className="gap-2">
+                    <Activity className="h-4 w-4" />
+                    Timeline
+                  </TabsTrigger>
+                  <TabsTrigger value="services" className="gap-2">
+                    <Cloud className="h-4 w-4" />
+                    Services
+                  </TabsTrigger>
+                  <TabsTrigger value="regions" className="gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Regions
+                  </TabsTrigger>
+                  <TabsTrigger value="instancetypes" className="gap-2">
+                    <Database className="h-4 w-4" />
+                    Instance Types
+                  </TabsTrigger>
+                </TabsList>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedMetric}
+                    onValueChange={(v) =>
+                      setSelectedMetric(v as CloudMetricValue)
+                    }
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Select metric" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLOUD_METRIC_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center gap-2">
+                            {getMetricIcon(option.value)}
+                            {option.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleTabExport}
+                    disabled={!data}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 flex-shrink-0"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Export CSV
+                  </Button>
+                </div>
+              </div>
 
               {/* Time Series Chart */}
               <TabsContent value="timeseries">
@@ -1017,8 +1165,8 @@ export default function CloudUsagePage() {
                       </ResponsiveContainer>
                     </div>
                     {/* Metric Toggle */}
-                    <div className="flex justify-center gap-2 mt-4 pt-4 border-t">
-                      <span className="text-sm text-muted-foreground mr-2">
+                    <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                      <span className="text-sm text-muted-foreground">
                         Select metric:
                       </span>
                       {CLOUD_METRIC_OPTIONS.map((option) => (
@@ -1170,9 +1318,7 @@ export default function CloudUsagePage() {
                             tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) =>
-                              selectedMetric === "cost"
-                                ? `$${value}`
-                                : value.toFixed(1)
+                              formatAxisTick(value, selectedMetric)
                             }
                           />
                           <YAxis
@@ -1198,6 +1344,103 @@ export default function CloudUsagePage() {
                           <Bar
                             dataKey={selectedMetric}
                             fill="hsl(var(--primary))"
+                            radius={[0, 4, 4, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Instance Types Bar Chart */}
+              <TabsContent value="instancetypes">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Database className="h-5 w-5" />
+                          {getMetricLabel(selectedMetric)} by Instance Type
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Embodied emissions breakdown by instance type
+                          (hardware footprint)
+                        </p>
+                      </div>
+                      <Badge variant="secondary">
+                        {data.byInstanceType.length} instance types
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[400px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={instanceTypeChartData}
+                          layout="vertical"
+                          margin={{ left: 120 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--border))"
+                            horizontal={true}
+                            vertical={false}
+                          />
+                          <XAxis
+                            type="number"
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) =>
+                              formatAxisTick(value, selectedMetric)
+                            }
+                          />
+                          <YAxis
+                            dataKey="instanceType"
+                            type="category"
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                            tickLine={false}
+                            axisLine={false}
+                            width={110}
+                          />
+                          <RechartsTooltip
+                            content={({ active, payload }) => {
+                              if (!active || !payload || !payload.length) {
+                                return null;
+                              }
+                              const data = payload[0].payload;
+                              return (
+                                <div
+                                  className="rounded-md border bg-popover p-3 shadow-md"
+                                  style={{
+                                    backgroundColor: "hsl(var(--popover))",
+                                    borderColor: "hsl(var(--border))",
+                                  }}
+                                >
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium">
+                                      {data.instanceType}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Service: {data.serviceName}
+                                    </p>
+                                    <p className="text-sm font-semibold text-primary">
+                                      {formatMetricValue(
+                                        data[selectedMetric],
+                                        selectedMetric
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Bar
+                            dataKey={selectedMetric}
+                            fill="hsl(152, 58%, 58%)"
                             radius={[0, 4, 4, 0]}
                           />
                         </BarChart>

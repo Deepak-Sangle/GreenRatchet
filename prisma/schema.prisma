@@ -269,3 +269,102 @@ model AuditLog {
   cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
   createdAt         DateTime         @default(now())
 }
+
+enum ElectricityMapsProvider {
+  AWS
+  AZURE
+  GCP
+}
+
+
+model GridCarbonFreeEnergy {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float // Percentage
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridRenewableEnergy {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float // Percentage
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridCarbonIntensity {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float // gCO2eq/kWh
+  emissionFactorType  String // "lifecycle" or "direct"
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridElectricityMix {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  // Energy sources in MW
+  nuclear             Float
+  geothermal          Float
+  biomass             Float
+  coal                Float
+  wind                Float
+  solar               Float
+  hydro               Float
+  gas                 Float
+  oil                 Float
+  unknown             Float
+  hydroDischarge      Float
+  batteryDischarge    Float
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}

@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import {
-  CLOUD_SERVICE_LABELS,
   CLOUD_SERVICES,
+  CLOUD_SERVICE_LABELS,
   TimeRangeValue,
   type CloudService,
 } from "@/lib/constants";
@@ -370,9 +370,17 @@ export interface CloudUsageByRegion {
   cost: number;
 }
 
+export interface CloudUsageByInstanceType {
+  instanceType: string;
+  serviceName: string;
+  co2e: number; // in metric tons (mtCO2e)
+  kilowattHours: number;
+  cost: number;
+}
+
 export interface CloudFootprint {
   co2e: number;
-  kilowattHours: number;
+  kilowattHours: number | null;
   cost: number | null;
   periodStartDate: Date;
   serviceName: string;
@@ -388,6 +396,7 @@ export interface CloudUsageResponse {
   timeSeries: CloudUsageDataPoint[];
   byService: CloudUsageByService[];
   byRegion: CloudUsageByRegion[];
+  byInstanceType: CloudUsageByInstanceType[];
   footprints: CloudFootprint[];
   totals: {
     co2e: number; // in metric tons (mtCO2e)
@@ -447,7 +456,7 @@ function aggregateByDate(
   footprints: Array<{
     periodStartDate: Date;
     co2e: number;
-    kilowattHours: number;
+    kilowattHours: number | null;
     cost: number | null;
     type: string;
   }>,
@@ -465,13 +474,14 @@ function aggregateByDate(
       dateMap.set(dateKey, {
         date: dateKey,
         co2e: existing.co2e + footprint.co2e,
-        kilowattHours: existing.kilowattHours + footprint.kilowattHours,
+        kilowattHours: existing.kilowattHours + (footprint.kilowattHours ?? 0),
         cost: existing.cost + cost,
         operational_co2e: isOperational
           ? (existing.operational_co2e ?? 0) + footprint.co2e
           : existing.operational_co2e,
         operational_kilowattHours: isOperational
-          ? (existing.operational_kilowattHours ?? 0) + footprint.kilowattHours
+          ? (existing.operational_kilowattHours ?? 0) +
+            (footprint.kilowattHours ?? 0)
           : existing.operational_kilowattHours,
         operational_cost: isOperational
           ? (existing.operational_cost ?? 0) + cost
@@ -480,7 +490,8 @@ function aggregateByDate(
           ? (existing.embodied_co2e ?? 0) + footprint.co2e
           : existing.embodied_co2e,
         embodied_kilowattHours: !isOperational
-          ? (existing.embodied_kilowattHours ?? 0) + footprint.kilowattHours
+          ? (existing.embodied_kilowattHours ?? 0) +
+            (footprint.kilowattHours ?? 0)
           : existing.embodied_kilowattHours,
         embodied_cost: !isOperational
           ? (existing.embodied_cost ?? 0) + cost
@@ -490,16 +501,16 @@ function aggregateByDate(
       dateMap.set(dateKey, {
         date: dateKey,
         co2e: footprint.co2e,
-        kilowattHours: footprint.kilowattHours,
+        kilowattHours: footprint.kilowattHours ?? 0,
         cost: cost,
         operational_co2e: isOperational ? footprint.co2e : undefined,
         operational_kilowattHours: isOperational
-          ? footprint.kilowattHours
+          ? (footprint.kilowattHours ?? undefined)
           : undefined,
         operational_cost: isOperational ? cost : undefined,
         embodied_co2e: !isOperational ? footprint.co2e : undefined,
         embodied_kilowattHours: !isOperational
-          ? footprint.kilowattHours
+          ? (footprint.kilowattHours ?? undefined)
           : undefined,
         embodied_cost: !isOperational ? cost : undefined,
       });
@@ -518,7 +529,7 @@ function aggregateByService(
   footprints: Array<{
     serviceName: string;
     co2e: number;
-    kilowattHours: number;
+    kilowattHours: number | null;
     cost: number | null;
   }>,
   serviceLabels: Record<CloudService, string>
@@ -533,7 +544,7 @@ function aggregateByService(
       serviceMap.set(service, {
         ...existing,
         co2e: existing.co2e + footprint.co2e,
-        kilowattHours: existing.kilowattHours + footprint.kilowattHours,
+        kilowattHours: existing.kilowattHours + (footprint.kilowattHours ?? 0),
         cost: existing.cost + (footprint.cost ?? 0),
       });
     } else {
@@ -541,7 +552,7 @@ function aggregateByService(
         service,
         label: serviceLabels[service] ?? service,
         co2e: footprint.co2e,
-        kilowattHours: footprint.kilowattHours,
+        kilowattHours: footprint.kilowattHours ?? 0,
         cost: footprint.cost ?? 0,
       });
     }
@@ -557,7 +568,7 @@ function aggregateByRegion(
   footprints: Array<{
     region: string;
     co2e: number;
-    kilowattHours: number;
+    kilowattHours: number | null;
     cost: number | null;
   }>
 ): CloudUsageByRegion[] {
@@ -570,14 +581,14 @@ function aggregateByRegion(
       regionMap.set(footprint.region, {
         region: footprint.region,
         co2e: existing.co2e + footprint.co2e,
-        kilowattHours: existing.kilowattHours + footprint.kilowattHours,
+        kilowattHours: existing.kilowattHours + (footprint.kilowattHours ?? 0),
         cost: existing.cost + (footprint.cost ?? 0),
       });
     } else {
       regionMap.set(footprint.region, {
         region: footprint.region,
         co2e: footprint.co2e,
-        kilowattHours: footprint.kilowattHours,
+        kilowattHours: footprint.kilowattHours ?? 0,
         cost: footprint.cost ?? 0,
       });
     }
@@ -587,12 +598,67 @@ function aggregateByRegion(
 }
 
 /**
+ * Normalizes instance type by extracting the part before colon if present
+ */
+function normalizeInstanceType(serviceType: string | null): string {
+  if (!serviceType) return "Unknown";
+  const colonIndex = serviceType.indexOf(":");
+  return colonIndex > 0 ? serviceType.substring(0, colonIndex) : serviceType;
+}
+
+/**
+ * Aggregates footprint data by instance type (serviceType)
+ */
+function aggregateByInstanceType(
+  footprints: Array<{
+    serviceType: string | null;
+    serviceName: string;
+    co2e: number;
+    kilowattHours: number | null;
+    cost: number | null;
+    type: string;
+  }>
+): CloudUsageByInstanceType[] {
+  // Filter to only embodied metrics as requested
+  const embodiedFootprints = footprints.filter(
+    (fp) => fp.type === "EMBODIED_METRICS"
+  );
+
+  const instanceTypeMap = new Map<string, CloudUsageByInstanceType>();
+
+  for (const footprint of embodiedFootprints) {
+    const instanceType = normalizeInstanceType(footprint.serviceType);
+    const existing = instanceTypeMap.get(instanceType);
+
+    if (existing) {
+      instanceTypeMap.set(instanceType, {
+        instanceType,
+        serviceName: existing.serviceName, // Keep first service name
+        co2e: existing.co2e + footprint.co2e,
+        kilowattHours: existing.kilowattHours + (footprint.kilowattHours ?? 0),
+        cost: existing.cost + (footprint.cost ?? 0),
+      });
+    } else {
+      instanceTypeMap.set(instanceType, {
+        instanceType,
+        serviceName: footprint.serviceName,
+        co2e: footprint.co2e,
+        kilowattHours: footprint.kilowattHours ?? 0,
+        cost: footprint.cost ?? 0,
+      });
+    }
+  }
+
+  return Array.from(instanceTypeMap.values()).sort((a, b) => b.co2e - a.co2e);
+}
+
+/**
  * Calculates totals from footprint data
  */
 function calculateTotals(
   footprints: Array<{
     co2e: number;
-    kilowattHours: number;
+    kilowattHours: number | null;
     cost: number | null;
   }>
 ): { co2e: number; kilowattHours: number; cost: number } {
@@ -603,7 +669,7 @@ function calculateTotals(
   }>(
     (totals, footprint) => ({
       co2e: totals.co2e + footprint.co2e,
-      kilowattHours: totals.kilowattHours + footprint.kilowattHours,
+      kilowattHours: totals.kilowattHours + (footprint.kilowattHours ?? 0),
       cost: totals.cost + (footprint.cost ?? 0),
     }),
     { co2e: 0, kilowattHours: 0, cost: 0 }
@@ -687,12 +753,14 @@ async function fetchCloudUsageDataInternal(
   const timeSeries = aggregateByDate(footprints, validated.aggregation);
   const byService = aggregateByService(footprints, CLOUD_SERVICE_LABELS);
   const byRegion = aggregateByRegion(footprints);
+  const byInstanceType = aggregateByInstanceType(footprints);
   const totals = calculateTotals(footprints);
 
   return {
     timeSeries,
     byService,
     byRegion,
+    byInstanceType,
     totals,
     footprints,
     availableRegions,
@@ -753,6 +821,7 @@ export async function getCloudUsageData(
           footprints: [],
           byService: [],
           byRegion: [],
+          byInstanceType: [],
           totals: { co2e: 0, kilowattHours: 0, cost: 0 },
           availableRegions: [],
           dateRange: {
@@ -873,7 +942,7 @@ export async function exportCloudUsageCSV(
       fp.cloudProvider,
       fp.serviceName,
       fp.region,
-      fp.kilowattHours.toString(),
+      fp.kilowattHours?.toString() ?? "N/A",
       fp.co2e.toString(),
       fp.cost?.toString() ?? "N/A",
       fp.type,

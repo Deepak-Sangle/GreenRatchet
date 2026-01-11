@@ -9,6 +9,7 @@ import {
   Gauge,
   History,
   LayoutDashboard,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -54,6 +55,11 @@ export function Nav({ role }: NavProps) {
           },
         ] satisfies NavItem[])
       : []),
+    {
+      label: "KPIs",
+      href: "/kpis",
+      icon: Target,
+    },
     {
       label: "KPI Analytics",
       href: "/analytics",

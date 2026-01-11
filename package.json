@@ -12,7 +12,8 @@
     "db:generate": "prisma generate --config=./prisma.config.ts",
     "db:migrate": "prisma migrate dev --config=./prisma.config.ts",
     "db:studio": "prisma studio",
-    "upload:cfn": "tsx scripts/upload-cfn-template.ts"
+    "upload:cfn": "tsx scripts/upload-cfn-template.ts",
+    "sync:electricity-maps": "tsx scripts/sync-electricity-maps.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
