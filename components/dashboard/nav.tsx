@@ -67,13 +67,13 @@ export function Nav({ role, user, organization }: NavProps) {
             icon: Cloud,
             exact: true,
           },
-          {
-            label: "Cloud Usage",
-            href: "/cloud/usage",
-            icon: Gauge,
-          },
         ] satisfies NavItem[])
       : []),
+    {
+      label: "Cloud Usage",
+      href: "/cloud/usage",
+      icon: Gauge,
+    },
     {
       label: "KPIs",
       href: "/kpis",

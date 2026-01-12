@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "5mb",
     },
   },
+  outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;

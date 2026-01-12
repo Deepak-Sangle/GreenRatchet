@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveCloudConnections, withServerAction } from "@/lib/server-action-utils";
 
 interface GhgIntensityData {
   totalCo2eMT: number;
@@ -18,85 +18,42 @@ interface GhgIntensityData {
 export async function getGhgIntensityAction(): Promise<
   { success: true; data: GhgIntensityData } | { error: string }
 > {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
+  return withServerAction(
+    async (user) => {
+      const connectionsResult = await getActiveCloudConnections(user.organizationId);
+      if ("error" in connectionsResult) {
+        throw new Error(connectionsResult.error);
+      }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        organizationId: true,
-        organization: {
-          select: {
-            id: true,
-            employeeCount: true,
-            annualRevenue: true,
-          },
+      const totalCo2eResult = await prisma.cloudFootprint.aggregate({
+        where: {
+          cloudConnectionId: { in: connectionsResult.connectionIds },
         },
-      },
-    });
+        _sum: {
+          co2e: true,
+        },
+      });
 
-    if (!user?.organizationId) {
-      return { error: "No organization found" };
-    }
+      const totalCo2eMT = totalCo2eResult._sum.co2e ?? 0;
+      const employeeCount = user.organization?.employeeCount ?? null;
+      const annualRevenue = user.organization?.annualRevenue ?? null;
 
-    const cloudConnections = await prisma.cloudConnection.findMany({
-      where: {
-        organizationId: user.organizationId,
-        isActive: true,
-      },
-      select: { id: true },
-    });
+      const intensityPerEmployee =
+        employeeCount && employeeCount > 0 ? totalCo2eMT / employeeCount : null;
 
-    if (cloudConnections.length === 0) {
+      const intensityPerRevenue =
+        annualRevenue && annualRevenue > 0
+          ? (totalCo2eMT / annualRevenue) * 1000000
+          : null;
+
       return {
-        error: "No active cloud connections found",
-      };
-    }
-
-    const connectionIds = cloudConnections.map((c) => c.id);
-
-    const totalCo2eResult = await prisma.cloudFootprint.aggregate({
-      where: {
-        cloudConnectionId: { in: connectionIds },
-      },
-      _sum: {
-        co2e: true,
-      },
-    });
-
-    const totalCo2eMT = totalCo2eResult._sum.co2e ?? 0;
-    const employeeCount = user.organization?.employeeCount ?? null;
-    const annualRevenue = user.organization?.annualRevenue ?? null;
-
-    const intensityPerEmployee =
-      employeeCount && employeeCount > 0 ? totalCo2eMT / employeeCount : null;
-
-    const intensityPerRevenue =
-      annualRevenue && annualRevenue > 0
-        ? (totalCo2eMT / annualRevenue) * 1000000
-        : null;
-
-    return {
-      success: true,
-      data: {
         totalCo2eMT,
         employeeCount,
         annualRevenue,
         intensityPerEmployee,
         intensityPerRevenue,
-      },
-    };
-  } catch (error) {
-    console.error("Error calculating GHG intensity:", error);
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to calculate GHG intensity",
-    };
-  }
+      };
+    },
+    "calculate GHG intensity"
+  );
 }

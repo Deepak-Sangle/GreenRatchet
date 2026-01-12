@@ -15,6 +15,7 @@
 
 ## Code Review Checklist
 
+- [ ] **No Syntax issues** - First run `npx tsc` command to see all type issues and then run `npm run build` to check exhaustively
 - [ ] **No repeated code** - extracted to helper functions
 - [ ] **No mutations** - immutable patterns used
 - [ ] **Strongly typed** - no `any`, explicit types

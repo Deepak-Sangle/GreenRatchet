@@ -18,8 +18,7 @@ export default async function CloudLayout({
     select: { role: true },
   });
 
-  // Only borrowers can access cloud connections
-  if (!user || user.role !== "BORROWER") {
+  if (!user) {
     redirect("/dashboard");
   }
 

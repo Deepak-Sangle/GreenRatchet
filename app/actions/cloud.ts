@@ -790,9 +790,9 @@ export async function getCloudUsageData(
       include: { organization: true },
     });
 
-    // 3. Authorization - only borrowers can see cloud usage
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
-      return { error: "Only borrowers can view cloud usage" };
+    // 3. Authorization - check user has organization
+    if (!user || !user.organizationId) {
+      return { error: "No organization found" };
     }
 
     // 4. Validate with Zod

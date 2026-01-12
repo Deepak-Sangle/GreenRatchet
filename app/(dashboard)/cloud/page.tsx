@@ -43,14 +43,19 @@ export default async function CloudConnectionsPage() {
     redirect("/auth/signin");
   }
 
-  // First get basic user info to check organization
+  // First get basic user info to check organization and role
   const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, organizationId: true },
+    select: { id: true, organizationId: true, role: true },
   });
 
   if (!basicUser || !basicUser.organizationId) {
     redirect("/auth/signin");
+  }
+
+  // Only borrowers can access cloud connections page
+  if (basicUser.role !== "BORROWER") {
+    redirect("/dashboard");
   }
 
   // Get cached cloud connections data
