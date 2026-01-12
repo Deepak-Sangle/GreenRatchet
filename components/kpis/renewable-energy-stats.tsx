@@ -1,0 +1,191 @@
+"use client";
+
+import type { RenewableEnergyData } from "@/app/actions/renewable-energy-analytics";
+import { Card } from "@/components/ui/card";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+} from "lucide-react";
+import { match } from "ts-pattern";
+
+interface RenewableEnergyStatsProps {
+  data: RenewableEnergyData;
+}
+
+/**
+ * Gets styling and content based on status level
+ */
+function getStatusConfig(status: "excellent" | "good" | "fair" | "poor"): {
+  container: string;
+  icon: React.ReactNode;
+  title: string;
+  message: string;
+} {
+  return match(status)
+    .with("excellent", () => ({
+      container:
+        "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
+      icon: (
+        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+      ),
+      title: "Excellent Performance",
+      message:
+        "Your workloads are predominantly powered by renewable energy sources",
+    }))
+    .with("good", () => ({
+      container:
+        "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800",
+      icon: <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
+      title: "Good Progress",
+      message:
+        "Majority of your workloads use renewable electricity. Consider optimizing further",
+    }))
+    .with("fair", () => ({
+      container:
+        "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800",
+      icon: (
+        <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+      ),
+      title: "Room for Improvement",
+      message:
+        "Significant opportunity to increase renewable energy usage by migrating to cleaner regions",
+    }))
+    .with("poor", () => ({
+      container:
+        "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800",
+      icon: <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />,
+      title: "Action Required",
+      message:
+        "Priority: Migrate workloads to regions with higher renewable energy availability",
+    }))
+    .exhaustive();
+}
+
+export function RenewableEnergyStats({ data }: RenewableEnergyStatsProps) {
+  const statusConfig = getStatusConfig(data.status);
+
+  return (
+    <div className="space-y-6">
+      {/* Main Status Card */}
+      <Card className={`p-6 border-2 ${statusConfig.container}`}>
+        <div className="flex items-start gap-4">
+          {statusConfig.icon}
+          <div className="flex-1">
+            <h4 className="font-heading text-lg font-semibold mb-1">
+              {statusConfig.title}
+            </h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              {statusConfig.message}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Weighted Renewable %
+                </p>
+                <p className="text-3xl font-bold">
+                  {data.weightedRenewablePercentage.toFixed(1)}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Based on CO2e distribution
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Total Emissions Analyzed
+                </p>
+                <p className="text-2xl font-semibold">
+                  {data.totalCo2e.toFixed(3)} MTCO2e
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Across all regions
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Regions */}
+        <Card className="p-6 shadow-soft">
+          <h4 className="font-heading text-base font-semibold mb-4">
+            Top Regions by Renewable Energy
+          </h4>
+          <div className="space-y-3">
+            {data.topRegions.map(({ region, renewablePercentage, co2e }) => (
+              <div
+                key={region}
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+              >
+                <div className="flex-1">
+                  <p className="font-mono text-sm font-medium">{region}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {co2e.toFixed(3)} MTCO2e
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold">
+                    {renewablePercentage.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">renewable</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Actionable Insights */}
+        <Card className="p-6 shadow-soft">
+          <h4 className="font-heading text-base font-semibold mb-4">
+            Actionable Insights
+          </h4>
+          <div className="space-y-3">
+            {data.weightedRenewablePercentage < 75 && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10">
+                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Increase to{" "}
+                    {Math.ceil(data.weightedRenewablePercentage / 10) * 10 + 10}
+                    %
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Migrate workloads to regions with higher renewable energy
+                    percentages to improve your sustainability profile
+                  </p>
+                </div>
+              </div>
+            )}
+            {data.status === "excellent" && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/10">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    Maintain Excellence
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    Your renewable energy usage is excellent. Continue
+                    prioritizing renewable energy regions for new deployments
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+              <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Regional Optimization</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Focus on the top regions listed above for new workload
+                  deployments to maximize renewable energy usage
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}

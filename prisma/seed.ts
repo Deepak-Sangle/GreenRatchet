@@ -86,24 +86,10 @@ async function main() {
       id: "kpi-1",
       name: "AI Carbon Intensity",
       type: "CO2_EMISSION",
-      valueType: "ABSOLUTE",
       direction: "LOWER_IS_BETTER",
       targetValue: 9.0,
       thresholdMin: 7.0,
       thresholdMax: 11.0,
-      // calculationMethod: {
-      //   formula:
-      //     "(Total tCO₂e from AI GPU instances) / (Total AI compute hours) × 1000",
-      //   description:
-      //     "Total carbon emissions from AI workloads divided by total AI compute hours",
-      // },
-      // dataSources: [
-      //   {
-      //     type: "CLOUD",
-      //     provider: "AWS",
-      //     metric: "carbon-footprint",
-      //   },
-      // ],
       frequency: "ANNUAL",
       baselineValue: 12.5,
       status: "ACCEPTED",
@@ -118,25 +104,11 @@ async function main() {
     create: {
       id: "kpi-2",
       name: "Low-Carbon Region Usage",
-      type: "AI_COMPUTE_HOURS",
-      valueType: "PERCENTAGE",
+      type: "LOW_CARBON_REGION_PERCENTAGE",
       direction: "HIGHER_IS_BETTER",
       targetValue: 70.0,
       thresholdMin: 60.0,
       thresholdMax: 80.0,
-      // calculationMethod: {
-      //   formula:
-      //     "(AI compute hours in low-carbon regions) / (Total AI compute hours) × 100",
-      //   description:
-      //     "Percentage of AI workloads running in regions with carbon intensity below 300 gCO2/kWh",
-      // },
-      // dataSources: [
-      //   {
-      //     type: "CLOUD",
-      //     provider: "AWS",
-      //     metric: "region-usage",
-      //   },
-      // ],
       frequency: "ANNUAL",
       baselineValue: 45.0,
       status: "ACCEPTED",

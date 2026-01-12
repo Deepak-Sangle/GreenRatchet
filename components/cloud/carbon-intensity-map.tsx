@@ -12,11 +12,11 @@ import {
 } from "react-simple-maps";
 import { match } from "ts-pattern";
 
-interface RegionCarbonIntensity {
+export interface RegionCarbonIntensity {
   region: string;
   zone: string;
   provider: string;
-  carbonIntensity: number;
+  value: number;
   datetime: Date;
   isEstimated: boolean;
 }
@@ -210,7 +210,7 @@ export function CarbonIntensityMap({ data }: CarbonIntensityMapProps) {
               >
                 <circle
                   r={10}
-                  fill={getIntensityColor(item.carbonIntensity)}
+                  fill={getIntensityColor(item.value)}
                   stroke="#ffffff"
                   strokeWidth={2}
                   className="cursor-pointer transition-all duration-200"
@@ -244,10 +244,10 @@ export function CarbonIntensityMap({ data }: CarbonIntensityMapProps) {
                     </p>
                     <div className="pt-1 border-t">
                       <p className="text-sm font-semibold text-primary">
-                        {item.carbonIntensity.toFixed(2)} gCO₂eq/kWh
+                        {item.value.toFixed(2)} gCO₂eq/kWh
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Category: {getIntensityCategory(item.carbonIntensity)}
+                        Category: {getIntensityCategory(item.value)}
                       </p>
                     </div>
                   </div>

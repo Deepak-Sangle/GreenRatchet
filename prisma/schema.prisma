@@ -123,13 +123,12 @@ model Loan {
 
 enum KpiType {
   CO2_EMISSION
+  ENERGY_CONSUMPTION
   AI_COMPUTE_HOURS
-}
-
-enum KpiValueType {
-  ABSOLUTE
-  PERCENTAGE
-  RATIO
+  LOW_CARBON_REGION_PERCENTAGE
+  CARBON_FREE_ENERGY_PERCENTAGE
+  ELECTRICITY_MIX_BREAKDOWN
+  RENEWABLE_ENERGY_PERCENTAGE
 }
 
 enum KpiDirection {
@@ -164,7 +163,6 @@ model KPI {
   id             String            @id @default(cuid())
   name           String
   type           KpiType
-  valueType      KpiValueType
   direction      KpiDirection
   targetValue    Float
   thresholdMin   Float?
@@ -322,7 +320,7 @@ model GridCarbonIntensity {
   dataCenterRegion    String
   dataCenterProvider  ElectricityMapsProvider
   datetime            DateTime
-  carbonIntensity     Float // gCO2eq/kWh
+  value               Float // gCO2eq/kWh
   emissionFactorType  String // "lifecycle" or "direct"
   isEstimated         Boolean
   estimationMethod    String?

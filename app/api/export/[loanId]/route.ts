@@ -72,19 +72,15 @@ export async function GET(
         lender: loan.lenderOrg?.name || null,
       },
       kpis: loan.kpis.map((kpi) => {
-        // const calcMethod = getCalculationMethod(kpi);
         return {
           name: kpi.name,
           type: kpi.type,
-          valueType: kpi.valueType,
           direction: kpi.direction,
           baselineValue: kpi.baselineValue?.toString() || null,
           targetValue: kpi.targetValue.toString(),
           thresholdMin: kpi.thresholdMin?.toString() || null,
           thresholdMax: kpi.thresholdMax?.toString() || null,
           frequency: kpi.frequency,
-          // calculationFormula: calcMethod.formula,
-          // calculationDescription: calcMethod.description,
           effectiveFrom: kpi.effectiveFrom,
           effectiveTo: kpi.effectiveTo,
           status: kpi.status,

@@ -67,41 +67,10 @@ export const CreateKPIFormSchema = KPISchema.omit({
   .required({
     name: true,
     type: true,
-    valueType: true,
     direction: true,
     targetValue: true,
     frequency: true,
-  })
-  // add custom refinements here so that the zod form would show errors
-  // this is better than showing only the valid values in the form (bcz its cumbersome)
-  .refine(
-    (data) => {
-      if (data.type === "CO2_EMISSION") {
-        // CO2 emission KPI must be absolute or ratio - percentage is not allowed
-        return data.valueType === "ABSOLUTE" || data.valueType === "RATIO";
-      }
-      return true;
-    },
-    {
-      message:
-        "CO2 emission KPI must be absolute or ratio - percentage is not allowed",
-      path: ["valueType"],
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.type === "AI_COMPUTE_HOURS") {
-        // AI compute hours KPI must be absolute - percentage and ratio are not allowed
-        return data.valueType === "ABSOLUTE";
-      }
-      return true;
-    },
-    {
-      message:
-        "AI compute hours KPI must be absolute - percentage and ratio are not allowed",
-      path: ["valueType"],
-    }
-  );
+  });
 
 // Fields user provides when creating a margin ratchet
 const MarginRatchetCreateFields = MarginRatchetSchema.omit({

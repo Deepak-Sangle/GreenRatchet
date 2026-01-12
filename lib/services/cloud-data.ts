@@ -1,11 +1,3 @@
-/**
- * Cloud Data Service
- *
- * This service handles fetching cloud usage data from AWS and GCP.
- * In production, this would make actual API calls to cloud providers.
- * For the hackathon, we generate realistic mock data.
- */
-
 export interface CloudUsageData {
   provider: "AWS" | "GCP";
   aiComputeHours: number;

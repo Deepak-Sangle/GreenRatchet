@@ -1,35 +1,35 @@
 "use client";
 
-import { getCo2eTimelineAction } from "@/app/actions/co2e-analytics-actions";
+import {
+  getLowCarbonRegionDataAction,
+  type RegionalCo2eData,
+} from "@/app/actions/low-carbon-region-analytics";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Leaf, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Globe, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Co2eTimelineChart } from "./co2e-timeline-chart";
+import { LowCarbonRegionPieChart } from "./low-carbon-region-pie-chart";
+import { RegionalInsightsCard } from "./regional-insights-card";
 
-export function Co2EmissionKpi() {
+export function LowCarbonRegionKpi() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [timelineData, setTimelineData] = useState<Array<{
-    month: string;
-    cumulative: number;
-    isProjected: boolean;
-  }> | null>(null);
+  const [data, setData] = useState<RegionalCo2eData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isExpanded && !timelineData) {
-      loadTimelineData();
+    if (isExpanded && !data) {
+      loadData();
     }
-  }, [isExpanded]);
+  }, [isExpanded, data]);
 
-  async function loadTimelineData() {
+  async function loadData() {
     setLoading(true);
     setError(null);
-    const result = await getCo2eTimelineAction();
+    const result = await getLowCarbonRegionDataAction();
     if ("error" in result) {
-      setError(result.error ?? "Failed to load timeline data");
+      setError(result.error);
     } else {
-      setTimelineData(result.data);
+      setData(result.data);
     }
     setLoading(false);
   }
@@ -41,15 +41,15 @@ export function Co2EmissionKpi() {
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
-            <Leaf className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="h-10 w-10 rounded-lg bg-teal-100 dark:bg-teal-900/20 flex items-center justify-center">
+            <Globe className="h-5 w-5 text-teal-600 dark:text-teal-400" />
           </div>
           <div>
             <h2 className="font-heading text-xl font-semibold">
-              Total CO2 Emissions
+              % CO2e in Low Carbon Regions
             </h2>
             <p className="text-sm text-muted-foreground">
-              Track carbon footprint from cloud operations
+              Track emissions distribution across regional carbon intensity
             </p>
           </div>
         </div>
@@ -64,28 +64,26 @@ export function Co2EmissionKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              CO2 Emissions measures the total carbon dioxide equivalent (CO2e)
-              produced by your cloud infrastructure operations, including both
-              operational emissions from energy consumption and embodied
-              emissions from hardware manufacturing. This metric helps you
-              identify high-emission services and regions, make informed
-              decisions about cloud provider selection, demonstrate progress
-              toward net-zero commitments, and qualify for sustainability-linked
-              financing with better terms. Tracking this KPI is essential for
-              regulatory compliance, stakeholder expectations, and unlocking
-              cost savings through energy efficiency improvements.
+              This KPI measures the percentage of your total CO2 emissions
+              occurring in low-carbon regions (carbon intensity below 150
+              gCO2/kWh). By strategically deploying workloads to regions powered
+              by cleaner energy grids, you can significantly reduce your carbon
+              footprint without infrastructure changes. This metric helps
+              identify opportunities for carbon-aware workload placement,
+              demonstrate sustainability commitments, and qualify for better
+              terms on sustainability-linked financing.
             </p>
           </div>
 
           <div className="pt-4 border-t">
             <h3 className="font-heading text-lg font-semibold mb-4">
-              Performance Analytics
+              Regional Carbon Analysis
             </h3>
             {loading && (
               <div className="bg-muted/50 rounded-lg p-8 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground">
-                  Loading timeline data...
+                  Loading regional data...
                 </p>
               </div>
             )}
@@ -94,8 +92,14 @@ export function Co2EmissionKpi() {
                 {error}
               </div>
             )}
-            {timelineData && !loading && !error && (
-              <Co2eTimelineChart data={timelineData} />
+            {data && !loading && !error && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <LowCarbonRegionPieChart data={data.pieData} />
+                <RegionalInsightsCard
+                  categoryStats={data.categoryStats}
+                  totalCo2e={data.totalCo2e}
+                />
+              </div>
             )}
           </div>
         </div>

@@ -1,12 +1,12 @@
 "use client";
 
-import { getCo2eTimelineAction } from "@/app/actions/co2e-analytics-actions";
+import { getEnergyTimelineAction } from "@/app/actions/energy-analytics-actions";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Leaf, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Co2eTimelineChart } from "./co2e-timeline-chart";
+import { EnergyTimelineChart } from "./energy-timeline-chart";
 
-export function Co2EmissionKpi() {
+export function EnergyConsumptionKpi() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [timelineData, setTimelineData] = useState<Array<{
     month: string;
@@ -25,7 +25,7 @@ export function Co2EmissionKpi() {
   async function loadTimelineData() {
     setLoading(true);
     setError(null);
-    const result = await getCo2eTimelineAction();
+    const result = await getEnergyTimelineAction();
     if ("error" in result) {
       setError(result.error ?? "Failed to load timeline data");
     } else {
@@ -41,15 +41,15 @@ export function Co2EmissionKpi() {
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
-            <Leaf className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
+            <Zap className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
             <h2 className="font-heading text-xl font-semibold">
-              Total CO2 Emissions
+              Total Energy Consumption
             </h2>
             <p className="text-sm text-muted-foreground">
-              Track carbon footprint from cloud operations
+              Track energy usage from cloud operations
             </p>
           </div>
         </div>
@@ -64,16 +64,16 @@ export function Co2EmissionKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              CO2 Emissions measures the total carbon dioxide equivalent (CO2e)
-              produced by your cloud infrastructure operations, including both
-              operational emissions from energy consumption and embodied
-              emissions from hardware manufacturing. This metric helps you
-              identify high-emission services and regions, make informed
-              decisions about cloud provider selection, demonstrate progress
-              toward net-zero commitments, and qualify for sustainability-linked
-              financing with better terms. Tracking this KPI is essential for
-              regulatory compliance, stakeholder expectations, and unlocking
-              cost savings through energy efficiency improvements.
+              Energy Consumption measures the total electrical energy (in MWh)
+              consumed by your cloud infrastructure operations. This metric
+              provides visibility into your energy footprint, helps identify
+              energy-intensive services and regions, enables optimization of
+              workload placement for energy efficiency, and supports renewable
+              energy procurement decisions. Tracking energy consumption is
+              crucial for understanding the relationship between your cloud
+              operations and carbon emissions, as well as identifying
+              opportunities for cost savings through energy efficiency
+              improvements.
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export function Co2EmissionKpi() {
               </div>
             )}
             {timelineData && !loading && !error && (
-              <Co2eTimelineChart data={timelineData} />
+              <EnergyTimelineChart data={timelineData} />
             )}
           </div>
         </div>

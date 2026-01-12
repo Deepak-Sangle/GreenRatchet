@@ -10,6 +10,8 @@ const UNSUPPORTED_ELECTRICITY_MAPS_REGIONS = [
   AWS_REGIONS.UNKNOWN,
   AWS_REGIONS.AP_SOUTHEAST_3,
   AWS_REGIONS.CN_NORTH_1,
+  AWS_REGIONS.AP_SOUTHEAST_1,
+  AWS_REGIONS.ME_SOUTH_1,
   AWS_REGIONS.CN_NORTHWEST_1,
   AWS_REGIONS.US_GOV_EAST_1,
   AWS_REGIONS.US_GOV_WEST_1,
@@ -18,7 +20,7 @@ const UNSUPPORTED_ELECTRICITY_MAPS_REGIONS = [
 const ALL_AWS_REGIONS = Object.values(AWS_REGIONS)
   .filter((region) => !UNSUPPORTED_ELECTRICITY_MAPS_REGIONS.includes(region))
   // add which regions to run for
-  .filter((region) => ["us-east-1", 'us-west-2', 'ap-south-1'].includes(region))
+  // .filter((region) => ["us-east-1", 'us-west-2', 'ap-south-1'].includes(region))
   .map((region) => ({
     region,
     provider: "AWS" as const,
@@ -41,7 +43,7 @@ async function main(): Promise<void> {
 
   try {
     const result = await syncAllRegionsForDate(today, ALL_AWS_REGIONS, {
-      functions: ["carbonIntensity", "carbonIntensityFossilOnly"],
+      functions: ["carbonIntensity"],
     });
 
     console.log("\n" + "=".repeat(60));

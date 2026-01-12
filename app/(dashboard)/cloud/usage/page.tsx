@@ -7,7 +7,7 @@ import {
   type CloudUsageResponse,
 } from "@/app/actions/cloud";
 import { getTodayCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
-import { CarbonIntensityMap } from "@/components/cloud/carbon-intensity-map";
+import { CarbonIntensityMap, RegionCarbonIntensity } from "@/components/cloud/carbon-intensity-map";
 import { CO2ComparisonCarousel } from "@/components/co2-comparison-carousel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -280,14 +280,7 @@ export default function CloudUsagePage() {
 
   // Carbon intensity map state
   const [carbonIntensityData, setCarbonIntensityData] = useState<
-    Array<{
-      region: string;
-      zone: string;
-      provider: string;
-      value: number;
-      datetime: Date;
-      isEstimated: boolean;
-    }>
+    Array<RegionCarbonIntensity>
   >([]);
   const [carbonIntensityLoading, setCarbonIntensityLoading] = useState(true);
 

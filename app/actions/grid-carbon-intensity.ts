@@ -1,16 +1,8 @@
 "use server";
 
+import { RegionCarbonIntensity } from "@/components/cloud/carbon-intensity-map";
 import { prisma } from "@/lib/prisma";
 import { endOfDay, startOfDay } from "date-fns";
-
-interface RegionCarbonIntensity {
-  region: string;
-  zone: string;
-  provider: string;
-  carbonIntensity: number;
-  datetime: Date;
-  isEstimated: boolean;
-}
 
 /**
  * Fetches today's carbon intensity data for all datacenter regions
@@ -42,7 +34,7 @@ export async function getTodayCarbonIntensityAction(): Promise<{
         region: item.dataCenterRegion,
         zone: item.zone,
         provider: item.dataCenterProvider,
-        carbonIntensity: item.carbonIntensity,
+        value: item.value,
         datetime: item.datetime,
         isEstimated: item.isEstimated,
       })

@@ -6,7 +6,6 @@ import {
   KpiDirection,
   KpiStatus,
   KpiType,
-  KpiValueType,
   LoanCurrency,
   LoanType,
   ObservationPeriod,
@@ -53,13 +52,12 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 
 export const KPI_TYPE_LABELS: Record<KpiType, string> = {
   CO2_EMISSION: "CO2 Emission",
+  ENERGY_CONSUMPTION: "Energy Consumption",
   AI_COMPUTE_HOURS: "AI Compute Hours",
-};
-
-export const KPI_VALUE_TYPE_LABELS: Record<KpiValueType, string> = {
-  ABSOLUTE: "Absolute Value",
-  RATIO: "Ratio",
-  PERCENTAGE: "Percentage",
+  LOW_CARBON_REGION_PERCENTAGE: "% CO2e in Low Carbon Regions",
+  CARBON_FREE_ENERGY_PERCENTAGE: "Carbon-Free Energy %",
+  ELECTRICITY_MIX_BREAKDOWN: "Electricity Mix Breakdown",
+  RENEWABLE_ENERGY_PERCENTAGE: "Renewable Energy %",
 };
 
 export const KPI_DIRECTION_LABELS: Record<KpiDirection, string> = {

@@ -5,7 +5,6 @@ import { KPI } from "@/app/generated/prisma/client";
 import {
   KpiDirectionSchema,
   KpiTypeSchema,
-  KpiValueTypeSchema,
   ObservationPeriodSchema,
 } from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,6 @@ import {
   KPI_DIRECTION_LABELS,
   KPI_FREQUENCY_LABELS,
   KPI_TYPE_LABELS,
-  KPI_VALUE_TYPE_LABELS,
 } from "@/lib/labels";
 import { getKPIUnit } from "@/lib/utils";
 import {
@@ -53,7 +51,6 @@ import { useForm } from "react-hook-form";
 
 // Get enum values from generated schemas
 const KPI_TYPES = KpiTypeSchema.options;
-const KPI_VALUE_TYPES = KpiValueTypeSchema.options;
 const KPI_DIRECTIONS = KpiDirectionSchema.options;
 const KPI_FREQUENCIES = ObservationPeriodSchema.options;
 
@@ -84,7 +81,6 @@ interface KPIFormDialogProps {
 const defaultFormValues: CreateKPIForm = {
   name: "",
   type: "CO2_EMISSION",
-  valueType: "ABSOLUTE",
   direction: "LOWER_IS_BETTER",
   targetValue: 0,
   thresholdMin: undefined,
@@ -214,15 +210,7 @@ export function KPIFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        // Trigger validation for valueType when type changes
-                        // This validates the refinement rules for type/valueType combinations
-                        form.trigger("valueType");
-                      }}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
@@ -242,35 +230,26 @@ export function KPIFormDialog({
               />
               <FormField
                 control={form.control}
-                name="valueType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Value Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        // Trigger validation for valueType immediately
-                        // This validates the refinement rules for type/valueType combinations
-                        form.trigger("valueType");
-                      }}
-                      value={field.value}
-                    >
+                name="type"
+                render={({ field }) => {
+                  const unit = getKPIUnit({ type: field.value });
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select value type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {KPI_VALUE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {KPI_VALUE_TYPE_LABELS[type] || type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                        <Input
+                          type="text"
+                          value={unit ?? "N/A"}
+                          placeholder={unit ?? "N/A"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                      </FormControl> 
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
@@ -354,34 +333,6 @@ export function KPIFormDialog({
               />
               <FormField
                 control={form.control}
-                name="targetValue"
-                render={({ field }) => {
-                  const unit = getKPIUnit({
-                    type: form.watch("type"),
-                    valueType: form.watch("valueType"),
-                  });
-
-                  return (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          value={unit ?? "N/A"}
-                          placeholder={unit ?? "N/A"}
-                          readOnly
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <FormField
-                control={form.control}
                 name="baselineValue"
                 render={({ field }) => (
                   <FormItem>
@@ -407,6 +358,9 @@ export function KPIFormDialog({
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="thresholdMin"

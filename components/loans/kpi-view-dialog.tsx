@@ -16,7 +16,6 @@ import {
   KPI_FREQUENCY_LABELS,
   KPI_STATUS_LABELS,
   KPI_TYPE_LABELS,
-  KPI_VALUE_TYPE_LABELS,
 } from "@/lib/labels";
 import { formatDate, getKPIUnit } from "@/lib/utils";
 import { Target, TrendingDown, TrendingUp } from "lucide-react";
@@ -72,10 +71,8 @@ export function KPIViewDialog({ kpi, open, onOpenChange }: KPIViewDialogProps) {
                 </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Value Type</span>
-                <span className="font-medium">
-                  {KPI_VALUE_TYPE_LABELS[kpi.valueType] || kpi.valueType}
-                </span>
+                <span className="text-muted-foreground">Unit</span>
+                <span className="font-medium">{unit ?? "N/A"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Direction</span>

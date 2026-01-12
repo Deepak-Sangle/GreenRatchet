@@ -179,7 +179,7 @@ async function syncCarbonIntensity(params: SyncParams): Promise<SyncResult> {
     dataCenterRegion: params.dataCenterRegion,
     dataCenterProvider: params.dataCenterProvider,
     datetime: new Date(response.datetime),
-    carbonIntensity: response.carbonIntensity,
+    value: response.carbonIntensity,
     emissionFactorType: response.emissionFactorType,
     isEstimated: response.isEstimated ?? false,
     estimationMethod: toEstimationMethodEnum(response.estimationMethod),
