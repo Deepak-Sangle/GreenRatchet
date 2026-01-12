@@ -61,14 +61,21 @@ export function GhgIntensityKpi() {
       <div className="space-y-6">
         <div>
           <p className="text-muted-foreground leading-relaxed">
-            GHG Intensity Reduction measures your organization's carbon
-            efficiency by calculating total greenhouse gas emissions (in
-            metric tons CO2e) per employee and per million dollars of revenue.
-            These social and economic KPIs help normalize emissions across
-            organizations of different sizes and business models, making it
-            easier to benchmark performance and track improvement over time.
-            Lower intensity indicates better carbon efficiency, demonstrating
-            your commitment to sustainable growth.
+            GHG intensity reduction measures the amount of greenhouse gas
+            emissions generated per employee or per unit of revenue, linking
+            cloud-related emissions directly to business scale and productivity.
+            This KPI is significant because it shows whether a company is
+            decoupling growth from environmental impact—one of the core
+            objectives of sustainable economic development. It is calculated by
+            dividing total cloud CO₂e emissions by either average headcount or
+            total revenue over the same period. A reduction in this metric
+            indicates that the organisation is becoming more carbon-efficient as
+            it grows, through improved cloud architecture, better resource
+            utilisation, or cleaner energy sources. For lenders, this KPI is
+            especially valuable because it normalises emissions against business
+            performance, enabling fair comparison across companies and ensuring
+            that sustainability targets remain ambitious yet achievable during
+            periods of expansion.{" "}
           </p>
         </div>
 

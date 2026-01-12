@@ -64,16 +64,21 @@ export function EnergyConsumptionKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              Energy Consumption measures the total electrical energy (in MWh)
-              consumed by your cloud infrastructure operations. This metric
-              provides visibility into your energy footprint, helps identify
-              energy-intensive services and regions, enables optimization of
-              workload placement for energy efficiency, and supports renewable
-              energy procurement decisions. Tracking energy consumption is
-              crucial for understanding the relationship between your cloud
-              operations and carbon emissions, as well as identifying
-              opportunities for cost savings through energy efficiency
-              improvements.
+              Total energy consumption tracks the amount of electricity used to
+              run an organisation’s cloud workloads over a given period,
+              typically measured in kilowatt-hours (kWh). This KPI matters
+              because energy use is the primary driver of both carbon emissions
+              and wider environmental impacts associated with data centres,
+              including pressure on power grids and upstream resource
+              extraction. It is calculated by converting cloud usage (compute,
+              storage, networking) into estimated energy consumption using
+              provider disclosures and industry-standard conversion factors. A
+              decrease in total energy consumption indicates more efficient
+              workload design, reduced waste, and better use of managed or
+              serverless services. From a lender’s perspective, this KPI
+              provides a transparent, technology-level indicator of operational
+              efficiency and serves as a leading signal for future emissions
+              reductions, especially when paired with carbon-based metrics.
             </p>
           </div>
 

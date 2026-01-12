@@ -252,7 +252,7 @@ export async function backfillCloudUsageAction(): Promise<{
 
     // 6. Trigger sync for each connection (fire and forget)
     for (const connection of connections) {
-      const url = new URL(`${process.env.CCF_API_URL}/footprint-sync`);
+      const url = new URL(`${process.env.BACKEND_BASE_URL}/footprint-sync`);
       url.searchParams.set("startDate", startDate.toISOString());
       url.searchParams.set("endDate", endDate.toISOString());
       url.searchParams.set("groupBy", "day");

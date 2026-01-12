@@ -75,7 +75,7 @@ export function Nav({ role, user, organization }: NavProps) {
       icon: Gauge,
     },
     {
-      label: "KPIs",
+      label: "Explore KPIs",
       href: "/kpis",
       icon: Target,
     },

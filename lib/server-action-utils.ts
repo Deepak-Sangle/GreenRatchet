@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-type UserWithOrg = {
+export type UserWithOrg = {
   id: string;
   organizationId: string;
+  role: string;
   organization: {
     id: string;
     employeeCount: number | null;
@@ -12,9 +13,9 @@ type UserWithOrg = {
 };
 
 /**
- * Common auth and user validation for server actions
+ * Get authenticated user with organization
  */
-export async function validateUserSession(): Promise<
+export async function getAuthenticatedUser(): Promise<
   { success: true; user: UserWithOrg } | { error: string }
 > {
   const session = await auth();
@@ -26,6 +27,7 @@ export async function validateUserSession(): Promise<
     where: { id: session.user.id },
     select: {
       id: true,
+      role: true,
       organizationId: true,
       organization: {
         select: {
@@ -41,13 +43,14 @@ export async function validateUserSession(): Promise<
     return { error: "No organization found" };
   }
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     user: {
       id: user.id,
+      role: user.role,
       organizationId: user.organizationId,
       organization: user.organization,
-    }
+    },
   };
 }
 
@@ -67,7 +70,10 @@ export async function getActiveCloudConnections(organizationId: string) {
     return { error: "No active cloud connections found" };
   }
 
-  return { success: true as const, connectionIds: cloudConnections.map((c) => c.id) };
+  return {
+    success: true as const,
+    connectionIds: cloudConnections.map((c) => c.id),
+  };
 }
 
 /**
@@ -75,20 +81,28 @@ export async function getActiveCloudConnections(organizationId: string) {
  */
 export function handleServerActionError(error: unknown, context: string) {
   console.error(`Error in ${context}:`, error);
+
+  // Handle Zod validation errors
+  if (error && typeof error === "object" && "errors" in error) {
+    const zodError = error as { errors: Array<{ message: string }> };
+    return {
+      error: zodError.errors[0]?.message ?? `Validation failed in ${context}`,
+    };
+  }
+
   return {
     error: error instanceof Error ? error.message : `Failed to ${context}`,
   };
 }
-
 /**
- * Wrapper for server actions with common patterns
+ * Simple wrapper for server actions
  */
 export async function withServerAction<T>(
   action: (user: UserWithOrg) => Promise<T>,
   context: string
 ): Promise<{ success: true; data: T } | { error: string }> {
   try {
-    const userResult = await validateUserSession();
+    const userResult = await getAuthenticatedUser();
     if ("error" in userResult) {
       return { error: userResult.error };
     }

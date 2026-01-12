@@ -64,14 +64,22 @@ export function LowCarbonRegionKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              This KPI measures the percentage of your total CO2 emissions
-              occurring in low-carbon regions (carbon intensity below 150
-              gCO2/kWh). By strategically deploying workloads to regions powered
-              by cleaner energy grids, you can significantly reduce your carbon
-              footprint without infrastructure changes. This metric helps
-              identify opportunities for carbon-aware workload placement,
-              demonstrate sustainability commitments, and qualify for better
-              terms on sustainability-linked financing.
+              This KPI measures the proportion of total cloud-related CO₂e
+              emissions generated in regions with relatively low grid carbon
+              intensity. It is significant because the environmental impact of
+              cloud workloads depends heavily on where the underlying
+              electricity is produced—regions with cleaner energy mixes result
+              in lower emissions for the same level of compute. The metric is
+              calculated by categorising cloud usage by region, applying
+              region-specific emission factors, and determining the percentage
+              of total CO₂e that comes from regions below a defined
+              carbon-intensity threshold. Increasing this percentage indicates
+              that workloads are being intentionally placed in cleaner regions,
+              leading to immediate emissions reductions without sacrificing
+              business growth. For lenders, this KPI demonstrates strong
+              operational control, clear decarbonisation levers, and a credible
+              pathway for ongoing emissions improvement that does not rely
+              solely on offsets.
             </p>
           </div>
 

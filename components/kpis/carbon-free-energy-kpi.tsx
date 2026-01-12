@@ -69,16 +69,22 @@ export function CarbonFreeEnergyKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              This KPI measures the percentage of your cloud workloads powered
-              by carbon-free electricity sources including nuclear, hydro, wind,
-              solar, and other renewables. Unlike carbon intensity which
-              measures emissions per kWh, this metric directly shows what
-              portion of your energy comes from zero-emission sources. Higher
-              carbon-free percentages indicate better alignment with clean
-              energy goals and demonstrate progress toward 24/7 carbon-free
-              energy commitments. This metric is increasingly important for
-              corporate sustainability reporting, regulatory compliance, and
-              qualifying for green financing terms.
+              Carbon-Free Energy (CFE) % measures the share of cloud workloads
+              that are powered by electricity generated from carbon-free sources
+              such as wind, solar, hydro, or nuclear. This KPI is significant
+              because increasing the use of clean electricity directly reduces
+              greenhouse gas emissions and supports the broader transition to
+              low-carbon energy systems. It is typically calculated by matching
+              cloud workload energy consumption with provider-reported
+              carbon-free or renewable energy data on a regional or hourly
+              basis, expressed as a percentage of total cloud energy use. An
+              increase in CFE % indicates that workloads are increasingly
+              aligned with cleaner grids or regions supported by renewable
+              energy procurement. For lenders, this KPI demonstrates alignment
+              with long-term decarbonisation pathways, reduces transition risk
+              associated with fossil-fuel dependency, and provides confidence
+              that emissions reductions are being achieved through structural
+              changes rather than short-term measures.
             </p>
           </div>
 

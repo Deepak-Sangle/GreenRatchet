@@ -980,10 +980,12 @@ export default function CloudUsagePage() {
                           </span>
                         </div>
                         <p className="text-muted-foreground text-xs">
-                          Energy consumed and emissions produced during the
-                          active use of cloud resources (compute, storage,
-                          networking). Measured in real-time based on actual
-                          workload.
+                          Operational metrics capture the energy consumed and
+                          emissions produced while cloud resources are actively
+                          running—such as compute, storage, and networking.
+                          These metrics reflect real-time usage and change
+                          directly with workload demand, architecture choices,
+                          and regional deployment decisions.
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -995,10 +997,14 @@ export default function CloudUsagePage() {
                           <span className="font-medium">Embodied Metrics</span>
                         </div>
                         <p className="text-muted-foreground text-xs">
-                          Emissions from manufacturing, transporting, and
-                          disposing of hardware infrastructure. Amortized over
-                          the expected lifespan of the equipment (typically 4
-                          years for servers).{" "}
+                          Embodied metrics represent the emissions associated
+                          with the physical lifecycle of cloud infrastructure,
+                          including manufacturing, transportation, and
+                          end-of-life disposal of hardware. These impacts are
+                          typically allocated over the expected lifespan of the
+                          equipment (commonly around four years for servers),
+                          providing a long-term view of infrastructure-related
+                          emissions beyond day-to-day operations.{" "}
                           <a
                             href="https://www.oxygenit.io/"
                             target="_blank"

@@ -1,4 +1,4 @@
-import { AiComputeHoursKpi } from "@/components/kpis/ai-compute-hours-kpi";
+import { AIUsageKPI } from "@/components/kpis/ai-usage-kpi";
 import { CarbonFreeEnergyKpi } from "@/components/kpis/carbon-free-energy-kpi";
 import { Co2EmissionKpi } from "@/components/kpis/co2-emission-kpi";
 import { ElectricityMixKpi } from "@/components/kpis/electricity-mix-kpi";
@@ -18,8 +18,12 @@ export default function KPIsPage() {
         </h1>
         <p className="text-muted-foreground">
           Explore different KPI types to understand how your cloud usage
-          performs across various sustainability metrics. Use these insights to
-          decide which KPIs to track for your loans.
+          performs across a range of sustainability metrics. These insights help
+          lenders assess whether proposed KPIs are sufficiently ambitious and
+          material, while enabling borrowers to evaluate whether the targets are
+          realistic, achievable, and aligned with their operational
+          capabilities—ensuring sustainability-linked loans are both credible
+          and executable.{" "}
         </p>
       </div>
 
@@ -28,7 +32,7 @@ export default function KPIsPage() {
         <GhgIntensityKpi />
         <EnergyConsumptionKpi />
         <WaterWithdrawalKpi />
-        <AiComputeHoursKpi />
+        <AIUsageKPI />
         <LowCarbonRegionKpi />
         <WaterStressedRegionKpi />
         <CarbonFreeEnergyKpi />

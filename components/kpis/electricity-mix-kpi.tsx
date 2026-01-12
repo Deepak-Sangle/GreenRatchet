@@ -70,17 +70,22 @@ export function ElectricityMixKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              The electricity mix shows the breakdown of electricity sources
-              powering your cloud infrastructure by energy type. This metric
-              tracks three key categories: Low-Carbon (nuclear + renewables),
-              Renewable (wind + solar + hydro + geothermal), and Fossil (coal +
-              gas + oil). Understanding your electricity mix composition helps
-              identify trends in clean energy adoption, assess exposure to
-              fossil fuel-based electricity, demonstrate progress toward
-              renewable energy goals, and make informed decisions about regional
-              workload placement. This historical view enables you to track
-              improvements over time and communicate sustainability progress to
-              stakeholders.
+              Electricity mix breakdown tracks how cloud energy consumption is
+              distributed across different energy sources—such as renewable,
+              nuclear, and fossil-based electricity—over time. This KPI is
+              significant because not all electricity has the same environmental
+              impact, and changes in the energy mix directly influence both
+              carbon emissions and broader ecosystem pressures from fuel
+              extraction and combustion. It is calculated by mapping cloud
+              workload energy use to region-specific electricity mix data
+              provided by cloud providers or grid operators and expressing each
+              source as a percentage of total energy consumption. A shift toward
+              cleaner sources within the mix indicates structural
+              decarbonisation rather than short-term optimisation. For lenders,
+              this KPI provides transparency into energy dependency risks,
+              enables trend-based assessment of sustainability progress, and
+              supports confidence that emissions reductions are driven by
+              lasting changes in the underlying power supply.
             </p>
           </div>
 

@@ -71,15 +71,22 @@ export function WaterStressedRegionKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              This KPI measures the percentage of your total water usage
-              occurring in water-stressed regions (risk level 4-5 on a 0-5
-              scale). Data centers consume significant water for cooling, and
-              operating in water-stressed regions can strain local resources and
-              increase operational risks. By strategically deploying workloads
-              to regions with abundant water resources, you can reduce
-              environmental impact, mitigate water scarcity risks, and
-              demonstrate responsible water stewardship for sustainability
-              reporting and financing.
+              This KPI measures the proportion of total cloud-related water
+              consumption that occurs in regions classified as water-stressed.
+              It is significant because data centres in water-scarce areas can
+              intensify local environmental and social pressures, especially
+              during periods of drought or competing community demand. The
+              metric is calculated by mapping cloud workloads to their
+              geographic regions, estimating associated water use, and
+              determining the percentage attributable to regions with high or
+              extremely high water stress based on recognised water-risk
+              indices. A decrease in this percentage indicates more responsible
+              workload placement, reduced exposure to physical water risk, and
+              improved resilience of cloud operations. For lenders, this KPI
+              highlights how the borrower is managing location-specific
+              natural-resource risks and demonstrates a more holistic approach
+              to sustainability beyond carbon alone, which is increasingly
+              important in long-term credit assessments.
             </p>
           </div>
 

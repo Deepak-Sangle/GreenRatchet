@@ -69,17 +69,21 @@ export function RenewableEnergyKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              This KPI measures the percentage of your cloud workloads powered
-              by renewable electricity sources including wind, solar, hydro, and
-              geothermal. Unlike carbon-free energy which includes nuclear, this
-              metric focuses specifically on renewable sources that are
-              naturally replenished. Higher renewable percentages demonstrate
-              commitment to sustainable energy transition, align with corporate
-              renewable energy goals, support global climate targets, and
-              increasingly influence investor and customer decisions. This
-              metric is critical for organizations with 100% renewable energy
-              commitments and those seeking to demonstrate leadership in clean
-              energy adoption.
+              Renewable Energy % measures the proportion of cloud workloads
+              whose electricity consumption is matched with renewable energy
+              sources such as wind, solar, or hydropower. This KPI matters
+              because increasing renewable energy use reduces reliance on fossil
+              fuels and lowers the lifecycle carbon emissions associated with
+              digital infrastructure. It is generally calculated using cloud
+              provider disclosures that allocate renewable energy procurement or
+              certificates to regional workload energy consumption, expressed as
+              a percentage of total cloud energy use. An increase in this metric
+              indicates stronger alignment with clean-energy sourcing strategies
+              and supports emissions reduction over time. For lenders, Renewable
+              Energy % is a familiar and comparable indicator that signals
+              progress toward net-zero commitments, while also providing
+              assurance that cloud-related emissions are being addressed through
+              verifiable energy sourcing mechanisms.
             </p>
           </div>
 

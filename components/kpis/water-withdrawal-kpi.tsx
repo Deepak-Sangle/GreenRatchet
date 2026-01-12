@@ -70,17 +70,22 @@ export function WaterWithdrawalKpi() {
         <div className="mt-6 space-y-6 animate-in fade-in duration-200">
           <div>
             <p className="text-muted-foreground leading-relaxed">
-              Water Withdrawal measures the total water consumed by data center
-              cooling systems supporting your cloud infrastructure. Calculated
-              using Water Usage Effectiveness (WUE) metrics, this KPI helps you
-              understand the water footprint of your operations across different
-              regions. Water scarcity is a growing concern in many data center
-              locations, making this metric crucial for sustainable operations.
-              By tracking water withdrawal, you can identify water-intensive
-              regions, optimize workload placement to minimize water impact, and
-              support corporate water stewardship goals. This metric is
-              particularly important for organizations with commitments to water
-              conservation and those operating in water-stressed regions.
+              Total water withdrawal measures the volume of freshwater used to
+              support cloud operations, primarily for data-centre cooling and
+              power generation. This KPI is significant because water scarcity
+              is a growing environmental risk, and data centres can place
+              additional stress on local water resources, particularly in
+              water-stressed regions. The metric is typically calculated by
+              applying provider-reported water-use factors to cloud energy
+              consumption and aggregating the estimated water use across regions
+              and services. A reduction in total water withdrawal indicates
+              improved efficiency, smarter workload placement, or greater
+              reliance on facilities with advanced cooling technologies and
+              lower water intensity. For lenders, this KPI highlights exposure
+              to physical climate and resource-availability risks and
+              demonstrates that the borrower is managing not only carbon impacts
+              but also broader natural-resource dependencies associated with
+              digital infrastructure.
             </p>
           </div>
 
