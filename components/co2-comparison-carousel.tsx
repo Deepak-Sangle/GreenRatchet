@@ -2,18 +2,26 @@
 
 import { cn } from "@/lib/utils";
 import {
+  Car,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Fuel,
   Home,
   Plane,
+  Smartphone,
   Sprout,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 /** Comparison types for CO2 equivalencies */
-export type ComparisonType = "flights" | "homes" | "diesel" | "trees";
+export type ComparisonType =
+  | "flights"
+  | "homes"
+  | "diesel"
+  | "trees"
+  | "miles"
+  | "smartphones";
 
 export interface ComparisonConfig {
   type: ComparisonType;
@@ -62,6 +70,27 @@ export const COMPARISON_CONFIGS: ComparisonConfig[] = [
     unit: "seedlings",
     conversionFactor: 16.5,
     description: "Tree seedlings grown for 10 years",
+    sourceUrl:
+      "https://www.epa.gov/energy/greenhouse-gas-equivalencies-calculator#results",
+  },
+  {
+    type: "miles",
+    label: "Miles Driven",
+    icon: <Car className="h-5 w-5" />,
+    unit: "miles",
+    conversionFactor: 2547,
+    description:
+      "Miles driven by an average gasoline-powered passenger vehicle",
+    sourceUrl:
+      "https://www.epa.gov/energy/greenhouse-gas-equivalencies-calculator#results",
+  },
+  {
+    type: "smartphones",
+    label: "Smartphones Charged",
+    icon: <Smartphone className="h-5 w-5" />,
+    unit: "charges",
+    conversionFactor: 80847,
+    description: "Number of smartphones charged",
     sourceUrl:
       "https://www.epa.gov/energy/greenhouse-gas-equivalencies-calculator#results",
   },

@@ -28,15 +28,39 @@ export default async function DashboardLayout({
     <div className="flex h-screen flex-col bg-background">
       <Header
         user={{
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
           avatarUrl: user.avatarUrl,
         }}
-        organizationName={user.organization.name}
+        organization={{
+          id: user.organization.id,
+          name: user.organization.name,
+          headquarters: user.organization.headquarters,
+          linkedinUrl: user.organization.linkedinUrl,
+          employeeCount: user.organization.employeeCount,
+          annualRevenue: user.organization.annualRevenue,
+        }}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Nav role={user.role} />
+        <Nav
+          role={user.role}
+          user={{
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+          }}
+          organization={{
+            id: user.organization.id,
+            name: user.organization.name,
+            headquarters: user.organization.headquarters,
+            linkedinUrl: user.organization.linkedinUrl,
+            employeeCount: user.organization.employeeCount,
+            annualRevenue: user.organization.annualRevenue,
+          }}
+        />
         <main className="flex-1 overflow-y-auto bg-mesh p-8 scrollbar-thin">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>

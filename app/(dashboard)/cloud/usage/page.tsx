@@ -7,7 +7,10 @@ import {
   type CloudUsageResponse,
 } from "@/app/actions/cloud";
 import { getTodayCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
-import { CarbonIntensityMap, RegionCarbonIntensity } from "@/components/cloud/carbon-intensity-map";
+import {
+  CarbonIntensityMap,
+  RegionCarbonIntensity,
+} from "@/components/cloud/carbon-intensity-map";
 import { CO2ComparisonCarousel } from "@/components/co2-comparison-carousel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +43,7 @@ import {
   AGGREGATION_PERIOD_OPTIONS,
   AWS_CLOUD_CONSTANTS,
   AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH,
+  AWS_PUE_BY_REGION,
   CLOUD_METRIC_OPTIONS,
   CLOUD_SERVICES,
   CLOUD_SERVICE_LABELS,
@@ -212,9 +216,52 @@ function getRelevantEmissionsFactors(
     .sort((a, b) => a.region.localeCompare(b.region));
 }
 
+/**
+ * Gets relevant PUE values for regions in use
+ */
+function getRelevantPUEValues(
+  availableRegions: string[]
+): Array<{ region: string; pue: number }> {
+  return availableRegions
+    .map((region) => ({
+      region,
+      pue: AWS_PUE_BY_REGION[region] ?? AWS_CLOUD_CONSTANTS.PUE_AVG,
+    }))
+    .sort((a, b) => a.region.localeCompare(b.region));
+}
+
+/**
+ * Calculates average PUE across active regions using regional PUE data
+ */
+function calculateAveragePUE(availableRegions: string[]): number {
+  if (availableRegions.length === 0) return AWS_CLOUD_CONSTANTS.PUE_AVG;
+
+  const pueValues = availableRegions
+    .map((region) => AWS_PUE_BY_REGION[region])
+    .filter((pue): pue is number => pue !== undefined);
+
+  if (pueValues.length === 0) return AWS_CLOUD_CONSTANTS.PUE_AVG;
+
+  const sum = pueValues.reduce((acc, pue) => acc + pue, 0);
+  return sum / pueValues.length;
+}
+
+/**
+ * Calculates average emissions factor across active regions
+ */
+function calculateAverageEmissionsFactor(availableRegions: string[]): number {
+  const factors = getRelevantEmissionsFactors(availableRegions);
+  if (factors.length === 0) return 0;
+
+  const sum = factors.reduce((acc, { factor }) => acc + factor, 0);
+  return sum / factors.length;
+}
+
 /** Exports calculation constants to CSV */
 function exportConstantsToCSV(availableRegions: string[]): void {
   const csvLines: string[] = [];
+  const avgPUE = calculateAveragePUE(availableRegions);
+  const avgEmissionsFactor = calculateAverageEmissionsFactor(availableRegions);
 
   // Header
   csvLines.push("Calculation Constants for Cloud Carbon Footprint\n");
@@ -222,8 +269,9 @@ function exportConstantsToCSV(availableRegions: string[]): void {
   // Key Constants
   csvLines.push("\nKey Constants");
   csvLines.push("Constant,Value,Unit");
+  csvLines.push(`Power Usage Effectiveness (PUE),${avgPUE},ratio`);
   csvLines.push(
-    `Power Usage Effectiveness (PUE),${AWS_CLOUD_CONSTANTS.PUE_AVG},ratio`
+    `Average Emissions Factor (Active Regions),${avgEmissionsFactor.toFixed(10)},mtCO2e/kWh`
   );
   csvLines.push(
     `SSD Coefficient,${AWS_CLOUD_CONSTANTS.SSDCOEFFICIENT},Wh/TB-hour`
@@ -250,6 +298,14 @@ function exportConstantsToCSV(availableRegions: string[]): void {
   const emissionsFactors = getRelevantEmissionsFactors(availableRegions);
   for (const { region, factor } of emissionsFactors) {
     csvLines.push(`${region},${factor}`);
+  }
+
+  // Regional PUE Values
+  csvLines.push("\n\nRegional PUE Values (Active Regions)");
+  csvLines.push("Region,PUE");
+  const pueValues = getRelevantPUEValues(availableRegions);
+  for (const { region, pue } of pueValues) {
+    csvLines.push(`${region},${pue}`);
   }
 
   // Storage Replication Factors
@@ -1546,7 +1602,20 @@ export default function CloudUsagePage() {
                           Average Power Usage Effectiveness (PUE)
                         </span>
                         <span className="font-medium text-foreground">
-                          {AWS_CLOUD_CONSTANTS.PUE_AVG}
+                          {calculateAveragePUE(data.availableRegions).toFixed(
+                            2
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
+                        <span className="text-muted-foreground">
+                          Avg Emissions Factor (Active Regions)
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {calculateAverageEmissionsFactor(
+                            data.availableRegions
+                          ).toFixed(7)}{" "}
+                          mtCO₂e/kWh
                         </span>
                       </div>
                       <div className="flex flex-col p-2 rounded-md bg-muted/30">
@@ -1563,14 +1632,6 @@ export default function CloudUsagePage() {
                         </span>
                         <span className="font-medium text-foreground">
                           {AWS_CLOUD_CONSTANTS.SSDCOEFFICIENT} Wh/TB
-                        </span>
-                      </div>
-                      <div className="flex flex-col p-2 rounded-md bg-muted/30">
-                        <span className="text-muted-foreground">
-                          HDD Coefficient
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {AWS_CLOUD_CONSTANTS.HDDCOEFFICIENT} Wh/TB
                         </span>
                       </div>
                     </div>

@@ -3,13 +3,295 @@ generator client {
   output   = "../app/generated/prisma"
 }
 
+generator zod {
+  provider = "prisma-zod-generator"
+  config   = "../zod-generator.config.json"
+}
+
 datasource db {
   provider = "postgresql"
 }
 
-generator zod {
-  provider = "prisma-zod-generator"
-  config   = "../zod-generator.config.json"
+model User {
+  id             String        @id @default(cuid())
+  name           String?
+  email          String        @unique
+  emailVerified  DateTime?
+  password       String
+  image          String?
+  role           UserRole
+  organizationId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  avatarUrl      String?
+  auditLogs      AuditLog[]
+  loans          Loan[]
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Organization {
+  id               String            @id @default(cuid())
+  name             String
+  type             UserRole
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  logoUrl          String?
+  headquarters     String?
+  linkedinUrl      String?
+  annualRevenue    Float?
+  employeeCount    Int?
+  auditLogs        AuditLog[]
+  cloudConnections CloudConnection[]
+  borrowerLoans    Loan[]            @relation("BorrowerOrganization")
+  lenderLoans      Loan[]            @relation("LenderOrganization")
+  users            User[]
+}
+
+model Loan {
+  id              String          @id @default(cuid())
+  name            String
+  borrowerOrgId   String
+  lenderOrgId     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  committedAmount Float
+  createdByUserId String
+  drawnAmount     Float
+  maturityDate    DateTime
+  principalAmount Float
+  startDate       DateTime
+  type            LoanType
+  currency        LoanCurrency
+  auditLogs       AuditLog[]
+  kpis            KPI[]
+  borrowerOrg     Organization    @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
+  createdByUser   User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  lenderOrg       Organization?   @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
+  marginRatchets  MarginRatchet[]
+}
+
+model MarginRatchet {
+  id               String   @id @default(uuid())
+  loanId           String
+  kpiId            String
+  stepUpBps        Int
+  stepDownBps      Int
+  maxAdjustmentBps Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  kpi              KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  loan             Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+}
+
+model KPI {
+  id             String            @id @default(cuid())
+  name           String
+  targetValue    Float
+  baselineValue  Float?
+  loanId         String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  direction      KpiDirection
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  thresholdMax   Float?
+  thresholdMin   Float?
+  status         KpiStatus
+  type           KpiType
+  frequency      ObservationPeriod
+  auditLogs      AuditLog[]
+  loan           Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  results        KPIResult[]
+  marginRatchets MarginRatchet[]
+}
+
+model KPIResult {
+  id          String          @id @default(cuid())
+  kpiId       String
+  periodStart DateTime
+  periodEnd   DateTime
+  actualValue Float
+  targetValue Float
+  status      KPIResultStatus @default(PENDING)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  auditLogs   AuditLog[]
+  kpi         KPI             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+}
+
+model CloudConnection {
+  id                String           @id @default(cuid())
+  provider          CloudProvider
+  roleArn           String?
+  externalId        String?
+  serviceAccountKey String?
+  projectId         String?
+  isActive          Boolean          @default(true)
+  lastSync          DateTime?
+  organizationId    String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  accountId         String?
+  auditLogs         AuditLog[]
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  footprintData     CloudFootprint[]
+}
+
+model CloudFootprint {
+  id                String             @id @default(cuid())
+  cloudConnectionId String
+  cloudProvider     String
+  kilowattHours     Float?
+  co2e              Float
+  cost              Float?
+  serviceName       String
+  region            String
+  tags              String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  timestamp         DateTime
+  periodStartDate   DateTime
+  periodEndDate     DateTime
+  type              CloudFootprintType @default(OPERATIONAL_METRICS)
+  serviceType       String?
+  cloudConnection   CloudConnection    @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([cloudConnectionId])
+  @@index([periodStartDate, periodEndDate])
+  @@index([serviceName])
+}
+
+model AuditLog {
+  id                String           @id @default(cuid())
+  action            String
+  entity            String
+  entityId          String
+  details           String
+  userId            String?
+  loanId            String?
+  kpiId             String?
+  kpiResultId       String?
+  cloudConnectionId String?
+  createdAt         DateTime         @default(now())
+  organizationId    String?
+  cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
+  kpi               KPI?             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  kpiResult         KPIResult?       @relation(fields: [kpiResultId], references: [id], onDelete: Cascade)
+  loan              Loan?            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  organization      Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GridCarbonFreeEnergy {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float
+  isEstimated         Boolean
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  estimationMethod    String?
+  temporalGranularity String?
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridRenewableEnergy {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  value               Float
+  isEstimated         Boolean
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  estimationMethod    String?
+  temporalGranularity String?
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridCarbonIntensity {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  emissionFactorType  String
+  isEstimated         Boolean
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  estimationMethod    String?
+  temporalGranularity String?
+  value               Float
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridCarbonIntensityFossilOnly {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  emissionFactorType  String
+  isEstimated         Boolean
+  estimationMethod    String?
+  temporalGranularity String?
+  apiUpdatedAt        DateTime
+  apiCreatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  value               Float
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
+}
+
+model GridElectricityMix {
+  id                  String                  @id @default(cuid())
+  zone                String
+  dataCenterRegion    String
+  dataCenterProvider  ElectricityMapsProvider
+  datetime            DateTime
+  nuclear             Float
+  geothermal          Float
+  biomass             Float
+  coal                Float
+  wind                Float
+  solar               Float
+  hydro               Float
+  gas                 Float
+  oil                 Float
+  unknown             Float
+  hydroDischarge      Float
+  batteryDischarge    Float
+  isEstimated         Boolean
+  apiUpdatedAt        DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  estimationMethod    String?
+  temporalGranularity String?
+
+  @@unique([dataCenterRegion, dataCenterProvider, datetime])
+  @@index([dataCenterRegion, dataCenterProvider])
+  @@index([datetime])
 }
 
 enum UserRole {
@@ -30,52 +312,19 @@ enum KPIResultStatus {
 }
 
 enum LoanType {
-  FIXED_RATE // The interest rate is fixed for the entire loan term
-  FLOATING_RATE // The interest rate is variable and changes based on market conditions
-  AMORTIZED // The loan is amortized over the loan term
-  ANNUITY // The loan is repaid in equal installments over the loan term
-  BALLOON // The loan is repaid in a single lump sum at the end of the loan term
-  CREDIT_LINE // The loan is a credit line that can be used as needed
-  REVOLVING_CREDIT_LINE // The loan is a revolving credit line that can be used as needed
-  CREDIT_CARD // The loan is a credit card that can be used as needed
+  FIXED_RATE
+  FLOATING_RATE
+  AMORTIZED
+  ANNUITY
+  BALLOON
+  CREDIT_LINE
+  REVOLVING_CREDIT_LINE
+  CREDIT_CARD
 }
 
 enum CloudServiceSource {
   OPERATIONAL_METRICS
   EMBODIED_METRICS
-}
-
-model User {
-  id             String        @id @default(cuid())
-  name           String?
-  avatarUrl      String?
-  email          String        @unique
-  emailVerified  DateTime?
-  password       String
-  image          String?
-  role           UserRole
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  auditLogs      AuditLog[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  loans          Loan[]
-}
-
-model Organization {
-  id               String            @id @default(cuid())
-  name             String
-  logoUrl          String?
-  // all users in this organization have the same role
-  // but they are still have the field `role` in the user table
-  type             UserRole
-  users            User[]
-  borrowerLoans    Loan[]            @relation("BorrowerOrganization")
-  lenderLoans      Loan[]            @relation("LenderOrganization")
-  cloudConnections CloudConnection[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  auditLogs        AuditLog[]
 }
 
 enum LoanCurrency {
@@ -94,41 +343,15 @@ enum ObservationPeriod {
   MONTHLY
 }
 
-model Loan {
-  id              String          @id @default(cuid())
-  name            String
-  currency        LoanCurrency
-  // I have no idea what these are, but since our app doesn't handle loan calculations, we are gonna add them
-  // Use -1 to indicate that the value is N/A
-  // At least one of these three should be set
-  principalAmount Float
-  committedAmount Float
-  drawnAmount     Float
-  type            LoanType
-  borrowerOrgId   String
-  borrowerOrg     Organization    @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
-  lenderOrgId     String?
-  lenderOrg       Organization?   @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
-  startDate       DateTime
-  maturityDate    DateTime
-  // All the KPIs for this loan
-  kpis            KPI[]
-  auditLogs       AuditLog[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  createdByUserId String
-  createdByUser   User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-  marginRatchets  MarginRatchet[]
-}
-
 enum KpiType {
   CO2_EMISSION
-  ENERGY_CONSUMPTION
   AI_COMPUTE_HOURS
   LOW_CARBON_REGION_PERCENTAGE
   CARBON_FREE_ENERGY_PERCENTAGE
   ELECTRICITY_MIX_BREAKDOWN
   RENEWABLE_ENERGY_PERCENTAGE
+  ENERGY_CONSUMPTION
+  WATER_WITHDRAWAL
 }
 
 enum KpiDirection {
@@ -142,247 +365,13 @@ enum KpiStatus {
   REJECTED
 }
 
-model MarginRatchet {
-  id               String   @id @default(uuid())
-  loanId           String
-  loan             Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  kpiId            String
-  kpi              KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
-  // The basis points for margin ratchet; 1 bps = 0.01%
-  // step up bps if there is no violation of KPI target
-  stepUpBps        Int
-  // step down bps if there is violation of KPI target
-  stepDownBps      Int
-  // Maximum adjustment bps for the margin ratchet
-  maxAdjustmentBps Int
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model KPI {
-  id             String            @id @default(cuid())
-  name           String
-  type           KpiType
-  direction      KpiDirection
-  targetValue    Float
-  thresholdMin   Float?
-  thresholdMax   Float?
-  frequency      ObservationPeriod
-  baselineValue  Float?
-  status         KpiStatus
-  effectiveFrom  DateTime
-  effectiveTo    DateTime?
-  loanId         String
-  loan           Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  results        KPIResult[]
-  auditLogs      AuditLog[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  marginRatchets MarginRatchet[]
-}
-
-model KPIResult {
-  id          String          @id @default(cuid())
-  kpiId       String
-  periodStart DateTime
-  periodEnd   DateTime
-  actualValue Float
-  targetValue Float
-  status      KPIResultStatus @default(PENDING)
-  // Calculation details to be added later
-  kpi         KPI             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
-  auditLogs   AuditLog[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-}
-
-model CloudConnection {
-  id                String           @id @default(cuid())
-  provider          CloudProvider
-  // AWS specific
-  roleArn           String?
-  externalId        String?
-  accountId         String?
-  // GCP specific
-  serviceAccountKey String?          @db.Text
-  projectId         String?
-  // Common
-  isActive          Boolean          @default(true)
-  lastSync          DateTime?
-  organizationId    String
-  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  auditLogs         AuditLog[]
-  footprintData     CloudFootprint[]
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-}
-
 enum CloudFootprintType {
   OPERATIONAL_METRICS
   EMBODIED_METRICS
-}
-
-model CloudFootprint {
-  id                String             @id @default(cuid())
-  cloudConnectionId String
-  cloudConnection   CloudConnection    @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
-  timestamp         DateTime
-  periodStartDate   DateTime
-  periodEndDate     DateTime
-  cloudProvider     String
-  kilowattHours     Float?
-  // CO2e is in MTCO2e here
-  co2e              Float
-  serviceType       String?
-  type              CloudFootprintType @default(OPERATIONAL_METRICS)
-  cost              Float?
-  serviceName       String
-  region            String
-  tags              String?            @db.Text // JSON string
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  @@index([cloudConnectionId])
-  @@index([periodStartDate, periodEndDate])
-  @@index([serviceName])
-}
-
-model AuditLog {
-  id                String           @id @default(cuid())
-  action            String // e.g., "KPI_CREATED", "KPI_ACCEPTED", "DATA_PULL", "RESULT_CHANGED"
-  entity            String // e.g., "KPI", "LOAN", "CLOUD_CONNECTION"
-  entityId          String
-  details           String           @db.Text // JSON string
-  userId            String?
-  user              User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  loanId            String?
-  loan              Loan?            @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  kpiId             String?
-  kpi               KPI?             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
-  kpiResultId       String?
-  kpiResult         KPIResult?       @relation(fields: [kpiResultId], references: [id], onDelete: Cascade)
-  cloudConnectionId String?
-  organizationId    String?
-  organization      Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
-  createdAt         DateTime         @default(now())
 }
 
 enum ElectricityMapsProvider {
   AWS
   AZURE
   GCP
-}
-
-model GridCarbonFreeEnergy {
-  id                  String                  @id @default(cuid())
-  zone                String
-  dataCenterRegion    String
-  dataCenterProvider  ElectricityMapsProvider
-  datetime            DateTime
-  value               Float // Percentage
-  isEstimated         Boolean
-  estimationMethod    String?
-  temporalGranularity String?
-  apiUpdatedAt        DateTime
-  apiCreatedAt        DateTime
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-
-  @@unique([dataCenterRegion, dataCenterProvider, datetime])
-  @@index([dataCenterRegion, dataCenterProvider])
-  @@index([datetime])
-}
-
-model GridRenewableEnergy {
-  id                  String                  @id @default(cuid())
-  zone                String
-  dataCenterRegion    String
-  dataCenterProvider  ElectricityMapsProvider
-  datetime            DateTime
-  value               Float // Percentage
-  isEstimated         Boolean
-  estimationMethod    String?
-  temporalGranularity String?
-  apiUpdatedAt        DateTime
-  apiCreatedAt        DateTime
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-
-  @@unique([dataCenterRegion, dataCenterProvider, datetime])
-  @@index([dataCenterRegion, dataCenterProvider])
-  @@index([datetime])
-}
-
-model GridCarbonIntensity {
-  id                  String                  @id @default(cuid())
-  zone                String
-  dataCenterRegion    String
-  dataCenterProvider  ElectricityMapsProvider
-  datetime            DateTime
-  value               Float // gCO2eq/kWh
-  emissionFactorType  String // "lifecycle" or "direct"
-  isEstimated         Boolean
-  estimationMethod    String?
-  temporalGranularity String?
-  apiUpdatedAt        DateTime
-  apiCreatedAt        DateTime
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-
-  @@unique([dataCenterRegion, dataCenterProvider, datetime])
-  @@index([dataCenterRegion, dataCenterProvider])
-  @@index([datetime])
-}
-
-model GridCarbonIntensityFossilOnly {
-  id                  String                  @id @default(cuid())
-  zone                String
-  dataCenterRegion    String
-  dataCenterProvider  ElectricityMapsProvider
-  datetime            DateTime
-  value               Float // gCO2eq/kWh 
-  emissionFactorType  String // "lifecycle" or "direct"
-  isEstimated         Boolean
-  estimationMethod    String?
-  temporalGranularity String?
-  apiUpdatedAt        DateTime
-  apiCreatedAt        DateTime
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-
-  @@unique([dataCenterRegion, dataCenterProvider, datetime])
-  @@index([dataCenterRegion, dataCenterProvider])
-  @@index([datetime])
-}
-
-model GridElectricityMix {
-  id                  String                  @id @default(cuid())
-  zone                String
-  dataCenterRegion    String
-  dataCenterProvider  ElectricityMapsProvider
-  datetime            DateTime
-  // Energy sources in MW
-  nuclear             Float
-  geothermal          Float
-  biomass             Float
-  coal                Float
-  wind                Float
-  solar               Float
-  hydro               Float
-  gas                 Float
-  oil                 Float
-  unknown             Float
-  hydroDischarge      Float
-  batteryDischarge    Float
-  isEstimated         Boolean
-  estimationMethod    String?
-  temporalGranularity String?
-  apiUpdatedAt        DateTime
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-
-  @@unique([dataCenterRegion, dataCenterProvider, datetime])
-  @@index([dataCenterRegion, dataCenterProvider])
-  @@index([datetime])
 }

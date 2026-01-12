@@ -36,6 +36,7 @@ export function getKPIUnit(kpi: Pick<KPI, "type">): string | null {
   return match(kpi.type)
     .with("CO2_EMISSION", () => "tCO₂e")
     .with("ENERGY_CONSUMPTION", () => "MWh")
+    .with("WATER_WITHDRAWAL", () => "L")
     .with("AI_COMPUTE_HOURS", () => "AI compute hours")
     .with("LOW_CARBON_REGION_PERCENTAGE", () => "%")
     .with("CARBON_FREE_ENERGY_PERCENTAGE", () => "%")

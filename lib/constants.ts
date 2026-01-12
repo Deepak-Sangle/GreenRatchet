@@ -326,6 +326,42 @@ export const US_NERC_REGIONS_EMISSIONS_FACTORS: {
   TRE: 0.000373231,
 };
 
+/**
+ * Regional PUE (Power Usage Effectiveness) values for AWS regions
+ * Source: AWS Sustainability Report 2024
+ */
+export const AWS_PUE_BY_REGION: CloudConstantsEmissionsFactors = {
+  [AWS_REGIONS.EU_NORTH_1]: 1.1,
+  [AWS_REGIONS.EU_WEST_1]: 1.11,
+  [AWS_REGIONS.US_WEST_2]: 1.12,
+  [AWS_REGIONS.US_EAST_2]: 1.13,
+  [AWS_REGIONS.US_EAST_1]: 1.15,
+  [AWS_REGIONS.SA_EAST_1]: 1.17,
+  [AWS_REGIONS.US_WEST_1]: 1.18,
+  [AWS_REGIONS.CA_CENTRAL_1]: 1.19,
+  [AWS_REGIONS.AF_SOUTH_1]: 1.24,
+  [AWS_REGIONS.CN_NORTH_1]: 1.25,
+  [AWS_REGIONS.CN_NORTHWEST_1]: 1.25,
+  [AWS_REGIONS.AP_NORTHEAST_1]: 1.27,
+  [AWS_REGIONS.ME_CENTRAL_1]: 1.27,
+  [AWS_REGIONS.AP_SOUTHEAST_1]: 1.32,
+  [AWS_REGIONS.ME_SOUTH_1]: 1.33,
+  [AWS_REGIONS.EU_CENTRAL_1]: 1.35,
+  [AWS_REGIONS.AP_SOUTHEAST_3]: 1.4,
+  [AWS_REGIONS.AP_SOUTH_1]: 1.42,
+  // Fallback to global average for regions without specific data
+  [AWS_REGIONS.US_GOV_EAST_1]: 1.15,
+  [AWS_REGIONS.US_GOV_WEST_1]: 1.15,
+  [AWS_REGIONS.AP_EAST_1]: 1.27,
+  [AWS_REGIONS.AP_NORTHEAST_3]: 1.27,
+  [AWS_REGIONS.AP_NORTHEAST_2]: 1.27,
+  [AWS_REGIONS.AP_SOUTHEAST_2]: 1.27,
+  [AWS_REGIONS.EU_WEST_2]: 1.11,
+  [AWS_REGIONS.EU_SOUTH_1]: 1.11,
+  [AWS_REGIONS.EU_WEST_3]: 1.11,
+  [AWS_REGIONS.UNKNOWN]: 1.15,
+};
+
 export const AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH: CloudConstantsEmissionsFactors =
   {
     [AWS_REGIONS.US_EAST_1]: US_NERC_REGIONS_EMISSIONS_FACTORS.SERC,
@@ -357,3 +393,39 @@ export const AWS_EMISSIONS_FACTORS_METRIC_TON_PER_KWH: CloudConstantsEmissionsFa
     [AWS_REGIONS.SA_EAST_1]: 0.0000617,
     [AWS_REGIONS.UNKNOWN]: 0.00039278188, // Average of the above regions
   };
+
+/**
+ * Water stress risk indicators for AWS regions
+ * Scale: 5 (Extremely High Risk) to 0 (Low Risk)
+ * Based on WRI Aqueduct Water Risk Atlas baseline water stress indicators
+ */
+export const AWS_WATER_STRESS_BY_REGION: Record<AWS_REGIONS, number> = {
+  [AWS_REGIONS.US_EAST_1]: 2, // Virginia - Low-Medium stress
+  [AWS_REGIONS.US_EAST_2]: 1, // Ohio - Low stress
+  [AWS_REGIONS.US_WEST_1]: 4, // California - High stress
+  [AWS_REGIONS.US_WEST_2]: 2, // Oregon - Low-Medium stress
+  [AWS_REGIONS.US_GOV_EAST_1]: 2, // Virginia - Low-Medium stress
+  [AWS_REGIONS.US_GOV_WEST_1]: 4, // California - High stress
+  [AWS_REGIONS.AF_SOUTH_1]: 5, // Cape Town - Extremely High stress
+  [AWS_REGIONS.AP_EAST_1]: 3, // Hong Kong - Medium-High stress
+  [AWS_REGIONS.AP_SOUTH_1]: 5, // Mumbai - Extremely High stress
+  [AWS_REGIONS.AP_NORTHEAST_3]: 3, // Osaka - Medium-High stress
+  [AWS_REGIONS.AP_NORTHEAST_2]: 3, // Seoul - Medium-High stress
+  [AWS_REGIONS.AP_SOUTHEAST_1]: 4, // Singapore - High stress
+  [AWS_REGIONS.AP_SOUTHEAST_2]: 2, // Sydney - Low-Medium stress
+  [AWS_REGIONS.AP_SOUTHEAST_3]: 3, // Jakarta - Medium-High stress
+  [AWS_REGIONS.AP_NORTHEAST_1]: 3, // Tokyo - Medium-High stress
+  [AWS_REGIONS.CA_CENTRAL_1]: 1, // Montreal - Low stress
+  [AWS_REGIONS.CN_NORTH_1]: 5, // Beijing - Extremely High stress
+  [AWS_REGIONS.CN_NORTHWEST_1]: 5, // Ningxia - Extremely High stress
+  [AWS_REGIONS.EU_CENTRAL_1]: 2, // Frankfurt - Low-Medium stress
+  [AWS_REGIONS.EU_WEST_1]: 1, // Ireland - Low stress
+  [AWS_REGIONS.EU_WEST_2]: 1, // London - Low stress
+  [AWS_REGIONS.EU_SOUTH_1]: 4, // Milan - High stress
+  [AWS_REGIONS.EU_WEST_3]: 2, // Paris - Low-Medium stress
+  [AWS_REGIONS.EU_NORTH_1]: 0, // Stockholm - Low stress
+  [AWS_REGIONS.ME_SOUTH_1]: 5, // Bahrain - Extremely High stress
+  [AWS_REGIONS.ME_CENTRAL_1]: 5, // UAE - Extremely High stress
+  [AWS_REGIONS.SA_EAST_1]: 2, // São Paulo - Low-Medium stress
+  [AWS_REGIONS.UNKNOWN]: 3, // Average risk
+};

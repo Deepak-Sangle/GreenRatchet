@@ -53,6 +53,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 export const KPI_TYPE_LABELS: Record<KpiType, string> = {
   CO2_EMISSION: "CO2 Emission",
   ENERGY_CONSUMPTION: "Energy Consumption",
+  WATER_WITHDRAWAL: "Water Withdrawal",
   AI_COMPUTE_HOURS: "AI Compute Hours",
   LOW_CARBON_REGION_PERCENTAGE: "% CO2e in Low Carbon Regions",
   CARBON_FREE_ENERGY_PERCENTAGE: "Carbon-Free Energy %",
