@@ -98,36 +98,36 @@
   }
 
   .dark {
-    --background: 160 25% 6%;
-    --foreground: 150 15% 95%;
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 160 20% 8%;
-    --card-foreground: 150 15% 95%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 160 20% 8%;
-    --popover-foreground: 150 15% 95%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
     --primary: 152 55% 48%;
-    --primary-foreground: 160 30% 6%;
+    --primary-foreground: 0 0% 9%;
 
-    --secondary: 160 15% 14%;
-    --secondary-foreground: 150 15% 90%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 160 15% 14%;
-    --muted-foreground: 155 10% 60%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
 
-    --accent: 155 25% 16%;
-    --accent-foreground: 152 50% 70%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 4 65% 40%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 160 15% 16%;
-    --input: 160 15% 16%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
     --ring: 152 55% 48%;
 
-    --header-bg: 160 20% 7%;
-    --sidebar-bg: 160 18% 8%;
+    --header-bg: 0 0% 3.9%;
+    --sidebar-bg: 0 0% 3.9%;
 
     /* Enhanced chart colors for dark theme - better contrast */
     --chart-1: 152 55% 48%;
@@ -138,11 +138,11 @@
 
     /* Extended theme-specific variables for dark mode */
     --success: 142 70% 45%;
-    --success-foreground: 160 30% 6%;
+    --success-foreground: 0 0% 9%;
     --warning: 38 85% 55%;
-    --warning-foreground: 160 30% 6%;
+    --warning-foreground: 0 0% 9%;
     --info: 199 80% 58%;
-    --info-foreground: 160 30% 6%;
+    --info-foreground: 0 0% 9%;
 
     /* Enhanced shadow variables for dark theme */
     --shadow-color: 0 0% 0%;
@@ -158,9 +158,9 @@
       0 10px 10px -5px hsl(var(--shadow-color) / 0.2);
 
     /* Enhanced border variables for dark theme */
-    --border-light: 160 15% 18%;
-    --border-medium: 160 15% 16%;
-    --border-strong: 160 15% 12%;
+    --border-light: 0 0% 18%;
+    --border-medium: 0 0% 14.9%;
+    --border-strong: 0 0% 12%;
 
     /* Focus and interaction states for dark theme */
     --focus-ring: 152 55% 48%;
@@ -170,14 +170,14 @@
     --active-opacity: 0.1;
 
     /* Tooltip and overlay backgrounds for dark theme */
-    --tooltip-bg: 160 15% 12%;
-    --tooltip-foreground: 150 15% 95%;
+    --tooltip-bg: 0 0% 9%;
+    --tooltip-foreground: 0 0% 98%;
     --overlay-bg: 0 0% 0%;
     --overlay-opacity: 0.7;
 
     /* Selection colors for dark theme */
     --selection-bg: 152 55% 48%;
-    --selection-foreground: 160 30% 6%;
+    --selection-foreground: 0 0% 9%;
   }
 }
 

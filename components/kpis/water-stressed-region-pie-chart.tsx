@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
+import { chartPalettes } from "@/lib/utils/chart-colors";
 import {
   Cell,
   Legend,
@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { PieChartTooltip } from "../ui/chart-tooltip";
 
 interface WaterStressedRegionPieChartProps {
   data: Array<{
@@ -65,8 +66,11 @@ export function WaterStressedRegionPieChart({
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number | undefined) => `${value?.toFixed(2)} m³`}
-            contentStyle={chartTheme.tooltip.contentStyle}
+            content={
+              <PieChartTooltip
+                valueFormatter={(value) => `${value.toFixed(2)} m³`}
+              />
+            }
           />
           <Legend
             verticalAlign="bottom"
@@ -74,8 +78,8 @@ export function WaterStressedRegionPieChart({
             iconType="circle"
             wrapperStyle={{
               fontSize: "14px",
-              ...chartTheme.legend.wrapperStyle,
             }}
+            className="text-foreground"
           />
         </PieChart>
       </ResponsiveContainer>

@@ -13,6 +13,58 @@ interface GhgIntensityData {
   intensityPerRevenue: number | null;
 }
 
+// Threshold configuration for GHG intensity color coding
+const INTENSITY_THRESHOLDS = {
+  employee: {
+    excellent: 0.01, // < 0.01 MTCO2e per employee (green)
+    good: 0.05, // < 0.05 MTCO2e per employee (yellow)
+    // >= 0.05 MTCO2e per employee (red)
+  },
+  revenue: {
+    excellent: 0.1, // < 0.1 MTCO2e per $1M revenue (green)
+    good: 0.5, // < 0.5 MTCO2e per $1M revenue (yellow)
+    // >= 0.5 MTCO2e per $1M revenue (red)
+  },
+} as const;
+
+/**
+ * Determines the color scheme based on GHG intensity thresholds
+ */
+function getIntensityColorScheme(
+  value: number | null,
+  type: "employee" | "revenue"
+) {
+  if (value === null) {
+    return {
+      bgClass: "bg-muted/50",
+      textClass: "text-muted-foreground",
+      label: "N/A",
+    };
+  }
+
+  const thresholds = INTENSITY_THRESHOLDS[type];
+
+  if (value < thresholds.excellent) {
+    return {
+      bgClass: "bg-emerald-100 dark:bg-emerald-900/20",
+      textClass: "text-emerald-700 dark:text-emerald-400",
+      label: "Excellent",
+    };
+  } else if (value < thresholds.good) {
+    return {
+      bgClass: "bg-yellow-100 dark:bg-yellow-900/20",
+      textClass: "text-yellow-700 dark:text-yellow-400",
+      label: "Good",
+    };
+  } else {
+    return {
+      bgClass: "bg-red-100 dark:bg-red-900/20",
+      textClass: "text-red-700 dark:text-red-400",
+      label: "Needs Improvement",
+    };
+  }
+}
+
 export function GhgIntensityKpi() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [data, setData] = useState<GhgIntensityData | null>(null);
@@ -139,36 +191,78 @@ export function GhgIntensityKpi() {
                     </p>
                   )}
                 </div>
-                <div className="bg-primary/10 rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Intensity per Employee
-                  </p>
-                  <p className="text-xl font-semibold text-primary">
-                    {data.intensityPerEmployee !== null
-                      ? `${data.intensityPerEmployee.toFixed(6)} MTCO2e`
-                      : "N/A"}
-                  </p>
-                  {data.intensityPerEmployee === null && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Requires employee count
-                    </p>
-                  )}
-                </div>
-                <div className="bg-primary/10 rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Intensity per $1M Revenue
-                  </p>
-                  <p className="text-xl font-semibold text-primary">
-                    {data.intensityPerRevenue != null
-                      ? `${data.intensityPerRevenue.toFixed(6)} MTCO2e`
-                      : "N/A"}
-                  </p>
-                  {data.intensityPerRevenue === null && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Requires annual revenue
-                    </p>
-                  )}
-                </div>
+                {(() => {
+                  const employeeColorScheme = getIntensityColorScheme(
+                    data.intensityPerEmployee,
+                    "employee"
+                  );
+                  return (
+                    <div
+                      className={`${employeeColorScheme.bgClass} rounded-lg p-4`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground">
+                          Intensity per Employee
+                        </p>
+                        {data.intensityPerEmployee !== null && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full bg-background/50 ${employeeColorScheme.textClass} font-medium`}
+                          >
+                            {employeeColorScheme.label}
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-xl font-semibold ${data.intensityPerEmployee !== null ? employeeColorScheme.textClass : "text-muted-foreground"}`}
+                      >
+                        {data.intensityPerEmployee !== null
+                          ? `${data.intensityPerEmployee.toFixed(6)} MTCO2e`
+                          : "N/A"}
+                      </p>
+                      {data.intensityPerEmployee === null && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Requires employee count
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const revenueColorScheme = getIntensityColorScheme(
+                    data.intensityPerRevenue,
+                    "revenue"
+                  );
+                  return (
+                    <div
+                      className={`${revenueColorScheme.bgClass} rounded-lg p-4`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground">
+                          Intensity per $1M Revenue
+                        </p>
+                        {data.intensityPerRevenue !== null && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full bg-background/50 ${revenueColorScheme.textClass} font-medium`}
+                          >
+                            {revenueColorScheme.label}
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-xl font-semibold ${data.intensityPerRevenue !== null ? revenueColorScheme.textClass : "text-muted-foreground"}`}
+                      >
+                        {data.intensityPerRevenue != null
+                          ? `${data.intensityPerRevenue.toFixed(6)} MTCO2e`
+                          : "N/A"}
+                      </p>
+                      {data.intensityPerRevenue === null && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Requires annual revenue
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

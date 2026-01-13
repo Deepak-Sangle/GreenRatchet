@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { TimelineTooltip } from "../ui/chart-tooltip";
 
 interface ElectricityMixTimelineChartProps {
   data: ElectricityMixDataPoint[];
@@ -61,16 +62,13 @@ export function ElectricityMixTimelineChart({
               style: { fill: "hsl(var(--muted-foreground))" },
             }}
           />
-          <Tooltip
-            contentStyle={chartTheme.tooltip.contentStyle}
-            formatter={(value: number | undefined) => `${value?.toFixed(2)}%`}
-          />
+          <Tooltip content={<TimelineTooltip />} />
           <Legend
             wrapperStyle={{
               paddingTop: "20px",
-              ...chartTheme.legend.wrapperStyle,
             }}
             iconType="line"
+            className="text-foreground"
           />
           <Area
             type="monotone"
