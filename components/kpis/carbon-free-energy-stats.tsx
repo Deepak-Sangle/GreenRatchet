@@ -143,13 +143,13 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-info/10">
                 <TrendingUp className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-info-foreground">
+                  <p className="text-sm font-medium">
                     Increase to{" "}
                     {Math.ceil(data.weightedCarbonFreePercentage / 10) * 10 +
                       10}
                     %
                   </p>
-                  <p className="text-xs text-info/80 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Migrate workloads to regions with higher carbon-free energy
                     percentages to improve your sustainability profile
                   </p>
@@ -157,13 +157,13 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
               </div>
             )}
             {data.status === "excellent" && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-success/10">
-                <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
+                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-success-foreground">
+                  <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
                     Maintain Excellence
                   </p>
-                  <p className="text-xs text-success/80 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Your carbon-free energy usage is excellent. Continue
                     prioritizing clean energy regions for new deployments
                   </p>

@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { CalculateKPIsButton } from "@/components/loans/calculate-kpis-button";
 import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
 import { KPIActions } from "@/components/loans/kpi-actions";
 import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
@@ -134,9 +133,6 @@ export default async function LoanDetailPage(props: {
             </p>
           </div>
           <div className="flex gap-2">
-            {isBorrower && acceptedKPIs.length > 0 && (
-              <CalculateKPIsButton loanId={loan.id} />
-            )}
             {acceptedKPIs.length > 0 && (
               <Link href={`/api/export/${loan.id}`} target="_blank">
                 <Button variant="outline">

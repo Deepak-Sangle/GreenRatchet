@@ -783,7 +783,7 @@ export default function CloudUsagePage() {
                   onValueChange={(v) => setTimeRange(v as TimeRangeValue)}
                 >
                   <SelectTrigger>
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <Calendar className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select time range" />
                   </SelectTrigger>
                   <SelectContent>

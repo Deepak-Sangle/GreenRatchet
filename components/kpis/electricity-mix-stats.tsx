@@ -28,7 +28,7 @@ export function ElectricityMixStats({
             <p className="text-xs text-muted-foreground mb-1">
               Low-Carbon Share
             </p>
-            <p className="text-2xl font-bold text-success-foreground">
+            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
               {averages.lowCarbonShare.toFixed(1)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -66,7 +66,7 @@ export function ElectricityMixStats({
           </div>
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-1">Fossil Share</p>
-            <p className="text-2xl font-bold text-destructive-foreground">
+            <p className="text-2xl font-bold text-red-900 dark:text-red-100">
               {averages.fossilShare.toFixed(1)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">

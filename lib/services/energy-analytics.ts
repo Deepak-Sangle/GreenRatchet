@@ -11,6 +11,10 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "./cloud-data-service";
 
 interface CumulativeEnergy {
   month: string;
@@ -48,23 +52,19 @@ export async function getMonthlyEnergyWithProjection(
   const endDate = new Date();
   const startDate = subMonths(startOfMonth(endDate), monthsHistory - 1);
 
+  // Get connection IDs for the organization
+  const connectionIds = await getOrganizationConnectionIds(organizationId);
+
+  if (connectionIds.length === 0) {
+    return [];
+  }
+
   // Fetch aggregated monthly data using Prisma groupBy
   const monthlyAggregates = await prisma.cloudFootprint.groupBy({
     by: ["periodStartDate"],
-    where: {
-      cloudConnection: {
-        organizationId,
-      },
-      periodStartDate: {
-        gte: startDate,
-      },
-      periodEndDate: {
-        lte: endDate,
-      },
-      kilowattHours: {
-        not: null,
-      },
-    },
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
+      kilowattHours: { not: null },
+    }),
     _sum: {
       kilowattHours: true,
     },

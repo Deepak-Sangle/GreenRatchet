@@ -4,6 +4,10 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "./cloud-data-service";
 
 /**
  * AWS GPU instance types used for AI/ML workloads
@@ -42,12 +46,7 @@ export async function calculateAIUsagePercentage(
   percentage: number;
 }> {
   // Get all cloud connections for the organization
-  const cloudConnections = await prisma.cloudConnection.findMany({
-    where: { organizationId, isActive: true },
-    select: { id: true },
-  });
-
-  const connectionIds = cloudConnections.map((c) => c.id);
+  const connectionIds = await getOrganizationConnectionIds(organizationId);
 
   if (connectionIds.length === 0) {
     return { aiKwh: 0, totalKwh: 0, percentage: 0 };
@@ -55,42 +54,21 @@ export async function calculateAIUsagePercentage(
 
   // Get total energy consumption
   const totalResult = await prisma.cloudFootprint.aggregate({
-    where: {
-      cloudConnectionId: { in: connectionIds },
-      periodStartDate: { gte: startDate },
-      periodEndDate: { lte: endDate },
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
       kilowattHours: { not: null },
-    },
+    }),
     _sum: {
       kilowattHours: true,
     },
   });
 
   // Get AI-related energy consumption (EC2 GPU instances only)
-  const aiResult = await prisma.cloudFootprint.aggregate({
-    where: {
-      cloudConnectionId: { in: connectionIds },
-      serviceName: "EC2",
-      serviceType: { not: null },
-      periodStartDate: { gte: startDate },
-      periodEndDate: { lte: endDate },
-      kilowattHours: { not: null },
-    },
-    _sum: {
-      kilowattHours: true,
-    },
-  });
-
-  // Filter AI instances from EC2 data
   const ec2Footprints = await prisma.cloudFootprint.findMany({
-    where: {
-      cloudConnectionId: { in: connectionIds },
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
       serviceName: "EC2",
       serviceType: { not: null },
-      periodStartDate: { gte: startDate },
-      periodEndDate: { lte: endDate },
       kilowattHours: { not: null },
-    },
+    }),
     select: {
       serviceType: true,
       kilowattHours: true,
@@ -128,12 +106,7 @@ export async function getAIUsageTimeline(
   }>
 > {
   // Get all cloud connections for the organization
-  const cloudConnections = await prisma.cloudConnection.findMany({
-    where: { organizationId, isActive: true },
-    select: { id: true },
-  });
-
-  const connectionIds = cloudConnections.map((c) => c.id);
+  const connectionIds = await getOrganizationConnectionIds(organizationId);
 
   if (connectionIds.length === 0) {
     return [];
@@ -142,12 +115,9 @@ export async function getAIUsageTimeline(
   // Get daily aggregated data
   const dailyData = await prisma.cloudFootprint.groupBy({
     by: ["periodStartDate"],
-    where: {
-      cloudConnectionId: { in: connectionIds },
-      periodStartDate: { gte: startDate },
-      periodEndDate: { lte: endDate },
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
       kilowattHours: { not: null },
-    },
+    }),
     _sum: {
       kilowattHours: true,
     },
@@ -158,14 +128,11 @@ export async function getAIUsageTimeline(
 
   // Get AI-specific data (EC2 GPU instances)
   const ec2Data = await prisma.cloudFootprint.findMany({
-    where: {
-      cloudConnectionId: { in: connectionIds },
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
       serviceName: "EC2",
       serviceType: { not: null },
-      periodStartDate: { gte: startDate },
-      periodEndDate: { lte: endDate },
       kilowattHours: { not: null },
-    },
+    }),
     select: {
       periodStartDate: true,
       serviceType: true,

@@ -1,7 +1,16 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateKPI } from "@/lib/services/kpi-calculator";
+import {
+  calculateAverage,
+  getAuthenticatedOrganizationId,
+  getDateRange,
+  getPercentageStatus,
+  getTopN,
+  handleAnalyticsError,
+  type PercentageStatus,
+} from "@/lib/utils/analytics-helpers";
 
 export interface CarbonFreeEnergyData {
   averageCarbonFreePercentage: number;
@@ -12,121 +21,71 @@ export interface CarbonFreeEnergyData {
     carbonFreePercentage: number;
     co2e: number;
   }>;
-  status: "excellent" | "good" | "fair" | "poor";
-}
-
-/**
- * Determines status level based on weighted carbon-free percentage
- * Excellent: >= 75%, Good: 50-75%, Fair: 25-50%, Poor: < 25%
- */
-function getCarbonFreeStatus(
-  percentage: number
-): "excellent" | "good" | "fair" | "poor" {
-  if (percentage >= 75) return "excellent";
-  if (percentage >= 50) return "good";
-  if (percentage >= 25) return "fair";
-  return "poor";
+  status: PercentageStatus;
 }
 
 export async function getCarbonFreeEnergyDataAction(): Promise<
   { data: CarbonFreeEnergyData } | { error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
+    const authResult = await getAuthenticatedOrganizationId();
+    if ("error" in authResult) {
+      return authResult;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { organizationId: true },
-    });
+    const { organizationId } = authResult;
+    const { startDate, endDate } = getDateRange(30);
 
-    if (!user?.organizationId) {
-      return { error: "No organization found" };
-    }
-
-    // Get cloud footprint data grouped by region
-    const footprintData = await prisma.cloudFootprint.groupBy({
-      by: ["region"],
-      where: {
-        cloudConnection: {
-          organizationId: user.organizationId,
+    // Fetch CO2e data and calculate KPI in parallel to avoid sequential queries
+    const [result, co2eData] = await Promise.all([
+      calculateKPI(
+        {
+          type: "CARBON_FREE_ENERGY_PERCENTAGE",
+          targetValue: 0,
+          direction: "HIGHER_IS_BETTER",
         },
-      },
-      _sum: {
-        co2e: true,
-      },
-    });
-
-    if (footprintData.length === 0) {
-      return { error: "No cloud footprint data available" };
-    }
-
-    // Get latest carbon-free energy data for each region
-    const carbonFreeData = await prisma.gridCarbonFreeEnergy.findMany({
-      where: {
-        dataCenterProvider: "AWS",
-        dataCenterRegion: {
-          in: footprintData.map((f) => f.region),
+        organizationId,
+        startDate,
+        endDate
+      ),
+      prisma.cloudFootprint.groupBy({
+        by: ["region"],
+        where: {
+          cloudConnection: { organizationId, isActive: true },
         },
-      },
-      orderBy: {
-        datetime: "desc",
-      },
-      distinct: ["dataCenterRegion"],
-      select: {
-        dataCenterRegion: true,
-        value: true,
-      },
-    });
+        _sum: { co2e: true },
+      }),
+    ]);
 
-    const carbonFreeMap = new Map(
-      carbonFreeData.map(({ dataCenterRegion, value }) => [
-        dataCenterRegion,
-        value,
-      ])
+    const weightedCarbonFreePercentage = result.actualValue;
+    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
+
+    // Build CO2e map
+    const co2eByRegion = new Map(
+      co2eData.map((r) => [r.region, r._sum.co2e ?? 0])
     );
 
-    // Calculate weighted carbon-free percentage and build region details
-    let totalCo2e = 0;
-    let weightedSum = 0;
-    const regionDetails: Array<{
-      region: string;
-      carbonFreePercentage: number;
-      co2e: number;
-    }> = [];
+    const totalCo2e = Array.from(co2eByRegion.values()).reduce(
+      (sum, val) => sum + val,
+      0
+    );
 
-    footprintData.forEach(({ region, _sum }) => {
-      const co2e = _sum.co2e ?? 0;
-      const carbonFreePercentage = carbonFreeMap.get(region) ?? 0;
-
-      totalCo2e += co2e;
-      weightedSum += co2e * carbonFreePercentage;
-
-      regionDetails.push({
+    // Combine percentage and CO2e data
+    const regionDetails = Object.entries(byRegion).map(
+      ([region, percentage]) => ({
         region,
-        carbonFreePercentage,
-        co2e,
-      });
-    });
+        carbonFreePercentage: percentage,
+        co2e: co2eByRegion.get(region) ?? 0,
+      })
+    );
 
-    const weightedCarbonFreePercentage =
-      totalCo2e > 0 ? weightedSum / totalCo2e : 0;
+    const averageCarbonFreePercentage = calculateAverage(
+      regionDetails.map((r) => r.carbonFreePercentage)
+    );
 
-    // Calculate simple average for comparison
-    const averageCarbonFreePercentage =
-      regionDetails.length > 0
-        ? regionDetails.reduce((sum, r) => sum + r.carbonFreePercentage, 0) /
-          regionDetails.length
-        : 0;
+    const topRegions = getTopN(regionDetails, (r) => r.carbonFreePercentage, 5);
 
-    // Get top 5 regions by carbon-free percentage
-    const topRegions = regionDetails
-      .sort((a, b) => b.carbonFreePercentage - a.carbonFreePercentage)
-      .slice(0, 5);
-
-    const status = getCarbonFreeStatus(weightedCarbonFreePercentage);
+    const status = getPercentageStatus(weightedCarbonFreePercentage);
 
     return {
       data: {
@@ -138,9 +97,6 @@ export async function getCarbonFreeEnergyDataAction(): Promise<
       },
     };
   } catch (error) {
-    console.error("Error fetching carbon-free energy data:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to fetch data",
-    };
+    return handleAnalyticsError(error, "getCarbonFreeEnergyDataAction");
   }
 }

@@ -77,6 +77,8 @@ export function getKPIUnit(kpi: Pick<KPI, "type">): string | null {
     .with("CARBON_FREE_ENERGY_PERCENTAGE", () => "%")
     .with("ELECTRICITY_MIX_BREAKDOWN", () => null)
     .with("RENEWABLE_ENERGY_PERCENTAGE", () => "%")
+    .with("GHG_INTENSITY", () => "tCO₂e per employee")
+    .with("WATER_STRESSED_REGION_PERCENTAGE", () => "%")
     .exhaustive();
 }
 

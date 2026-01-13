@@ -1,7 +1,16 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateKPI } from "@/lib/services/kpi-calculator";
+import {
+  calculateAverage,
+  getAuthenticatedOrganizationId,
+  getDateRange,
+  getPercentageStatus,
+  getTopN,
+  handleAnalyticsError,
+  type PercentageStatus,
+} from "@/lib/utils/analytics-helpers";
 
 export interface RenewableEnergyData {
   averageRenewablePercentage: number;
@@ -12,121 +21,71 @@ export interface RenewableEnergyData {
     renewablePercentage: number;
     co2e: number;
   }>;
-  status: "excellent" | "good" | "fair" | "poor";
-}
-
-/**
- * Determines status level based on weighted renewable percentage
- * Excellent: >= 75%, Good: 50-75%, Fair: 25-50%, Poor: < 25%
- */
-function getRenewableStatus(
-  percentage: number
-): "excellent" | "good" | "fair" | "poor" {
-  if (percentage >= 75) return "excellent";
-  if (percentage >= 50) return "good";
-  if (percentage >= 25) return "fair";
-  return "poor";
+  status: PercentageStatus;
 }
 
 export async function getRenewableEnergyDataAction(): Promise<
   { data: RenewableEnergyData } | { error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
+    const authResult = await getAuthenticatedOrganizationId();
+    if ("error" in authResult) {
+      return authResult;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { organizationId: true },
-    });
+    const { organizationId } = authResult;
+    const { startDate, endDate } = getDateRange(30);
 
-    if (!user?.organizationId) {
-      return { error: "No organization found" };
-    }
-
-    // Get cloud footprint data grouped by region
-    const footprintData = await prisma.cloudFootprint.groupBy({
-      by: ["region"],
-      where: {
-        cloudConnection: {
-          organizationId: user.organizationId,
+    // Fetch CO2e data and calculate KPI in parallel to avoid sequential queries
+    const [result, co2eData] = await Promise.all([
+      calculateKPI(
+        {
+          type: "RENEWABLE_ENERGY_PERCENTAGE",
+          targetValue: 0,
+          direction: "HIGHER_IS_BETTER",
         },
-      },
-      _sum: {
-        co2e: true,
-      },
-    });
-
-    if (footprintData.length === 0) {
-      return { error: "No cloud footprint data available" };
-    }
-
-    // Get latest renewable energy data for each region
-    const renewableData = await prisma.gridRenewableEnergy.findMany({
-      where: {
-        dataCenterProvider: "AWS",
-        dataCenterRegion: {
-          in: footprintData.map((f) => f.region),
+        organizationId,
+        startDate,
+        endDate
+      ),
+      prisma.cloudFootprint.groupBy({
+        by: ["region"],
+        where: {
+          cloudConnection: { organizationId, isActive: true },
         },
-      },
-      orderBy: {
-        datetime: "desc",
-      },
-      distinct: ["dataCenterRegion"],
-      select: {
-        dataCenterRegion: true,
-        value: true,
-      },
-    });
+        _sum: { co2e: true },
+      }),
+    ]);
 
-    const renewableMap = new Map(
-      renewableData.map(({ dataCenterRegion, value }) => [
-        dataCenterRegion,
-        value,
-      ])
+    const weightedRenewablePercentage = result.actualValue;
+    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
+
+    // Build CO2e map
+    const co2eByRegion = new Map(
+      co2eData.map((r) => [r.region, r._sum.co2e ?? 0])
     );
 
-    // Calculate weighted renewable percentage and build region details
-    let totalCo2e = 0;
-    let weightedSum = 0;
-    const regionDetails: Array<{
-      region: string;
-      renewablePercentage: number;
-      co2e: number;
-    }> = [];
+    const totalCo2e = Array.from(co2eByRegion.values()).reduce(
+      (sum, val) => sum + val,
+      0
+    );
 
-    footprintData.forEach(({ region, _sum }) => {
-      const co2e = _sum.co2e ?? 0;
-      const renewablePercentage = renewableMap.get(region) ?? 0;
-
-      totalCo2e += co2e;
-      weightedSum += co2e * renewablePercentage;
-
-      regionDetails.push({
+    // Combine percentage and CO2e data
+    const regionDetails = Object.entries(byRegion).map(
+      ([region, percentage]) => ({
         region,
-        renewablePercentage,
-        co2e,
-      });
-    });
+        renewablePercentage: percentage,
+        co2e: co2eByRegion.get(region) ?? 0,
+      })
+    );
 
-    const weightedRenewablePercentage =
-      totalCo2e > 0 ? weightedSum / totalCo2e : 0;
+    const averageRenewablePercentage = calculateAverage(
+      regionDetails.map((r) => r.renewablePercentage)
+    );
 
-    // Calculate simple average for comparison
-    const averageRenewablePercentage =
-      regionDetails.length > 0
-        ? regionDetails.reduce((sum, r) => sum + r.renewablePercentage, 0) /
-          regionDetails.length
-        : 0;
+    const topRegions = getTopN(regionDetails, (r) => r.renewablePercentage, 5);
 
-    // Get top 5 regions by renewable percentage
-    const topRegions = regionDetails
-      .sort((a, b) => b.renewablePercentage - a.renewablePercentage)
-      .slice(0, 5);
-
-    const status = getRenewableStatus(weightedRenewablePercentage);
+    const status = getPercentageStatus(weightedRenewablePercentage);
 
     return {
       data: {
@@ -138,9 +97,6 @@ export async function getRenewableEnergyDataAction(): Promise<
       },
     };
   } catch (error) {
-    console.error("Error fetching renewable energy data:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to fetch data",
-    };
+    return handleAnalyticsError(error, "getRenewableEnergyDataAction");
   }
 }

@@ -1,34 +1,22 @@
 "use server";
 
-import { auth } from "@/auth";
 import { AWS_WATER_STRESS_BY_REGION } from "@/lib/constants";
-import { getWUEForRegion } from "@/lib/constants/wue-data";
-import { prisma } from "@/lib/prisma";
-
-type WaterStressCategory = "low" | "medium" | "high";
-
-/**
- * Classifies region based on water stress risk indicator
- * Low: 0-1, Medium: 2-3, High: 4-5
- */
-function classifyWaterStress(riskLevel: number): WaterStressCategory {
-  if (riskLevel <= 1) return "low";
-  if (riskLevel <= 3) return "medium";
-  return "high";
-}
-
-/**
- * Calculates water withdrawal from energy consumption using WUE
- * Formula: Water (liters) = IT energy (kWh) × WUE (L/kWh)
- */
-function calculateWaterWithdrawal(energyKWh: number, region: string): number {
-  const wue = getWUEForRegion(region);
-  return energyKWh * wue;
-}
+import { calculateKPI } from "@/lib/services/kpi-calculator";
+import {
+  getAuthenticatedOrganizationId,
+  getDateRange,
+  handleAnalyticsError,
+} from "@/lib/utils/analytics-helpers";
+import {
+  buildCategoryStats,
+  buildPieData,
+  classifyByThresholds,
+  type Category,
+} from "@/lib/utils/category-analytics-helpers";
 
 export interface RegionalWaterData {
   pieData: Array<{
-    category: WaterStressCategory;
+    category: Category;
     waterUsage: number;
     percentage: number;
   }>;
@@ -44,57 +32,40 @@ export async function getWaterStressedRegionDataAction(): Promise<
   { data: RegionalWaterData } | { error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
+    const authResult = await getAuthenticatedOrganizationId();
+    if ("error" in authResult) {
+      return authResult;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { organizationId: true },
-    });
+    const { organizationId } = authResult;
+    const { startDate, endDate } = getDateRange(30);
 
-    if (!user?.organizationId) {
-      return { error: "No organization found" };
-    }
-
-    // Fetch cloud footprint data with energy consumption
-    const footprintData = await prisma.cloudFootprint.findMany({
-      where: {
-        cloudConnection: {
-          organizationId: user.organizationId,
-        },
-        kilowattHours: {
-          not: null,
-        },
+    const result = await calculateKPI(
+      {
+        type: "WATER_WITHDRAWAL",
+        targetValue: 0,
+        direction: "LOWER_IS_BETTER",
       },
-      select: {
-        region: true,
-        kilowattHours: true,
-      },
-    });
+      organizationId,
+      startDate,
+      endDate
+    );
 
-    if (footprintData.length === 0) {
-      return { error: "No energy data available for water calculation" };
-    }
+    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
 
-    // Calculate water withdrawal by region and categorize by stress level
-    const categoryTotals: Record<WaterStressCategory, number> = {
+    const categoryTotals: Record<Category, number> = {
       low: 0,
       medium: 0,
       high: 0,
     };
 
-    footprintData.forEach(({ region, kilowattHours }) => {
-      const energyKWh = kilowattHours ?? 0;
-      const waterLiters = calculateWaterWithdrawal(energyKWh, region);
-
+    Object.entries(byRegion).forEach(([region, waterLiters]) => {
       const waterStressLevel =
         AWS_WATER_STRESS_BY_REGION[
           region as keyof typeof AWS_WATER_STRESS_BY_REGION
         ] ?? 3;
 
-      const category = classifyWaterStress(waterStressLevel);
+      const category = classifyByThresholds(waterStressLevel, 1, 3);
       categoryTotals[category] += waterLiters;
     });
 
@@ -107,43 +78,41 @@ export async function getWaterStressedRegionDataAction(): Promise<
       return { error: "No water usage data calculated" };
     }
 
-    // Build pie chart data
-    const pieData = (["low", "medium", "high"] as WaterStressCategory[]).map(
-      (category) => {
-        const waterUsage = categoryTotals[category];
-        const percentage =
-          totalWaterUsage > 0 ? (waterUsage / totalWaterUsage) * 100 : 0;
-        return { category, waterUsage, percentage };
-      }
-    );
+    const pieData = buildPieData(categoryTotals, ["low", "medium", "high"], {
+      valueFieldName: "waterUsage",
+    });
+    const categoryStats = buildCategoryStats(pieData);
 
-    // Build category stats for insights
-    const categoryStats = {
+    // Transform to match expected types (non-optional fields)
+    const typedPieData = pieData.map((item) => ({
+      category: item.category,
+      waterUsage: item.waterUsage!,
+      percentage: item.percentage,
+    }));
+
+    const typedCategoryStats = {
       low: {
-        percentage: pieData[0].percentage,
-        waterUsage: categoryTotals.low,
+        percentage: categoryStats.low.percentage,
+        waterUsage: categoryStats.low.waterUsage!,
       },
       medium: {
-        percentage: pieData[1].percentage,
-        waterUsage: categoryTotals.medium,
+        percentage: categoryStats.medium.percentage,
+        waterUsage: categoryStats.medium.waterUsage!,
       },
       high: {
-        percentage: pieData[2].percentage,
-        waterUsage: categoryTotals.high,
+        percentage: categoryStats.high.percentage,
+        waterUsage: categoryStats.high.waterUsage!,
       },
     };
 
     return {
       data: {
-        pieData,
+        pieData: typedPieData,
         totalWaterUsage,
-        categoryStats,
+        categoryStats: typedCategoryStats,
       },
     };
   } catch (error) {
-    console.error("Error fetching water stressed region data:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to fetch data",
-    };
+    return handleAnalyticsError(error, "getWaterStressedRegionDataAction");
   }
 }

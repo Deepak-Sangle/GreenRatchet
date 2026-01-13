@@ -1,68 +1,10 @@
 import { auth } from "@/auth";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { KPI_TYPE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
-import { getKPIUnit } from "@/lib/utils";
-import { BarChart3 } from "lucide-react";
-import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
+import { AnalyticsPageClient } from "./analytics-client";
 
 // Enable caching for this page
 export const revalidate = 60; // Revalidate every 60 seconds
-
-async function getAnalyticsData(userId: string, organizationId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          organization: {
-            include: {
-              borrowerLoans: {
-                include: {
-                  kpis: {
-                    where: { status: { in: ["ACCEPTED"] } },
-                    include: {
-                      results: {
-                        orderBy: { createdAt: "desc" },
-                        take: 6,
-                      },
-                    },
-                  },
-                },
-              },
-              lenderLoans: {
-                include: {
-                  kpis: {
-                    where: { status: { in: ["ACCEPTED"] } },
-                    include: {
-                      results: {
-                        orderBy: { createdAt: "desc" },
-                        take: 6,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-    },
-    [`analytics-${userId}-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [`analytics-${userId}`, `org-${organizationId}`],
-    }
-  )();
-}
 
 export default async function AnalyticsPage() {
   const session = await auth();
@@ -71,183 +13,67 @@ export default async function AnalyticsPage() {
     redirect("/auth/signin");
   }
 
-  // First get basic user info to check organization
-  const basicUser = await prisma.user.findUnique({
+  // Get user with organization
+  const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { id: true, organizationId: true, role: true },
   });
 
-  if (!basicUser || !basicUser.organizationId) {
+  if (!user || !user.organizationId) {
     redirect("/auth/signin");
   }
 
-  // Get cached analytics data
-  const user = await getAnalyticsData(basicUser.id, basicUser.organizationId);
+  // Build query based on user role
+  const whereClause =
+    user.role === "BORROWER"
+      ? { borrowerOrgId: user.organizationId }
+      : { lenderOrgId: user.organizationId };
 
-  if (!user || !user.organization) {
-    redirect("/auth/signin");
-  }
-
-  const isBorrower = user.role === "BORROWER";
-  const loans = isBorrower
-    ? user.organization.borrowerLoans
-    : user.organization.lenderLoans;
-
-  const allKPIs = loans.flatMap((loan) => loan.kpis);
-  const totalResults = allKPIs.reduce(
-    (sum, kpi) => sum + kpi.results.length,
-    0
-  );
-
-  // Helper to get description from calculationMethod JSON
-  const getKpiDescription = (kpi: (typeof allKPIs)[0]) => {
-    try {
-      // const method = kpi.calculationMethod as {
-      //   description?: string;
-      //   formula?: string;
-      // };
-      return (
-        // method?.description ||
-        // method?.formula ||
-        `${KPI_TYPE_LABELS[kpi.type]} KPI`
-      );
-    } catch {
-      return `${KPI_TYPE_LABELS[kpi.type]} KPI`;
-    }
-  };
+  // Fetch all loans with KPIs, margin ratchets, and results in one query
+  const loans = await prisma.loan.findMany({
+    where: whereClause,
+    select: {
+      id: true,
+      name: true,
+      borrowerOrg: {
+        select: { name: true },
+      },
+      lenderOrg: {
+        select: { name: true },
+      },
+      kpis: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          targetValue: true,
+          direction: true,
+          marginRatchets: {
+            select: {
+              stepUpBps: true,
+              stepDownBps: true,
+              maxAdjustmentBps: true,
+            },
+            take: 1,
+          },
+          results: {
+            orderBy: { periodEnd: "desc" },
+            take: 10,
+            select: {
+              actualValue: true,
+              targetValue: true,
+              status: true,
+              periodStart: true,
+              periodEnd: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">KPI Analytics</h1>
-        <p className="text-muted-foreground mt-2">
-          Track environmental performance across all your SLL deals
-        </p>
-      </div>
-
-      {totalResults === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No KPI Results Yet</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              {isBorrower
-                ? "Connect your cloud providers and trigger KPI calculations to see analytics here."
-                : "Once the borrower connects their cloud providers and KPI calculations run, you'll see analytics here."}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {allKPIs.map((kpi) => {
-            const latestResult = kpi.results[0];
-            const unit = getKPIUnit(kpi);
-
-            return (
-              <Card key={kpi.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle>{kpi.name}</CardTitle>
-                      <CardDescription>
-                        {getKpiDescription(kpi)}
-                      </CardDescription>
-                    </div>
-                    <Badge
-                      variant={
-                        latestResult.status === "PASSED"
-                          ? "success"
-                          : "destructive"
-                      }
-                    >
-                      {latestResult.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Latest Value
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {latestResult.actualValue.toFixed(2)}
-                        {unit && (
-                          <span className="ml-2 text-base font-normal text-muted-foreground">
-                            {unit}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Target
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {latestResult.targetValue.toFixed(2)}
-                        {unit && (
-                          <span className="ml-2 text-base font-normal text-muted-foreground">
-                            {unit}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Performance
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {(
-                          ((latestResult.targetValue -
-                            latestResult.actualValue) /
-                            latestResult.targetValue) *
-                          100
-                        ).toFixed(1)}
-                        %
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium mb-2">
-                      Calculation Details
-                    </p>
-                    <div className="bg-muted/50 rounded-lg p-4 font-mono text-xs space-y-1">
-                      {(() => {
-                        return <div>Calculation details unavailable</div>;
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2 md:grid-cols-2 text-xs text-muted-foreground">
-                    <div>
-                      <strong>Data Source:</strong>{" "}
-                      {(() => {
-                        return "Unknown";
-                      })()}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      <Card className="border-primary/20 bg-accent/30">
-        <CardHeader>
-          <CardTitle className="text-base">
-            Automated, Continuous ESG Assurance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            All KPI calculations are automated, versioned, and fully auditable.
-            Every calculation includes the data source, formula, inputs, and
-            step-by-step details for complete transparency.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <AnalyticsPageClient loans={loans} userRole={user.role} userId={user.id} />
   );
 }

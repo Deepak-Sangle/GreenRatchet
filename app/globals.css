@@ -184,6 +184,7 @@
 @layer base {
   * {
     @apply border-border;
+    /* transition: all 0.2s ease; */
   }
 
   html {

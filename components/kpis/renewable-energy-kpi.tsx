@@ -1,10 +1,8 @@
 "use client";
 
-import {
-  getRenewableEnergyDataAction,
-  type RenewableEnergyData,
-} from "@/app/actions/renewable-energy-analytics";
+import { getRenewableEnergyDataAction } from "@/app/actions/renewable-energy-analytics";
 import { Card } from "@/components/ui/card";
+import { useExpandableKpi } from "@/lib/hooks/use-expandable-kpi";
 import {
   ChevronDown,
   ChevronUp,
@@ -12,32 +10,12 @@ import {
   Loader2,
   Wind,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { RenewableEnergyStats } from "./renewable-energy-stats";
 
 export function RenewableEnergyKpi() {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [data, setData] = useState<RenewableEnergyData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isExpanded && !data) {
-      loadData();
-    }
-  }, [isExpanded, data]);
-
-  async function loadData() {
-    setLoading(true);
-    setError(null);
-    const result = await getRenewableEnergyDataAction();
-    if ("error" in result) {
-      setError(result.error);
-    } else {
-      setData(result.data);
-    }
-    setLoading(false);
-  }
+  const { isExpanded, setIsExpanded, data, loading, error } = useExpandableKpi(
+    getRenewableEnergyDataAction
+  );
 
   return (
     <Card className="p-6 shadow-soft transition-all duration-200">

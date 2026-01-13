@@ -59,6 +59,8 @@ export const KPI_TYPE_LABELS: Record<KpiType, string> = {
   CARBON_FREE_ENERGY_PERCENTAGE: "Carbon-Free Energy %",
   ELECTRICITY_MIX_BREAKDOWN: "Electricity Mix Breakdown",
   RENEWABLE_ENERGY_PERCENTAGE: "Renewable Energy %",
+  GHG_INTENSITY: "GHG Intensity",
+  WATER_STRESSED_REGION_PERCENTAGE: "% Water Usage in Stressed Regions",
 };
 
 export const KPI_DIRECTION_LABELS: Record<KpiDirection, string> = {

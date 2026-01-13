@@ -1,23 +1,20 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-
-type CarbonCategory = "low" | "medium" | "high";
-
-/**
- * Classifies region based on carbon intensity from GridCarbonIntensity table
- * Low: < 150, Medium: 150-400, High: > 400 gCO2eq/kWh
- */
-function classifyRegion(carbonIntensity: number): CarbonCategory {
-  if (carbonIntensity < 150) return "low";
-  if (carbonIntensity <= 400) return "medium";
-  return "high";
-}
+import {
+  getAuthenticatedOrganizationId,
+  handleAnalyticsError,
+} from "@/lib/utils/analytics-helpers";
+import {
+  buildCategoryStats,
+  buildPieData,
+  classifyByThresholds,
+  type Category,
+} from "@/lib/utils/category-analytics-helpers";
 
 export interface RegionalCo2eData {
   pieData: Array<{
-    category: CarbonCategory;
+    category: Category;
     co2e: number;
     percentage: number;
   }>;
@@ -33,21 +30,13 @@ export async function getLowCarbonRegionDataAction(): Promise<
   { data: RegionalCo2eData } | { error: string }
 > {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
+    const authResult = await getAuthenticatedOrganizationId();
+    if ("error" in authResult) {
+      return authResult;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { organizationId: true },
-    });
+    const { organizationId } = authResult;
 
-    if (!user?.organizationId) {
-      return { error: "No organization found" };
-    }
-
-    // Get latest carbon intensity data for each region
     const latestCarbonIntensity = await prisma.gridCarbonIntensity.findMany({
       where: {
         dataCenterProvider: "AWS",
@@ -69,12 +58,11 @@ export async function getLowCarbonRegionDataAction(): Promise<
       ])
     );
 
-    // Fetch and aggregate cloud footprint data by region
     const footprintData = await prisma.cloudFootprint.groupBy({
       by: ["region"],
       where: {
         cloudConnection: {
-          organizationId: user.organizationId,
+          organizationId,
         },
       },
       _sum: {
@@ -86,8 +74,7 @@ export async function getLowCarbonRegionDataAction(): Promise<
       return { error: "No cloud footprint data available" };
     }
 
-    // Calculate totals by category
-    const categoryTotals: Record<CarbonCategory, number> = {
+    const categoryTotals: Record<Category, number> = {
       low: 0,
       medium: 0,
       high: 0,
@@ -96,7 +83,7 @@ export async function getLowCarbonRegionDataAction(): Promise<
     footprintData.forEach(({ region, _sum }) => {
       const co2e = _sum.co2e ?? 0;
       const carbonIntensity = carbonIntensityMap.get(region) ?? 400;
-      const category = classifyRegion(carbonIntensity);
+      const category = classifyByThresholds(carbonIntensity, 150, 400);
       categoryTotals[category] += co2e;
     });
 
@@ -105,42 +92,41 @@ export async function getLowCarbonRegionDataAction(): Promise<
       0
     );
 
-    // Build pie chart data
-    const pieData = (["low", "medium", "high"] as CarbonCategory[]).map(
-      (category) => {
-        const co2e = categoryTotals[category];
-        const percentage = totalCo2e > 0 ? (co2e / totalCo2e) * 100 : 0;
-        return { category, co2e, percentage };
-      }
-    );
+    const pieData = buildPieData(categoryTotals, ["low", "medium", "high"], {
+      valueFieldName: "co2e",
+    });
+    const categoryStats = buildCategoryStats(pieData);
 
-    // Build category stats for insights
-    const categoryStats = {
+    // Transform to match expected types (non-optional fields)
+    const typedPieData = pieData.map((item) => ({
+      category: item.category,
+      co2e: item.co2e!,
+      percentage: item.percentage,
+    }));
+
+    const typedCategoryStats = {
       low: {
-        percentage: pieData[0].percentage,
-        co2e: categoryTotals.low,
+        percentage: categoryStats.low.percentage,
+        co2e: categoryStats.low.co2e!,
       },
       medium: {
-        percentage: pieData[1].percentage,
-        co2e: categoryTotals.medium,
+        percentage: categoryStats.medium.percentage,
+        co2e: categoryStats.medium.co2e!,
       },
       high: {
-        percentage: pieData[2].percentage,
-        co2e: categoryTotals.high,
+        percentage: categoryStats.high.percentage,
+        co2e: categoryStats.high.co2e!,
       },
     };
 
     return {
       data: {
-        pieData,
+        pieData: typedPieData,
         totalCo2e,
-        categoryStats,
+        categoryStats: typedCategoryStats,
       },
     };
   } catch (error) {
-    console.error("Error fetching low carbon region data:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to fetch data",
-    };
+    return handleAnalyticsError(error, "getLowCarbonRegionDataAction");
   }
 }

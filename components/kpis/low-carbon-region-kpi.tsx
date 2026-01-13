@@ -1,38 +1,16 @@
 "use client";
 
-import {
-  getLowCarbonRegionDataAction,
-  type RegionalCo2eData,
-} from "@/app/actions/low-carbon-region-analytics";
+import { getLowCarbonRegionDataAction } from "@/app/actions/low-carbon-region-analytics";
 import { Card } from "@/components/ui/card";
+import { useExpandableKpi } from "@/lib/hooks/use-expandable-kpi";
 import { ChevronDown, ChevronUp, Globe, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { LowCarbonRegionPieChart } from "./low-carbon-region-pie-chart";
 import { RegionalInsightsCard } from "./regional-insights-card";
 
 export function LowCarbonRegionKpi() {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [data, setData] = useState<RegionalCo2eData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isExpanded && !data) {
-      loadData();
-    }
-  }, [isExpanded, data]);
-
-  async function loadData() {
-    setLoading(true);
-    setError(null);
-    const result = await getLowCarbonRegionDataAction();
-    if ("error" in result) {
-      setError(result.error);
-    } else {
-      setData(result.data);
-    }
-    setLoading(false);
-  }
+  const { isExpanded, setIsExpanded, data, loading, error } = useExpandableKpi(
+    getLowCarbonRegionDataAction
+  );
 
   return (
     <Card className="p-6 shadow-soft transition-all duration-200">

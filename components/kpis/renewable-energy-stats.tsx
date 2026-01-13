@@ -139,7 +139,7 @@ export function RenewableEnergyStats({ data }: RenewableEnergyStatsProps) {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-info/10">
                 <TrendingUp className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-info-foreground">
+                  <p className="text-sm font-medium">
                     Increase to{" "}
                     {Math.ceil(data.weightedRenewablePercentage / 10) * 10 + 10}
                     %

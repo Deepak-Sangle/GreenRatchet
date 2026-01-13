@@ -13,6 +13,10 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "./cloud-data-service";
 
 interface CumulativeWater {
   month: string;
@@ -50,26 +54,22 @@ export async function getMonthlyWaterWithProjection(
   const endDate = new Date();
   const startDate = subMonths(startOfMonth(endDate), monthsHistory - 1);
 
-  // Fetch cloud footprint data with energy consumption
-  const footprintData = await prisma.cloudFootprint.findMany({
-    where: {
-      cloudConnection: {
-        organizationId,
-      },
-      periodStartDate: {
-        gte: startDate,
-      },
-      periodEndDate: {
-        lte: endDate,
-      },
-      kilowattHours: {
-        not: null,
-      },
-    },
-    select: {
-      periodStartDate: true,
+  // Get connection IDs for the organization
+  const connectionIds = await getOrganizationConnectionIds(organizationId);
+
+  if (connectionIds.length === 0) {
+    return [];
+  }
+
+  // Fetch regional energy data grouped by region and month
+  // Use groupBy to match KPI calculator approach for consistency
+  const footprintData = await prisma.cloudFootprint.groupBy({
+    by: ["region", "periodStartDate"],
+    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
+      kilowattHours: { not: null },
+    }),
+    _sum: {
       kilowattHours: true,
-      region: true,
     },
     orderBy: {
       periodStartDate: "asc",
@@ -77,11 +77,12 @@ export async function getMonthlyWaterWithProjection(
   });
 
   // Calculate water withdrawal by month
+  // Apply WUE to aggregated regional energy totals
   const monthlyData = new Map<string, number>();
 
   footprintData.forEach((record) => {
     const monthKey = format(startOfMonth(record.periodStartDate), "yyyy-MM");
-    const energyKWh = record.kilowattHours ?? 0;
+    const energyKWh = record._sum.kilowattHours ?? 0;
     const wue = getWUEForRegion(record.region);
     const waterLiters = energyKWh * wue;
 
