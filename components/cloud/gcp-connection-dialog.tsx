@@ -142,8 +142,8 @@ export function GCPConnectionDialog() {
                   </FormItem>
                 )}
               />
-              <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3">
-                <p className="text-xs text-yellow-800">
+              <div className="rounded-md bg-warning/10 border border-warning/20 p-3">
+                <p className="text-xs text-warning-foreground">
                   <strong>For Hackathon Only:</strong> In production, service
                   account keys should be handled via secure key management
                   services, not uploaded directly.

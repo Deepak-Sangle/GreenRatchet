@@ -24,6 +24,7 @@
 - [ ] Checks authentication and authorization
 - [ ] Proper error handling (`{ success, data }` or `{ error }`)
 - [ ] Follows design system
+- [ ] **Dark mode compatible** - uses semantic colors, tested in both themes
 - [ ] Includes loading states
 - [ ] Responsive and accessible
 

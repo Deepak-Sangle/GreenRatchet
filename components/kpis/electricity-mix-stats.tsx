@@ -19,16 +19,16 @@ export function ElectricityMixStats({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Low-Carbon Share */}
-      <Card className="p-6 shadow-soft border-2 border-green-200 dark:border-green-800">
+      <Card className="p-6 shadow-soft border-2 border-success/20">
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
-            <Leaf className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
+            <Leaf className="h-5 w-5 text-success" />
           </div>
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-1">
               Low-Carbon Share
             </p>
-            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+            <p className="text-2xl font-bold text-success-foreground">
               {averages.lowCarbonShare.toFixed(1)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -59,14 +59,14 @@ export function ElectricityMixStats({
       </Card>
 
       {/* Fossil Share */}
-      <Card className="p-6 shadow-soft border-2 border-red-200 dark:border-red-800">
+      <Card className="p-6 shadow-soft border-2 border-destructive/20">
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-            <Factory className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+            <Factory className="h-5 w-5 text-destructive" />
           </div>
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-1">Fossil Share</p>
-            <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+            <p className="text-2xl font-bold text-destructive-foreground">
               {averages.fossilShare.toFixed(1)}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">

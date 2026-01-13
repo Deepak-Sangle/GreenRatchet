@@ -16,9 +16,10 @@ export const EnergyConsumptionKpi = createKpiComponent<EnergyTimelineData[]>({
     title: "Total Energy Consumption",
     description: "Cumulative energy usage over time",
     icon: Zap,
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconColor: "text-warning",
     iconBgColor: "bg-amber-100 dark:bg-amber-900/20",
-    explanationText: "Track your organization's total energy consumption from cloud infrastructure. This includes compute, storage, and networking energy usage across all connected cloud providers.",
+    explanationText:
+      "Track your organization's total energy consumption from cloud infrastructure. This includes compute, storage, and networking energy usage across all connected cloud providers.",
   },
   fetchAction: getEnergyTimelineAction,
   metrics: [
@@ -33,11 +34,13 @@ export const EnergyConsumptionKpi = createKpiComponent<EnergyTimelineData[]>({
     },
     {
       label: "Historical Data Points",
-      getValue: (data: EnergyTimelineData[]) => data.filter((d: EnergyTimelineData) => !d.isProjected).length,
+      getValue: (data: EnergyTimelineData[]) =>
+        data.filter((d: EnergyTimelineData) => !d.isProjected).length,
     },
     {
-      label: "Projected Data Points", 
-      getValue: (data: EnergyTimelineData[]) => data.filter((d: EnergyTimelineData) => d.isProjected).length,
+      label: "Projected Data Points",
+      getValue: (data: EnergyTimelineData[]) =>
+        data.filter((d: EnergyTimelineData) => d.isProjected).length,
     },
   ],
   customContent: (data) => (

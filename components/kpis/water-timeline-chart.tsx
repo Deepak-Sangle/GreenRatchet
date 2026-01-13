@@ -88,7 +88,7 @@ export function WaterTimelineChart({ data }: WaterTimelineChartProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Droplets className="h-5 w-5 text-blue-600" />
+              <Droplets className="h-5 w-5 text-info" />
               Water Withdrawal Timeline
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">

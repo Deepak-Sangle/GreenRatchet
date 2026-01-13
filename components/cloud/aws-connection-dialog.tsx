@@ -122,10 +122,10 @@ export function AWSConnectionDialog() {
 
         <div className="space-y-4">
           {/* Step 1: External ID Configuration */}
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          <Card className="border-warning/30 bg-warning/5">
             <CardContent className="pt-6 space-y-3">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-amber-500" />
+                <Shield className="h-5 w-5 text-warning" />
                 <h4 className="font-medium text-sm">
                   Step 1: Configure External ID (Strongly Recommended)
                 </h4>
@@ -166,7 +166,7 @@ export function AWSConnectionDialog() {
               </div>
 
               {!externalId && (
-                <div className="flex items-center gap-2 text-amber-600 text-sm">
+                <div className="flex items-center gap-2 text-warning text-sm">
                   <AlertTriangle className="h-4 w-4" />
                   <span>
                     Without an External ID, your IAM role may be vulnerable to
@@ -209,7 +209,7 @@ export function AWSConnectionDialog() {
           </Card>
 
           {/* Step 3: Enter Role ARN */}
-          <Card className="border-primary/20 bg-blue-50">
+          <Card className="border-primary/20 bg-info/5">
             <CardContent className="pt-6 space-y-3">
               <h4 className="font-medium text-sm">
                 Step 3: Enter Role Details
@@ -254,7 +254,7 @@ export function AWSConnectionDialog() {
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       External ID
-                      <span className="text-xs text-amber-600 font-normal">
+                      <span className="text-xs text-warning font-normal">
                         (Strongly Recommended)
                       </span>
                     </FormLabel>

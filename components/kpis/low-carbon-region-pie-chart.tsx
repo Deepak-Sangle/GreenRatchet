@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
 import {
   Cell,
   Legend,
@@ -21,15 +22,15 @@ interface LowCarbonRegionPieChartProps {
 const CATEGORY_CONFIG = {
   low: {
     label: "Low Carbon (<150 gCO2/kWh)",
-    color: "hsl(142, 76%, 36%)",
+    color: chartPalettes.carbonIntensity.low,
   },
   medium: {
     label: "Medium Carbon (150-400 gCO2/kWh)",
-    color: "hsl(48, 96%, 53%)",
+    color: chartPalettes.carbonIntensity.medium,
   },
   high: {
     label: "High Carbon (>400 gCO2/kWh)",
-    color: "hsl(0, 84%, 60%)",
+    color: chartPalettes.carbonIntensity.high,
   },
 } as const;
 
@@ -67,17 +68,16 @@ export function LowCarbonRegionPieChart({
             formatter={(value: number | undefined) =>
               `${value?.toFixed(2)} MTCO2e`
             }
-            contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "8px",
-            }}
+            contentStyle={chartTheme.tooltip.contentStyle}
           />
           <Legend
             verticalAlign="bottom"
             height={36}
             iconType="circle"
-            wrapperStyle={{ fontSize: "14px" }}
+            wrapperStyle={{
+              fontSize: "14px",
+              ...chartTheme.legend.wrapperStyle,
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

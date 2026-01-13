@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
 import {
   Cell,
   Legend,
@@ -21,15 +22,15 @@ interface WaterStressedRegionPieChartProps {
 const CATEGORY_CONFIG = {
   low: {
     label: "Low Water Stress (0-1)",
-    color: "hsl(200, 76%, 46%)",
+    color: chartPalettes.waterStress.low,
   },
   medium: {
     label: "Medium Water Stress (2-3)",
-    color: "hsl(48, 96%, 53%)",
+    color: chartPalettes.waterStress.medium,
   },
   high: {
     label: "High Water Stress (4-5)",
-    color: "hsl(0, 84%, 60%)",
+    color: chartPalettes.waterStress.high,
   },
 } as const;
 
@@ -65,17 +66,16 @@ export function WaterStressedRegionPieChart({
           </Pie>
           <Tooltip
             formatter={(value: number | undefined) => `${value?.toFixed(2)} m³`}
-            contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "8px",
-            }}
+            contentStyle={chartTheme.tooltip.contentStyle}
           />
           <Legend
             verticalAlign="bottom"
             height={36}
             iconType="circle"
-            wrapperStyle={{ fontSize: "14px" }}
+            wrapperStyle={{
+              fontSize: "14px",
+              ...chartTheme.legend.wrapperStyle,
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

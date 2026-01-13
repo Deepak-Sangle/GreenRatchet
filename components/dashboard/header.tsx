@@ -2,6 +2,7 @@
 
 import { signOutAction } from "@/app/actions/auth";
 import { AvatarUploadDialog } from "@/components/dashboard/avatar-upload-dialog";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
@@ -43,7 +44,7 @@ export function Header({ user, organization }: HeaderProps) {
                 priority
               />
               <div className="flex flex-col">
-                <h1 className="text-lg font-heading font-bold tracking-tight text-emerald-700">
+                <h1 className="text-lg font-heading font-bold tracking-tight text-primary">
                   GreenRatchet
                 </h1>
                 <p className="text-[11px] font-medium text-muted-foreground/80 tracking-wide uppercase">
@@ -54,6 +55,9 @@ export function Header({ user, organization }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Theme Toggle */}
+            <ThemeToggle variant="icon" size="md" />
+
             {/* User Avatar - Clickable */}
             <button
               onClick={() => setAvatarDialogOpen(true)}

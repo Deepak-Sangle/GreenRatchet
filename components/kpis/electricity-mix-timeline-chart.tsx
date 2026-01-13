@@ -2,6 +2,7 @@
 
 import type { ElectricityMixDataPoint } from "@/app/actions/electricity-mix-analytics";
 import { Card } from "@/components/ui/card";
+import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
 import { format } from "date-fns";
 import {
   Area,
@@ -35,15 +36,24 @@ export function ElectricityMixTimelineChart({
       </h4>
       <ResponsiveContainer width="100%" height={400}>
         <AreaChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CartesianGrid
+            strokeDasharray={chartTheme.grid.strokeDasharray}
+            stroke={chartTheme.grid.stroke}
+          />
           <XAxis
             dataKey="month"
             className="text-xs"
-            tick={{ fill: "hsl(var(--muted-foreground))" }}
+            stroke={chartTheme.axis.stroke}
+            fontSize={chartTheme.axis.fontSize}
+            tickLine={chartTheme.axis.tickLine}
+            axisLine={chartTheme.axis.axisLine}
           />
           <YAxis
             className="text-xs"
-            tick={{ fill: "hsl(var(--muted-foreground))" }}
+            stroke={chartTheme.axis.stroke}
+            fontSize={chartTheme.axis.fontSize}
+            tickLine={chartTheme.axis.tickLine}
+            axisLine={chartTheme.axis.axisLine}
             label={{
               value: "Share (%)",
               angle: -90,
@@ -52,36 +62,38 @@ export function ElectricityMixTimelineChart({
             }}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "8px",
-            }}
+            contentStyle={chartTheme.tooltip.contentStyle}
             formatter={(value: number | undefined) => `${value?.toFixed(2)}%`}
           />
-          <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="line" />
+          <Legend
+            wrapperStyle={{
+              paddingTop: "20px",
+              ...chartTheme.legend.wrapperStyle,
+            }}
+            iconType="line"
+          />
           <Area
             type="monotone"
             dataKey="Low-Carbon"
             stackId="1"
-            stroke="hsl(142, 76%, 36%)"
-            fill="hsl(142, 76%, 36%)"
+            stroke={chartPalettes.energyMix.lowCarbon}
+            fill={chartPalettes.energyMix.lowCarbon}
             fillOpacity={0.6}
           />
           <Area
             type="monotone"
             dataKey="Renewable"
             stackId="2"
-            stroke="hsl(173, 58%, 39%)"
-            fill="hsl(173, 58%, 39%)"
+            stroke={chartPalettes.energyMix.renewable}
+            fill={chartPalettes.energyMix.renewable}
             fillOpacity={0.6}
           />
           <Area
             type="monotone"
             dataKey="Fossil"
             stackId="3"
-            stroke="hsl(0, 84%, 60%)"
-            fill="hsl(0, 84%, 60%)"
+            stroke={chartPalettes.energyMix.fossil}
+            fill={chartPalettes.energyMix.fossil}
             fillOpacity={0.6}
           />
         </AreaChart>

@@ -1,3 +1,4 @@
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -30,11 +31,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${dmSans.variable} ${bricolage.variable} font-sans antialiased`}
       >
-        {children}
+        <ThemeProvider defaultTheme="system" storageKey="greenratchet-theme">
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

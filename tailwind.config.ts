@@ -48,6 +48,42 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Extended semantic colors
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
+        // Chart colors that adapt to theme
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+        },
+        // Enhanced border colors
+        "border-light": "hsl(var(--border-light))",
+        "border-medium": "hsl(var(--border-medium))",
+        "border-strong": "hsl(var(--border-strong))",
+        // Tooltip and overlay colors
+        tooltip: {
+          DEFAULT: "hsl(var(--tooltip-bg))",
+          foreground: "hsl(var(--tooltip-foreground))",
+        },
+        overlay: "hsl(var(--overlay-bg))",
+        // Selection colors
+        selection: {
+          DEFAULT: "hsl(var(--selection-bg))",
+          foreground: "hsl(var(--selection-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -59,6 +95,11 @@ const config: Config = {
         "soft-lg":
           "0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.1)",
         glow: "0 0 20px -5px hsl(var(--primary) / 0.3)",
+        // Enhanced elevation shadows using CSS variables
+        "elevation-low": "var(--shadow-elevation-low)",
+        "elevation-medium": "var(--shadow-elevation-medium)",
+        "elevation-high": "var(--shadow-elevation-high)",
+        "elevation-highest": "var(--shadow-elevation-highest)",
       },
       backgroundImage: {
         "gradient-subtle":
@@ -66,6 +107,23 @@ const config: Config = {
         "gradient-primary":
           "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(160 60% 35%) 100%)",
         mesh: "radial-gradient(at 40% 20%, hsl(var(--accent) / 0.3) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(var(--primary) / 0.15) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(var(--accent) / 0.2) 0px, transparent 50%)",
+      },
+      // Enhanced animation and transition support
+      transitionProperty: {
+        theme:
+          "background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter",
+      },
+      transitionDuration: {
+        theme: "200ms",
+      },
+      transitionTimingFunction: {
+        theme: "cubic-bezier(0.4, 0, 0.2, 1)",
+      },
+      // Opacity utilities for overlays
+      opacity: {
+        hover: "var(--hover-opacity)",
+        active: "var(--active-opacity)",
+        overlay: "var(--overlay-opacity)",
       },
     },
   },

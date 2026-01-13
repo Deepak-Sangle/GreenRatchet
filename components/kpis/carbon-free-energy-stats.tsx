@@ -25,19 +25,15 @@ function getStatusConfig(status: "excellent" | "good" | "fair" | "poor"): {
 } {
   return match(status)
     .with("excellent", () => ({
-      container:
-        "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
-      icon: (
-        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-      ),
+      container: "bg-success/10 border-success/20",
+      icon: <CheckCircle className="h-6 w-6 text-success" />,
       title: "Excellent Performance",
       message:
         "Your workloads are predominantly powered by carbon-free energy sources",
     }))
     .with("good", () => ({
-      container:
-        "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800",
-      icon: <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
+      container: "bg-info/10 border-info/20",
+      icon: <TrendingUp className="h-6 w-6 text-info" />,
       title: "Good Progress",
       message:
         "Majority of your workloads use carbon-free electricity. Consider optimizing further",
@@ -144,16 +140,16 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
           </h4>
           <div className="space-y-3">
             {data.weightedCarbonFreePercentage < 75 && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-info/10">
+                <TrendingUp className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  <p className="text-sm font-medium text-info-foreground">
                     Increase to{" "}
                     {Math.ceil(data.weightedCarbonFreePercentage / 10) * 10 +
                       10}
                     %
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="text-xs text-info/80 mt-1">
                     Migrate workloads to regions with higher carbon-free energy
                     percentages to improve your sustainability profile
                   </p>
@@ -161,13 +157,13 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
               </div>
             )}
             {data.status === "excellent" && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/10">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-success/10">
+                <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                  <p className="text-sm font-medium text-success-foreground">
                     Maintain Excellence
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                  <p className="text-xs text-success/80 mt-1">
                     Your carbon-free energy usage is excellent. Continue
                     prioritizing clean energy regions for new deployments
                   </p>

@@ -79,7 +79,7 @@ export function EnergyTimelineChart({ data }: EnergyTimelineChartProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-amber-600" />
+              <Zap className="h-5 w-5 text-warning" />
               Energy Consumption Timeline
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">

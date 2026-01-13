@@ -52,6 +52,49 @@
     /* Custom additions */
     --header-bg: 160 20% 99%;
     --sidebar-bg: 155 18% 97%;
+
+    /* Extended theme-specific variables */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* Enhanced shadow variables for light theme */
+    --shadow-color: 160 25% 12%;
+    --shadow-elevation-low: 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);
+    --shadow-elevation-medium:
+      0 4px 6px -1px hsl(var(--shadow-color) / 0.1),
+      0 2px 4px -1px hsl(var(--shadow-color) / 0.06);
+    --shadow-elevation-high:
+      0 10px 15px -3px hsl(var(--shadow-color) / 0.1),
+      0 4px 6px -2px hsl(var(--shadow-color) / 0.05);
+    --shadow-elevation-highest:
+      0 20px 25px -5px hsl(var(--shadow-color) / 0.1),
+      0 10px 10px -5px hsl(var(--shadow-color) / 0.04);
+
+    /* Enhanced border variables */
+    --border-light: 150 12% 92%;
+    --border-medium: 150 12% 88%;
+    --border-strong: 150 12% 80%;
+
+    /* Focus and interaction states */
+    --focus-ring: 152 58% 38%;
+    --hover-overlay: 0 0% 0%;
+    --hover-opacity: 0.05;
+    --active-overlay: 0 0% 0%;
+    --active-opacity: 0.1;
+
+    /* Tooltip and overlay backgrounds */
+    --tooltip-bg: 160 25% 12%;
+    --tooltip-foreground: 150 15% 95%;
+    --overlay-bg: 0 0% 0%;
+    --overlay-opacity: 0.5;
+
+    /* Selection colors */
+    --selection-bg: 152 58% 38%;
+    --selection-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -85,6 +128,56 @@
 
     --header-bg: 160 20% 7%;
     --sidebar-bg: 160 18% 8%;
+
+    /* Enhanced chart colors for dark theme - better contrast */
+    --chart-1: 152 55% 48%;
+    --chart-2: 168 50% 52%;
+    --chart-3: 140 45% 58%;
+    --chart-4: 180 45% 48%;
+    --chart-5: 195 40% 52%;
+
+    /* Extended theme-specific variables for dark mode */
+    --success: 142 70% 45%;
+    --success-foreground: 160 30% 6%;
+    --warning: 38 85% 55%;
+    --warning-foreground: 160 30% 6%;
+    --info: 199 80% 58%;
+    --info-foreground: 160 30% 6%;
+
+    /* Enhanced shadow variables for dark theme */
+    --shadow-color: 0 0% 0%;
+    --shadow-elevation-low: 0 1px 2px 0 hsl(var(--shadow-color) / 0.3);
+    --shadow-elevation-medium:
+      0 4px 6px -1px hsl(var(--shadow-color) / 0.4),
+      0 2px 4px -1px hsl(var(--shadow-color) / 0.25);
+    --shadow-elevation-high:
+      0 10px 15px -3px hsl(var(--shadow-color) / 0.4),
+      0 4px 6px -2px hsl(var(--shadow-color) / 0.25);
+    --shadow-elevation-highest:
+      0 20px 25px -5px hsl(var(--shadow-color) / 0.4),
+      0 10px 10px -5px hsl(var(--shadow-color) / 0.2);
+
+    /* Enhanced border variables for dark theme */
+    --border-light: 160 15% 18%;
+    --border-medium: 160 15% 16%;
+    --border-strong: 160 15% 12%;
+
+    /* Focus and interaction states for dark theme */
+    --focus-ring: 152 55% 48%;
+    --hover-overlay: 0 0% 100%;
+    --hover-opacity: 0.05;
+    --active-overlay: 0 0% 100%;
+    --active-opacity: 0.1;
+
+    /* Tooltip and overlay backgrounds for dark theme */
+    --tooltip-bg: 160 15% 12%;
+    --tooltip-foreground: 150 15% 95%;
+    --overlay-bg: 0 0% 0%;
+    --overlay-opacity: 0.7;
+
+    /* Selection colors for dark theme */
+    --selection-bg: 152 55% 48%;
+    --selection-foreground: 160 30% 6%;
   }
 }
 
@@ -220,5 +313,84 @@
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground));
+  }
+
+  /* Enhanced shadow utilities using CSS variables */
+  .shadow-elevation-low {
+    box-shadow: var(--shadow-elevation-low);
+  }
+
+  .shadow-elevation-medium {
+    box-shadow: var(--shadow-elevation-medium);
+  }
+
+  .shadow-elevation-high {
+    box-shadow: var(--shadow-elevation-high);
+  }
+
+  .shadow-elevation-highest {
+    box-shadow: var(--shadow-elevation-highest);
+  }
+
+  /* Enhanced border utilities */
+  .border-light {
+    border-color: hsl(var(--border-light));
+  }
+
+  .border-medium {
+    border-color: hsl(var(--border-medium));
+  }
+
+  .border-strong {
+    border-color: hsl(var(--border-strong));
+  }
+
+  /* Interaction state utilities */
+  .hover-overlay {
+    position: relative;
+  }
+
+  .hover-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: hsl(var(--hover-overlay));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  .hover-overlay:hover::before {
+    opacity: var(--hover-opacity);
+  }
+
+  .active-overlay {
+    position: relative;
+  }
+
+  .active-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: hsl(var(--active-overlay));
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    pointer-events: none;
+  }
+
+  .active-overlay:active::before {
+    opacity: var(--active-opacity);
+  }
+
+  /* Selection utilities */
+  .selection-primary ::selection {
+    background-color: hsl(var(--selection-bg));
+    color: hsl(var(--selection-foreground));
+  }
+
+  /* Focus ring utility using CSS variable */
+  .focus-ring-primary {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    --tw-ring-color: hsl(var(--focus-ring));
   }
 }

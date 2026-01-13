@@ -189,12 +189,15 @@ export function CarbonIntensityMap({ data }: CarbonIntensityMapProps) {
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    fill="#e2e8f0"
-                    stroke="#cbd5e1"
+                    fill="hsl(var(--muted))"
+                    stroke="hsl(var(--border))"
                     strokeWidth={0.5}
                     style={{
                       default: { outline: "none" },
-                      hover: { outline: "none", fill: "#cbd5e1" },
+                      hover: {
+                        outline: "none",
+                        fill: "hsl(var(--muted-foreground) / 0.1)",
+                      },
                       pressed: { outline: "none" },
                     }}
                   />
@@ -211,11 +214,12 @@ export function CarbonIntensityMap({ data }: CarbonIntensityMapProps) {
                 <circle
                   r={10}
                   fill={getIntensityColor(item.value)}
-                  stroke="#ffffff"
+                  stroke="hsl(var(--background))"
                   strokeWidth={2}
                   className="cursor-pointer transition-all duration-200"
                   style={{
-                    filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+                    filter:
+                      "drop-shadow(0 2px 4px hsl(var(--shadow-color) / 0.3))",
                   }}
                   onMouseEnter={() =>
                     setHoveredRegion(`${item.provider}-${item.region}`)

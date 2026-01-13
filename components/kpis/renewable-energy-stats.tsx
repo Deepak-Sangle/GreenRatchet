@@ -25,37 +25,29 @@ function getStatusConfig(status: "excellent" | "good" | "fair" | "poor"): {
 } {
   return match(status)
     .with("excellent", () => ({
-      container:
-        "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
-      icon: (
-        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-      ),
+      container: "bg-success/10 border-success/20",
+      icon: <CheckCircle className="h-6 w-6 text-success" />,
       title: "Excellent Performance",
       message:
         "Your workloads are predominantly powered by renewable energy sources",
     }))
     .with("good", () => ({
-      container:
-        "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800",
-      icon: <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
+      container: "bg-info/10 border-info/20",
+      icon: <TrendingUp className="h-6 w-6 text-info" />,
       title: "Good Progress",
       message:
         "Majority of your workloads use renewable electricity. Consider optimizing further",
     }))
     .with("fair", () => ({
-      container:
-        "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800",
-      icon: (
-        <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-      ),
+      container: "bg-warning/10 border-warning/20",
+      icon: <AlertTriangle className="h-6 w-6 text-warning" />,
       title: "Room for Improvement",
       message:
         "Significant opportunity to increase renewable energy usage by migrating to cleaner regions",
     }))
     .with("poor", () => ({
-      container:
-        "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800",
-      icon: <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />,
+      container: "bg-destructive/10 border-destructive/20",
+      icon: <AlertCircle className="h-6 w-6 text-destructive" />,
       title: "Action Required",
       message:
         "Priority: Migrate workloads to regions with higher renewable energy availability",
@@ -144,15 +136,15 @@ export function RenewableEnergyStats({ data }: RenewableEnergyStatsProps) {
           </h4>
           <div className="space-y-3">
             {data.weightedRenewablePercentage < 75 && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-info/10">
+                <TrendingUp className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  <p className="text-sm font-medium text-info-foreground">
                     Increase to{" "}
                     {Math.ceil(data.weightedRenewablePercentage / 10) * 10 + 10}
                     %
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="text-xs text-info/80 mt-1">
                     Migrate workloads to regions with higher renewable energy
                     percentages to improve your sustainability profile
                   </p>
@@ -160,13 +152,13 @@ export function RenewableEnergyStats({ data }: RenewableEnergyStatsProps) {
               </div>
             )}
             {data.status === "excellent" && (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/10">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-success/10">
+                <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                  <p className="text-sm font-medium text-success-foreground">
                     Maintain Excellence
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                  <p className="text-xs text-success/80 mt-1">
                     Your renewable energy usage is excellent. Continue
                     prioritizing renewable energy regions for new deployments
                   </p>

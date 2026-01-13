@@ -62,16 +62,16 @@ function getStatusClasses(status: StatusLevel): {
       description: "text-blue-700 dark:text-blue-300",
     }))
     .with("warning", () => ({
-      container: "bg-yellow-50 dark:bg-yellow-900/10",
-      icon: "text-yellow-600 dark:text-yellow-400",
-      title: "text-yellow-900 dark:text-yellow-100",
-      description: "text-yellow-700 dark:text-yellow-300",
+      container: "bg-warning/10 border-warning/20",
+      icon: "text-warning",
+      title: "text-warning-foreground",
+      description: "text-warning/80",
     }))
     .with("alert", () => ({
-      container: "bg-red-50 dark:bg-red-900/10",
-      icon: "text-red-600 dark:text-red-400",
-      title: "text-red-900 dark:text-red-100",
-      description: "text-red-700 dark:text-red-300",
+      container: "bg-destructive/10 border-destructive/20",
+      icon: "text-destructive",
+      title: "text-destructive-foreground",
+      description: "text-destructive/80",
     }))
     .exhaustive();
 }
