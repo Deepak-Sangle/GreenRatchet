@@ -32,7 +32,7 @@ export async function connectAWS(data: ConnectAWSInput) {
       where: { id: session.user.id },
     });
 
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+    if (!user || !user.organizationId) {
       return { error: "Only borrowers can connect cloud providers" };
     }
 
@@ -104,14 +104,11 @@ export async function connectGCP(data: ConnectGCPInput) {
       where: { id: session.user.id },
     });
 
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+    if (!user || !user.organizationId) {
       return { error: "Only borrowers can connect cloud providers" };
     }
 
     const validated = await ConnectGCPSchema.parseAsync(data);
-
-    // TODO: Validate GCP service account key by making a test API call
-    // For hackathon: accept any JSON
 
     const connection = await prisma.cloudConnection.create({
       data: {
@@ -225,7 +222,7 @@ export async function backfillCloudUsageAction(): Promise<{
     });
 
     // 3. Authorization - only borrowers can backfill
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+    if (!user || !user.organizationId) {
       return { error: "Only borrowers can backfill cloud usage data" };
     }
 
@@ -911,7 +908,7 @@ export async function exportCloudUsageCSV(
     });
 
     // 3. Authorization - only borrowers can export cloud usage
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+    if (!user || !user.organizationId) {
       return { error: "Only borrowers can export cloud usage data" };
     }
 

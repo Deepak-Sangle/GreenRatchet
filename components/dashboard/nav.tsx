@@ -59,16 +59,12 @@ export function Nav({ role, user, organization }: NavProps) {
       href: "/loans",
       icon: FileText,
     },
-    ...(role === "BORROWER"
-      ? ([
-          {
-            label: "Cloud Connections",
-            href: "/cloud",
-            icon: Cloud,
-            exact: true,
-          },
-        ] satisfies NavItem[])
-      : []),
+    {
+      label: "Cloud Connections",
+      href: "/cloud",
+      icon: Cloud,
+      exact: true,
+    },
     {
       label: "Cloud Usage",
       href: "/cloud/usage",

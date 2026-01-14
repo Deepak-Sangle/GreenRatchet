@@ -53,11 +53,6 @@ export default async function CloudConnectionsPage() {
     redirect("/auth/signin");
   }
 
-  // Only borrowers can access cloud connections page
-  if (basicUser.role !== "BORROWER") {
-    redirect("/dashboard");
-  }
-
   // Get cached cloud connections data
   const user = await getCloudConnectionsData(
     basicUser.id,

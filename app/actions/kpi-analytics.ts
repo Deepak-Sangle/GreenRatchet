@@ -215,8 +215,8 @@ export async function refreshKPICalculationsAction(): Promise<
       },
     });
 
-    // 3. Authorization - only borrowers can trigger calculations
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
+    // 3. Authorization
+    if (!user || !user.organizationId) {
       return { error: "Only borrowers can trigger KPI calculations" };
     }
 
