@@ -2,31 +2,34 @@
 
 import { RegionCarbonIntensity } from "@/components/cloud/carbon-intensity-map";
 import { prisma } from "@/lib/prisma";
-import { endOfDay, startOfDay } from "date-fns";
 
 /**
  * Fetches today's carbon intensity data for all datacenter regions
  */
-export async function getTodayCarbonIntensityAction(): Promise<{
+export async function getLatestCarbonIntensityAction(): Promise<{
   data?: RegionCarbonIntensity[];
   error?: string;
 }> {
   try {
-    const today = new Date();
-    const startDate = startOfDay(today);
-    const endDate = endOfDay(today);
-
-    const intensityData = await prisma.gridCarbonIntensity.findMany({
-      where: {
-        datetime: {
-          gte: startDate,
-          lte: endDate,
-        },
+    const latestDateWithData = await prisma.gridCarbonIntensity.findFirst({
+      select: {
+        datetime: true,
       },
       orderBy: {
         datetime: "desc",
       },
-      distinct: ["dataCenterRegion", "dataCenterProvider"],
+    });
+
+    const latestDate: Date = latestDateWithData?.datetime ?? new Date();
+
+    const intensityData = await prisma.gridCarbonIntensity.findMany({
+      where: {
+        datetime: latestDate,
+      },
+      orderBy: {
+        datetime: "desc",
+      },
+      distinct: ["dataCenterRegion", "dataCenterProvider", "datetime"],
     });
 
     const formattedData: RegionCarbonIntensity[] = intensityData.map(

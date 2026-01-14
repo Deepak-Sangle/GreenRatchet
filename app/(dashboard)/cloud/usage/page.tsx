@@ -6,7 +6,7 @@ import {
   getCloudUsageData,
   type CloudUsageResponse,
 } from "@/app/actions/cloud";
-import { getTodayCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
+import { getLatestCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
 import {
   CarbonIntensityMap,
   RegionCarbonIntensity,
@@ -440,7 +440,7 @@ export default function CloudUsagePage() {
   /** Fetches carbon intensity data */
   const fetchCarbonIntensity = useCallback(async () => {
     setCarbonIntensityLoading(true);
-    const result = await getTodayCarbonIntensityAction();
+    const result = await getLatestCarbonIntensityAction();
     if (result.data) {
       setCarbonIntensityData(result.data);
     }
