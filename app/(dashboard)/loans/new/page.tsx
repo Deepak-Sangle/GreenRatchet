@@ -41,17 +41,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import z from "zod";
 
 // Get enum values from generated schemas
-const LOAN_TYPES = LoanTypeSchema.options;
-const CURRENCIES = LoanCurrencySchema.options;
+const Loans = LoanTypeSchema.options;
+const Currencies = LoanCurrencySchema.options;
 
 export default function NewLoanPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<CreateLoanForm>({
+  const form = useForm({
     resolver: zodResolver(CreateLoanFormSchema),
     defaultValues: {
       name: "",
@@ -60,13 +61,12 @@ export default function NewLoanPage() {
       committedAmount: -1,
       drawnAmount: -1,
       type: "FIXED_RATE",
-      startDate: "",
-      maturityDate: "",
+      startDate: undefined,
+      maturityDate: undefined,
     },
   });
 
   async function onSubmit(data: CreateLoanForm) {
-    console.log(data);
     setLoading(true);
     setError(null);
 
@@ -147,7 +147,7 @@ export default function NewLoanPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {LOAN_TYPES.map((type) => (
+                          {Loans.map((type) => (
                             <SelectItem key={type} value={type}>
                               {LOAN_TYPE_LABELS[type] || type}
                             </SelectItem>
@@ -174,7 +174,7 @@ export default function NewLoanPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {CURRENCIES.map((currency) => (
+                          {Currencies.map((currency) => (
                             <SelectItem key={currency} value={currency}>
                               {CURRENCY_LABELS[currency] || currency}
                             </SelectItem>
@@ -268,7 +268,17 @@ export default function NewLoanPage() {
                     <FormItem>
                       <FormLabel>Start Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input
+                          type="date"
+                          {...field}
+                          value={
+                            z.coerce
+                              .date()
+                              .safeParse(field.value)
+                              .data?.toISOString()
+                              .split("T")[0] ?? ""
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -281,7 +291,17 @@ export default function NewLoanPage() {
                     <FormItem>
                       <FormLabel>Maturity Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input
+                          type="date"
+                          {...field}
+                          value={
+                            z.coerce
+                              .date()
+                              .safeParse(field.value)
+                              .data?.toISOString()
+                              .split("T")[0] ?? ""
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

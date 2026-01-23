@@ -1,6 +1,6 @@
 "use client";
 
-import type { ElectricityMixDataPoint } from "@/app/actions/electricity-mix-analytics";
+import type { ElectricityMixDataPoint } from "@/app/actions/kpi/electricity-mix-analytics";
 import { Card } from "@/components/ui/card";
 import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
 import { format } from "date-fns";

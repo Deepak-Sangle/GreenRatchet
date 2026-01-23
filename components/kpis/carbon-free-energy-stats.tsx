@@ -1,6 +1,6 @@
 "use client";
 
-import type { CarbonFreeEnergyData } from "@/app/actions/carbon-free-energy-analytics";
+import type { CarbonFreeEnergyData } from "@/app/actions/kpi/carbon-free-energy-analytics";
 import { Card } from "@/components/ui/card";
 import {
   AlertCircle,

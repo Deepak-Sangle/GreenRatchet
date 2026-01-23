@@ -1,7 +1,5 @@
 import { type NextAuthConfig } from "next-auth";
 
-// Edge-compatible config (no Prisma/pg imports)
-// Used by middleware for session validation
 export const authConfig = {
   pages: {
     signIn: "/auth/signin",

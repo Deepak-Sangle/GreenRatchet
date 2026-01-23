@@ -1,5 +1,6 @@
 "use client";
 
+import { KPI } from "@/app/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,8 +14,6 @@ import { Separator } from "@/components/ui/separator";
 import { formatBps, formatDate, getKPIUnit } from "@/lib/utils";
 import { Eye } from "lucide-react";
 import { useState } from "react";
-
-import { KPI } from "@/app/generated/prisma/client";
 
 interface MarginRatchetViewDialogProps {
   ratchet: {

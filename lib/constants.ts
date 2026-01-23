@@ -65,7 +65,7 @@ export const CloudServiceSchema = z.enum([
   "Lambda",
 ]);
 export type CloudService = z.infer<typeof CloudServiceSchema>;
-export const CLOUD_SERVICES = CloudServiceSchema.options;
+export const CloudServices = CloudServiceSchema.options;
 
 /**
  * Human-readable labels for cloud services
@@ -329,6 +329,7 @@ export const US_NERC_REGIONS_EMISSIONS_FACTORS: {
 /**
  * Regional PUE (Power Usage Effectiveness) values for AWS regions
  * Source: AWS Sustainability Report 2024
+ * This only changes per year (i mean we can't get better granularity than this)
  */
 export const AWS_PUE_BY_REGION: CloudConstantsEmissionsFactors = {
   [AWS_REGIONS.EU_NORTH_1]: 1.1,

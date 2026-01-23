@@ -122,6 +122,8 @@ async function main() {
     where: { id: "ratchet-1" },
     update: {},
     create: {
+      observationStart: new Date("2024-01-01"),
+      observationEnd: new Date("2024-12-31"),
       id: "ratchet-1",
       loanId: loan.id,
       kpiId: kpi1.id,
@@ -135,6 +137,8 @@ async function main() {
     where: { id: "ratchet-2" },
     update: {},
     create: {
+      observationStart: new Date("2024-01-01"),
+      observationEnd: new Date("2024-12-31"),
       id: "ratchet-2",
       loanId: loan.id,
       kpiId: kpi2.id,

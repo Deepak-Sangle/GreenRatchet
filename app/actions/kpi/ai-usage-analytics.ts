@@ -30,30 +30,3 @@ export async function getAIUsageAnalytics() {
     };
   }, "get AI usage analytics");
 }
-
-/**
- * Get AI usage analytics for a specific date range
- */
-export async function getAIUsageAnalyticsForRange(
-  startDate: string,
-  endDate: string
-) {
-  return withServerAction(async (user) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const [currentUsage, timeline] = await Promise.all([
-      calculateAIUsagePercentage(user.organizationId, start, end),
-      getAIUsageTimeline(user.organizationId, start, end),
-    ]);
-
-    return {
-      currentUsage,
-      timeline,
-      period: {
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
-      },
-    };
-  }, "get AI usage analytics for range");
-}

@@ -71,33 +71,6 @@ export const chartPalettes = {
 } as const;
 
 /**
- * Gets a color from a palette by index, cycling through available colors
- */
-export function getChartColor(
-  palette: readonly string[],
-  index: number
-): string {
-  return palette[index % palette.length];
-}
-
-/**
- * Creates gradient definitions for area charts
- */
-export function createChartGradient(
-  id: string,
-  color: string,
-  startOpacity: number = 0.3,
-  endOpacity: number = 0
-) {
-  return {
-    id,
-    color,
-    startOpacity,
-    endOpacity,
-  };
-}
-
-/**
  * Chart theme configuration for consistent styling
  */
 export const chartTheme = {
@@ -131,31 +104,4 @@ export const chartTheme = {
       color: "hsl(var(--foreground))",
     },
   },
-} as const;
-
-/**
- * Utility to get theme-appropriate colors for data categories
- */
-export function getCategoryColors<T extends string>(
-  categories: readonly T[],
-  palette: readonly string[] = chartPalettes.multiSeries
-): Record<T, string> {
-  const result = {} as Record<T, string>;
-
-  categories.forEach((category, index) => {
-    result[category] = getChartColor(palette, index);
-  });
-
-  return result;
-}
-
-/**
- * Common chart props that ensure consistent theming
- */
-export const commonChartProps = {
-  cartesianGrid: chartTheme.grid,
-  xAxis: chartTheme.axis,
-  yAxis: chartTheme.axis,
-  tooltip: chartTheme.tooltip,
-  legend: chartTheme.legend,
 } as const;

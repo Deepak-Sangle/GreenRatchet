@@ -44,11 +44,12 @@ GreenRatchet is a comprehensive platform that bridges the gap between sustainabl
 - **CO2 Emissions**: Total greenhouse gas emissions tracking
 - **GHG Intensity**: Emissions per employee and per revenue metrics
 - **Energy Consumption**: Total and renewable energy usage
-- **Low-Carbon Regions**: Percentage of workloads in low-carbon regions
-- **Carbon-Free Energy**: Percentage of carbon-free energy usage
-- **Renewable Energy**: Renewable energy consumption tracking
 - **Water Withdrawal**: Water usage in water-stressed regions
 - **AI Compute Hours**: Specialized AI workload tracking
+- **Low-Carbon Regions**: Percentage of workloads in low-carbon regions
+- **Water Stressed Region**: Percentage of workloads in water-stressed regions
+- **Carbon-Free Energy**: Percentage of carbon-free energy usage
+- **Renewable Energy**: Renewable energy consumption tracking
 - **Electricity Mix**: Grid composition analysis
 
 ## 🏗️ Architecture & Technology

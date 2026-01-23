@@ -79,6 +79,8 @@ model MarginRatchet {
   kpiId            String
   stepUpBps        Int
   stepDownBps      Int
+  observationStart DateTime
+  observationEnd   DateTime
   maxAdjustmentBps Int
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -125,10 +127,14 @@ model KPIResult {
 model CloudConnection {
   id                String           @id @default(cuid())
   provider          CloudProvider
+  // for aws cloud formation stack
   roleArn           String?
   externalId        String?
+  // for gcp
   serviceAccountKey String?
   projectId         String?
+  // for azure
+  tenantId          String?
   isActive          Boolean          @default(true)
   lastSync          DateTime?
   organizationId    String

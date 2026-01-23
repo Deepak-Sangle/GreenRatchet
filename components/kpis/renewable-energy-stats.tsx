@@ -1,6 +1,6 @@
 "use client";
 
-import type { RenewableEnergyData } from "@/app/actions/renewable-energy-analytics";
+import type { RenewableEnergyData } from "@/app/actions/kpi/renewable-energy-analytics";
 import { Card } from "@/components/ui/card";
 import {
   AlertCircle,

@@ -23,45 +23,39 @@ import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
-
-async function getLoansData(userId: string, organizationId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          organization: {
-            include: {
-              borrowerLoans: {
-                include: {
-                  kpis: true,
-                  lenderOrg: true,
-                  borrowerOrg: true,
-                },
-                orderBy: { createdAt: "desc" },
+const getLoansData = unstable_cache(
+  async (userId: string, ) => {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        organization: {
+          include: {
+            borrowerLoans: {
+              include: {
+                kpis: true,
+                lenderOrg: true,
+                borrowerOrg: true,
               },
-              lenderLoans: {
-                include: {
-                  kpis: true,
-                  borrowerOrg: true,
-                  lenderOrg: true,
-                },
-                orderBy: { createdAt: "desc" },
+              orderBy: { createdAt: "desc" },
+            },
+            lenderLoans: {
+              include: {
+                kpis: true,
+                borrowerOrg: true,
+                lenderOrg: true,
               },
+              orderBy: { createdAt: "desc" },
             },
           },
         },
-      });
-    },
-    [`loans-${userId}-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [`loans-${userId}`, `org-${organizationId}`],
-    }
-  )();
-}
+      },
+    });
+  },
+  [`loans`],
+  {
+    revalidate: 60,
+  }
+);
 
 export default async function LoansPage() {
   const session = await auth();
@@ -81,7 +75,7 @@ export default async function LoansPage() {
   }
 
   // Get cached loans data
-  const user = await getLoansData(basicUser.id, basicUser.organizationId);
+  const user = await getLoansData(basicUser.id);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");

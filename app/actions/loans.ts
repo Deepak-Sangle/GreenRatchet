@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   CreateKPIFormSchema,
-  CreateLoanSchema,
+  CreateLoanFormSchema,
   CreateMarginRatchetFormSchema,
   UpdateKPIStatusSchema,
   type CreateKPIForm,
@@ -14,22 +14,41 @@ import {
 } from "@/lib/validations/loan";
 import { revalidatePath, revalidateTag } from "next/cache";
 
+async function validateUser(requiredRole?: "BORROWER" | "LENDER") {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: "Unauthorized", user: null };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { organization: true },
+  });
+
+  if (!user) {
+    return { error: "User not found", user: null };
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    return {
+      error: `Only ${requiredRole} can perform this action`,
+      user: null,
+    };
+  }
+
+  return { user, error: null };
+}
+
 export async function createLoan(data: CreateLoanForm) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
+    const validated = await CreateLoanFormSchema.parseAsync(data);
+
+    const { user, error } = await validateUser("BORROWER");
+    if (!user) return { error: error ?? "Unauthorized" };
+
+    if (!user.organizationId) {
+      return { error: "Organization required to create loans" };
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || user.role !== "BORROWER" || !user.organizationId) {
-      return { error: "Only borrowers can create loans" };
-    }
-
-    const validated = await CreateLoanSchema.parseAsync(data);
 
     const loan = await prisma.loan.create({
       data: {
@@ -56,9 +75,6 @@ export async function createLoan(data: CreateLoanForm) {
 
     revalidatePath("/dashboard");
     revalidatePath("/loans");
-    revalidateTag(`org-${user.organizationId}`);
-    revalidateTag(`dashboard-${user.id}`);
-    revalidateTag(`loans-${user.id}`);
 
     return { success: true, loanId: loan.id };
   } catch (error) {
@@ -69,19 +85,8 @@ export async function createLoan(data: CreateLoanForm) {
 
 export async function createKPI(loanId: string, data: CreateKPIForm) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { organization: true },
-    });
-
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can create KPIs" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     // Verify loan belongs to borrower's organization
     const loan = await prisma.loan.findUnique({
@@ -136,19 +141,8 @@ export async function createKPI(loanId: string, data: CreateKPIForm) {
 
 export async function editKPI(kpiId: string, data: CreateKPIForm) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { organization: true },
-    });
-
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can edit KPIs" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     // Verify KPI exists and belongs to borrower's organization
     const existingKPI = await prisma.kPI.findUnique({
@@ -207,18 +201,8 @@ export async function editKPI(kpiId: string, data: CreateKPIForm) {
 
 export async function updateKPIStatus(kpiId: string, data: UpdateKPIStatus) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || user.role !== "LENDER") {
-      return { error: "Only lenders can accept/reject KPIs" };
-    }
+    const { user, error } = await validateUser("LENDER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     const kpi = await prisma.kPI.findUnique({
       where: { id: kpiId },
@@ -277,24 +261,14 @@ export async function updateKPIStatus(kpiId: string, data: UpdateKPIStatus) {
 
 export async function inviteLender(loanId: string, lenderEmail: string) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can invite lenders" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     const loan = await prisma.loan.findUnique({
-      where: { id: loanId },
+      where: { id: loanId, borrowerOrgId: user.organizationId ?? undefined },
     });
 
-    if (!loan || loan.borrowerOrgId !== user.organizationId) {
+    if (!loan) {
       return { error: "Loan not found" };
     }
 
@@ -332,11 +306,6 @@ export async function inviteLender(loanId: string, lenderEmail: string) {
     revalidatePath(`/loans/${loanId}`);
     revalidatePath("/dashboard");
     revalidatePath("/loans");
-    revalidateTag(`loan-${loanId}`);
-    revalidateTag(`org-${user.organizationId}`);
-    if (lenderUser.organizationId) {
-      revalidateTag(`org-${lenderUser.organizationId}`);
-    }
 
     return { success: true };
   } catch (error) {
@@ -348,21 +317,13 @@ export async function inviteLender(loanId: string, lenderEmail: string) {
 // Margin Ratchet CRUD operations
 export async function createMarginRatchet(
   loanId: string,
-  data: CreateMarginRatchetForm
+  data: CreateMarginRatchetForm,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
+    const validated = await CreateMarginRatchetFormSchema.parseAsync(data);
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can create margin ratchets" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     // Verify loan belongs to borrower's organization
     const loan = await prisma.loan.findUnique({
@@ -373,8 +334,6 @@ export async function createMarginRatchet(
       return { error: "Loan not found" };
     }
 
-    const validated = await CreateMarginRatchetFormSchema.parseAsync(data);
-
     // Verify KPI belongs to this loan
     const kpi = await prisma.kPI.findUnique({
       where: { id: validated.kpiId },
@@ -384,11 +343,9 @@ export async function createMarginRatchet(
       return { error: "KPI not found for this loan" };
     }
 
-    // Transform form dates to Date objects, spread the rest directly
-    const { observationStart, observationEnd, ...restFields } = validated;
     const marginRatchet = await prisma.marginRatchet.create({
       data: {
-        ...restFields,
+        ...validated,
         loanId,
       },
     });
@@ -412,8 +369,6 @@ export async function createMarginRatchet(
     });
 
     revalidatePath(`/loans/${loanId}`);
-    revalidateTag(`loan-${loanId}`);
-    revalidateTag(`org-${user.organizationId}`);
 
     return { success: true, marginRatchetId: marginRatchet.id };
   } catch (error) {
@@ -423,56 +378,38 @@ export async function createMarginRatchet(
 }
 
 export async function editMarginRatchet(
-  marginRatchetId: string,
-  data: CreateMarginRatchetForm
+  marginRatchetId: string | null | undefined,
+  data: CreateMarginRatchetForm,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
+    if (!marginRatchetId) {
+      return { error: "Margin ratchet not found" };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
+    const validated = await CreateMarginRatchetFormSchema.parseAsync(data);
 
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can edit margin ratchets" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     // Verify margin ratchet exists and belongs to borrower's organization
+    // And also belongs to the same loan
     const existingRatchet = await prisma.marginRatchet.findUnique({
-      where: { id: marginRatchetId },
-      include: { loan: true, kpi: true },
+      where: {
+        id: marginRatchetId,
+        kpiId: validated.kpiId,
+        loan: { borrowerOrgId: user.organizationId ?? undefined },
+      },
+      include: { kpi: { select: { id: true, name: true } } },
     });
 
     if (!existingRatchet) {
       return { error: "Margin ratchet not found" };
     }
 
-    if (existingRatchet.loan.borrowerOrgId !== user.organizationId) {
-      return {
-        error: "You don't have permission to edit this margin ratchet",
-      };
-    }
-
-    const validated = await CreateMarginRatchetFormSchema.parseAsync(data);
-
-    // Verify KPI belongs to the same loan
-    const kpi = await prisma.kPI.findUnique({
-      where: { id: validated.kpiId },
-    });
-
-    if (!kpi || kpi.loanId !== existingRatchet.loanId) {
-      return { error: "KPI not found for this loan" };
-    }
-
-    // Transform form dates to Date objects, spread the rest directly
-    const { observationStart, observationEnd, ...restFields } = validated;
     const marginRatchet = await prisma.marginRatchet.update({
       where: { id: marginRatchetId },
       data: {
-        ...restFields,
+        ...validated,
       },
     });
 
@@ -483,20 +420,18 @@ export async function editMarginRatchet(
         entity: "MARGIN_RATCHET",
         entityId: marginRatchet.id,
         details: JSON.stringify({
-          kpiId: kpi.id,
-          kpiName: kpi.name,
+          kpiId: existingRatchet.kpi.id,
+          kpiName: existingRatchet.kpi.name,
           stepUpBps: marginRatchet.stepUpBps,
           stepDownBps: marginRatchet.stepDownBps,
         }),
         userId: user.id,
         loanId: existingRatchet.loanId,
-        kpiId: kpi.id,
+        kpiId: existingRatchet.kpi.id,
       },
     });
 
     revalidatePath(`/loans/${existingRatchet.loanId}`);
-    revalidateTag(`loan-${existingRatchet.loanId}`);
-    revalidateTag(`org-${user.organizationId}`);
 
     return { success: true, marginRatchetId: marginRatchet.id };
   } catch (error) {
@@ -507,18 +442,8 @@ export async function editMarginRatchet(
 
 export async function deleteMarginRatchet(marginRatchetId: string) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!user || user.role !== "BORROWER") {
-      return { error: "Only borrowers can delete margin ratchets" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     const marginRatchet = await prisma.marginRatchet.findUnique({
       where: {
@@ -552,8 +477,6 @@ export async function deleteMarginRatchet(marginRatchetId: string) {
     });
 
     revalidatePath(`/loans/${marginRatchet.loanId}`);
-    revalidateTag(`loan-${marginRatchet.loanId}`);
-    revalidateTag(`org-${user.organizationId}`);
 
     return { success: true };
   } catch (error) {
@@ -564,30 +487,21 @@ export async function deleteMarginRatchet(marginRatchetId: string) {
 
 export async function deleteKPI(kpiId: string) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return { error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id, role: "BORROWER" },
-    });
-
-    if (!user) {
-      return { error: "Only borrowers can delete KPIs" };
-    }
+    const { user, error } = await validateUser("BORROWER");
+    if (error || !user) return { error: error || "Unauthorized" };
 
     const kpi = await prisma.kPI.findUnique({
-      where: { id: kpiId },
+      where: {
+        id: kpiId,
+        loan: {
+          borrowerOrgId: user.organizationId ?? undefined,
+        },
+      },
       include: { loan: true },
     });
 
     if (!kpi) {
       return { error: "KPI not found" };
-    }
-
-    if (kpi.loan.borrowerOrgId !== user.organizationId) {
-      return { error: "You don't have permission to delete this KPI" };
     }
 
     // Delete the KPI (cascade will handle marginRatchets and results)
@@ -611,9 +525,6 @@ export async function deleteKPI(kpiId: string) {
 
     revalidatePath(`/loans/${kpi.loanId}`);
     revalidatePath("/analytics");
-    revalidateTag(`loan-${kpi.loanId}`);
-    revalidateTag(`org-${user.organizationId}`);
-    revalidateTag(`analytics-${user.id}`);
 
     return { success: true };
   } catch (error) {

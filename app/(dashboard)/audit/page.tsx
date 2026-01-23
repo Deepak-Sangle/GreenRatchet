@@ -20,42 +20,36 @@ import { formatDate, getKPIUnit } from "@/lib/utils";
 import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
-
-async function getAuditLogsData(userId: string, organizationId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.auditLog.findMany({
-        where: {
-          OR: [
-            { userId: userId },
-            {
-              loan: {
-                OR: [
-                  { borrowerOrgId: organizationId },
-                  { lenderOrgId: organizationId },
-                ],
-              },
+const getAuditLogsData = unstable_cache(
+  async (userId: string, organizationId: string) => {
+    return prisma.auditLog.findMany({
+      where: {
+        OR: [
+          { userId: userId },
+          {
+            loan: {
+              OR: [
+                { borrowerOrgId: organizationId },
+                { lenderOrgId: organizationId },
+              ],
             },
-          ],
-        },
-        include: {
-          user: true,
-          loan: true,
-          kpi: true,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      });
-    },
-    [`audit-${userId}-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [`audit-${userId}`, `org-${organizationId}`],
-    }
-  )();
-}
+          },
+        ],
+      },
+      include: {
+        user: true,
+        loan: true,
+        kpi: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  },
+  [`audit`],
+  {
+    revalidate: 60,
+  }
+);
 
 export default async function AuditTrailPage() {
   const session = await auth();

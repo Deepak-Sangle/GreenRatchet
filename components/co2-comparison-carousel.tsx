@@ -129,10 +129,6 @@ export function formatValueWithUnit(value: number, unit: string): string {
 interface CO2ComparisonCarouselProps {
   /** Total CO2e emissions in metric tons (mtCO2e) */
   totalCo2e: number;
-  /** Currently selected comparison index */
-  selectedIndex: number;
-  /** Callback when comparison index changes */
-  onIndexChange: (index: number) => void;
   /** Function to format CO2e value for display */
   formatCo2e: (value: number) => string;
 }
@@ -186,13 +182,13 @@ function renderComparisonDisplay(
 }
 
 /**
+ * todo1: Make it generic and accept an iterator and iteratee argument
+ * todo2: Make it smoother
  * Carousel component for CO2 equivalency comparisons
  * Supports drag/swipe navigation, arrow buttons, and indicator dots
  */
 export function CO2ComparisonCarousel({
   totalCo2e,
-  selectedIndex,
-  onIndexChange,
   formatCo2e,
 }: CO2ComparisonCarouselProps) {
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -200,17 +196,19 @@ export function CO2ComparisonCarousel({
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const handlePrev = useCallback(() => {
     const newIndex =
       selectedIndex === 0 ? COMPARISON_CONFIGS.length - 1 : selectedIndex - 1;
-    onIndexChange(newIndex);
-  }, [selectedIndex, onIndexChange]);
+    setSelectedIndex(newIndex);
+  }, [selectedIndex, setSelectedIndex]);
 
   const handleNext = useCallback(() => {
     const newIndex =
       selectedIndex === COMPARISON_CONFIGS.length - 1 ? 0 : selectedIndex + 1;
-    onIndexChange(newIndex);
-  }, [selectedIndex, onIndexChange]);
+    setSelectedIndex(newIndex);
+  }, [selectedIndex, setSelectedIndex]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -235,10 +233,10 @@ export function CO2ComparisonCarousel({
         Math.min(COMPARISON_CONFIGS.length - 1, newIndex)
       );
       if (clampedIndex !== selectedIndex) {
-        onIndexChange(clampedIndex);
+        setSelectedIndex(clampedIndex);
       }
     },
-    [isDragging, startX, scrollLeft, selectedIndex, onIndexChange]
+    [isDragging, startX, scrollLeft, selectedIndex, setSelectedIndex]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -267,10 +265,10 @@ export function CO2ComparisonCarousel({
         Math.min(COMPARISON_CONFIGS.length - 1, newIndex)
       );
       if (clampedIndex !== selectedIndex) {
-        onIndexChange(clampedIndex);
+        setSelectedIndex(clampedIndex);
       }
     },
-    [isDragging, startX, scrollLeft, selectedIndex, onIndexChange]
+    [isDragging, startX, scrollLeft, selectedIndex, setSelectedIndex]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -334,7 +332,7 @@ export function CO2ComparisonCarousel({
           <button
             key={config.type}
             type="button"
-            onClick={() => onIndexChange(index)}
+            onClick={() => setSelectedIndex(index)}
             className={cn(
               "h-2 rounded-full transition-all duration-200",
               index === selectedIndex

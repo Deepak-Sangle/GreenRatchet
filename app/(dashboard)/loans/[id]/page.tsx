@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
 import { InviteLenderDialog } from "@/components/loans/invite-lender-dialog";
-import { KPIActions } from "@/components/loans/kpi-actions";
 import { KPIFormDialog } from "@/components/loans/kpi-form-dialog";
-import { KPIReviewActions } from "@/components/loans/kpi-review-actions";
+import { KPITable, LoanWithMarginRatchets } from "@/components/loans/kpi-table";
 import { MarginRatchetActions } from "@/components/loans/margin-ratchet-actions";
 import { MarginRatchetDialog } from "@/components/loans/margin-ratchet-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -23,52 +22,41 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  KPI_DIRECTION_LABELS,
-  KPI_FREQUENCY_LABELS,
-  KPI_TYPE_LABELS,
-  LOAN_TYPE_LABELS,
-} from "@/lib/labels";
+import { LOAN_TYPE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
-import { formatBps, formatCurrency, formatDate, getKPIUnit } from "@/lib/utils";
-import { ArrowLeft, Download, TrendingDown, TrendingUp } from "lucide-react";
+import { formatBps, formatCurrency, formatDate } from "@/lib/utils";
+import { ArrowLeft, Download, Settings2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
-
-async function getLoanData(loanId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.loan.findUnique({
-        where: { id: loanId },
-        include: {
-          borrowerOrg: true,
-          lenderOrg: true,
-          kpis: {
-            orderBy: { createdAt: "desc" },
-            include: {
-              marginRatchets: true,
-            },
+const getLoanData = unstable_cache(
+  async (loanId: string): Promise<LoanWithMarginRatchets | null> => {
+    return prisma.loan.findUnique({
+      where: { id: loanId },
+      include: {
+        borrowerOrg: true,
+        lenderOrg: true,
+        kpis: {
+          include: {
+            marginRatchets: true,
           },
-          marginRatchets: {
-            include: {
-              kpi: true,
-            },
-            orderBy: { createdAt: "desc" },
-          },
+          orderBy: { createdAt: "desc" },
         },
-      });
-    },
-    [`loan-${loanId}`],
-    {
-      revalidate: 60,
-      tags: [`loan-${loanId}`],
-    }
-  )();
-}
+        marginRatchets: {
+          include: {
+            kpi: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+  },
+  [`loan`],
+  {
+    revalidate: 60,
+  },
+);
 
 export default async function LoanDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -89,7 +77,7 @@ export default async function LoanDetailPage(props: {
   }
 
   // Get cached loan data
-  const loan = await getLoanData(params.id);
+  const loan: LoanWithMarginRatchets | null = await getLoanData(params.id);
 
   if (!loan) {
     notFound();
@@ -105,7 +93,7 @@ export default async function LoanDetailPage(props: {
     redirect("/dashboard");
   }
 
-  const hasLender = !!loan.lenderOrgId;
+  const hasLender: boolean = !!loan.lenderOrgId;
   const proposedKPIs = loan.kpis.filter((kpi) => kpi.status === "PROPOSED");
   const acceptedKPIs = loan.kpis.filter((kpi) => kpi.status === "ACCEPTED");
 
@@ -154,7 +142,7 @@ export default async function LoanDetailPage(props: {
             <div>
               <p className="text-sm text-muted-foreground">Loan Type</p>
               <p className="font-medium">
-                {LOAN_TYPE_LABELS[loan.type] || loan.type}
+                {LOAN_TYPE_LABELS[loan.type] ?? loan.type}
               </p>
             </div>
             <div>
@@ -162,12 +150,9 @@ export default async function LoanDetailPage(props: {
               <p className="font-medium">{loan.currency}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-            </div>
-            <div>
               <p className="text-sm text-muted-foreground">Principal Amount</p>
               <p className="font-medium">
-                {Number(loan.principalAmount) >= 0
+                {Number(loan.principalAmount) > 0
                   ? formatCurrency(Number(loan.principalAmount), loan.currency)
                   : "N/A"}
               </p>
@@ -175,7 +160,7 @@ export default async function LoanDetailPage(props: {
             <div>
               <p className="text-sm text-muted-foreground">Committed Amount</p>
               <p className="font-medium">
-                {Number(loan.committedAmount) >= 0
+                {Number(loan.committedAmount) > 0
                   ? formatCurrency(Number(loan.committedAmount), loan.currency)
                   : "N/A"}
               </p>
@@ -183,7 +168,7 @@ export default async function LoanDetailPage(props: {
             <div>
               <p className="text-sm text-muted-foreground">Drawn Amount</p>
               <p className="font-medium">
-                {Number(loan.drawnAmount) >= 0
+                {Number(loan.drawnAmount) > 0
                   ? formatCurrency(Number(loan.drawnAmount), loan.currency)
                   : "N/A"}
               </p>
@@ -242,7 +227,7 @@ export default async function LoanDetailPage(props: {
                   : "Review proposed KPIs. Accept or reject each KPI."}
               </CardDescription>
             </div>
-            {<KPIFormDialog hideTrigger={isLender} loanId={loan.id} />}
+            <KPIFormDialog hideTrigger={isLender} loanId={loan.id} />
           </div>
         </CardHeader>
         <CardContent>
@@ -263,67 +248,12 @@ export default async function LoanDetailPage(props: {
                     Proposed KPIs
                     <Badge variant="warning">{proposedKPIs.length}</Badge>
                   </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>KPI Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Target</TableHead>
-                        <TableHead>Direction</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {proposedKPIs.map((kpi) => (
-                        <TableRow key={kpi.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{kpi.name}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {KPI_TYPE_LABELS[kpi.type] || kpi.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {kpi.targetValue.toString()}
-                            {getKPIUnit(kpi) && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                {getKPIUnit(kpi)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="flex items-center gap-1 text-sm">
-                              {kpi.direction === "LOWER_IS_BETTER" ? (
-                                <TrendingDown className="h-3 w-3 text-green-600" />
-                              ) : kpi.direction === "HIGHER_IS_BETTER" ? (
-                                <TrendingUp className="h-3 w-3 text-green-600" />
-                              ) : null}
-                              {KPI_DIRECTION_LABELS[kpi.direction] ||
-                                kpi.direction}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {KPI_FREQUENCY_LABELS[kpi.frequency] ||
-                              kpi.frequency}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {isLender && <KPIReviewActions kpiId={kpi.id} />}
-                              <KPIActions
-                                kpi={kpi}
-                                loanId={loan.id}
-                                isBorrower={isBorrower}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <KPITable
+                    kpis={proposedKPIs}
+                    loanId={loan.id}
+                    isBorrower={isBorrower}
+                    isLender={isLender}
+                  />
                 </div>
               )}
 
@@ -333,80 +263,12 @@ export default async function LoanDetailPage(props: {
                     Active KPIs
                     <Badge variant="success">{acceptedKPIs.length}</Badge>
                   </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>KPI Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Baseline</TableHead>
-                        <TableHead>Target</TableHead>
-                        <TableHead>Direction</TableHead>
-                        <TableHead>Ratchets</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {acceptedKPIs.map((kpi) => (
-                        <TableRow key={kpi.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{kpi.name}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {KPI_TYPE_LABELS[kpi.type] || kpi.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {kpi.baselineValue?.toString() || "—"}
-                            {kpi.baselineValue && getKPIUnit(kpi) && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                {getKPIUnit(kpi)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {kpi.targetValue.toString()}
-                            {getKPIUnit(kpi) && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                {getKPIUnit(kpi)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="flex items-center gap-1 text-sm">
-                              {kpi.direction === "LOWER_IS_BETTER" ? (
-                                <TrendingDown className="h-3 w-3 text-green-600" />
-                              ) : kpi.direction === "HIGHER_IS_BETTER" ? (
-                                <TrendingUp className="h-3 w-3 text-green-600" />
-                              ) : null}
-                              {KPI_DIRECTION_LABELS[kpi.direction] ||
-                                kpi.direction}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {kpi.marginRatchets.length > 0 ? (
-                              <Badge variant="secondary">
-                                {kpi.marginRatchets.length} configured
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">
-                                None
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <KPIActions
-                              kpi={kpi}
-                              loanId={loan.id}
-                              isBorrower={isBorrower}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <KPITable
+                    kpis={acceptedKPIs}
+                    loanId={loan.id}
+                    isBorrower={isBorrower}
+                    isLender={isLender}
+                  />
                 </div>
               )}
             </div>
@@ -426,7 +288,16 @@ export default async function LoanDetailPage(props: {
               </CardDescription>
             </div>
             {isBorrower && kpisForRatchets.length > 0 && (
-              <MarginRatchetDialog loanId={loan.id} kpis={kpisForRatchets} />
+              <MarginRatchetDialog
+                loanId={loan.id}
+                kpis={kpisForRatchets}
+                dialogTrigger={
+                  <Button variant="outline" size="sm">
+                    <Settings2 className="mr-2 h-4 w-4" />
+                    Add Margin Ratchet
+                  </Button>
+                }
+              />
             )}
           </div>
         </CardHeader>

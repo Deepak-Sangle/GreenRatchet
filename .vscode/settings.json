@@ -5,6 +5,7 @@
     "editor.defaultFormatter": "Prisma.prisma",
     "editor.formatOnSave": true
   },
+  "editor.parameterHints.enabled": true,
   "editor.formatOnSave": true,
   "terminal.integrated.profiles.linux": {
     "zcool": {

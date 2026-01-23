@@ -1,8 +1,6 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Loader2, LucideIcon } from "lucide-react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 
 interface ExpandableKpiCardProps {
   title: string;
@@ -11,7 +9,8 @@ interface ExpandableKpiCardProps {
   iconColor: string;
   iconBgColor: string;
   children: ReactNode;
-  onExpand?: () => void;
+  isExpanded: boolean;
+  onToggle: () => void;
   loading?: boolean;
   error?: string | null;
 }
@@ -23,26 +22,21 @@ export function ExpandableKpiCard({
   iconColor,
   iconBgColor,
   children,
-  onExpand,
+  isExpanded,
+  onToggle,
   loading = false,
   error = null,
 }: ExpandableKpiCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  useEffect(() => {
-    if (isExpanded && onExpand) {
-      onExpand();
-    }
-  }, [isExpanded, onExpand]);
-
   return (
     <Card className="p-6 shadow-soft transition-all duration-200">
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={onToggle}
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <div className={`h-10 w-10 rounded-lg ${iconBgColor} flex items-center justify-center`}>
+          <div
+            className={`h-10 w-10 rounded-lg ${iconBgColor} flex items-center justify-center`}
+          >
             <Icon className={`h-5 w-5 ${iconColor}`} />
           </div>
           <div>
@@ -72,7 +66,7 @@ export function ExpandableKpiCard({
             </div>
           )}
 
-          {!loading && !error && children}
+          {!loading && children}
         </div>
       )}
     </Card>

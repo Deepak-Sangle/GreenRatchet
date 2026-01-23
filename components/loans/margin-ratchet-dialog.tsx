@@ -1,7 +1,6 @@
 "use client";
 
 import { createMarginRatchet, editMarginRatchet } from "@/app/actions/loans";
-import { ObservationPeriodSchema } from "@/app/generated/schemas/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,12 +33,10 @@ import {
   type CreateMarginRatchetForm,
 } from "@/lib/validations/loan";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings2 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
-
-// Get enum values from generated schemas
-const OBSERVATION_PERIODS = ObservationPeriodSchema.options;
+import { match } from "ts-pattern";
+import z from "zod";
 
 interface KPIOption {
   id: string;
@@ -49,13 +46,8 @@ interface KPIOption {
 interface MarginRatchetDialogProps {
   loanId: string;
   kpis: KPIOption[];
-  defaultKpiId?: string;
-  defaultValues?: {
-    stepUpBps?: number;
-    stepDownBps?: number;
-    maxAdjustmentBps?: number;
-  };
-  triggerButton?: ReactNode;
+  initialValue?: CreateMarginRatchetForm;
+  dialogTrigger: ReactNode;
   mode?: "create" | "duplicate" | "edit";
   ratchetId?: string;
 }
@@ -63,9 +55,8 @@ interface MarginRatchetDialogProps {
 export function MarginRatchetDialog({
   loanId,
   kpis,
-  defaultKpiId,
-  defaultValues,
-  triggerButton,
+  initialValue,
+  dialogTrigger: triggerButton,
   mode = "create",
   ratchetId,
 }: MarginRatchetDialogProps) {
@@ -73,15 +64,15 @@ export function MarginRatchetDialog({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<CreateMarginRatchetForm>({
+  const form = useForm({
     resolver: zodResolver(CreateMarginRatchetFormSchema),
     defaultValues: {
-      kpiId: defaultKpiId || "",
-      observationStart: "",
-      observationEnd: "",
-      stepUpBps: defaultValues?.stepUpBps ?? 0,
-      stepDownBps: defaultValues?.stepDownBps ?? 0,
-      maxAdjustmentBps: defaultValues?.maxAdjustmentBps ?? 0,
+      kpiId: initialValue?.kpiId || "",
+      observationStart: initialValue?.observationStart,
+      observationEnd: initialValue?.observationEnd,
+      stepUpBps: initialValue?.stepUpBps ?? 0,
+      stepDownBps: initialValue?.stepDownBps ?? 0,
+      maxAdjustmentBps: initialValue?.maxAdjustmentBps ?? 0,
     },
   });
 
@@ -89,10 +80,11 @@ export function MarginRatchetDialog({
     setLoading(true);
     setError(null);
 
-    const result =
-      mode === "edit" && ratchetId
-        ? await editMarginRatchet(ratchetId, data)
-        : await createMarginRatchet(loanId, data);
+    const result = await match(mode)
+      .with("edit", () => editMarginRatchet(ratchetId, data))
+      .with("duplicate", () => createMarginRatchet(loanId, data))
+      .with("create", () => createMarginRatchet(loanId, data))
+      .exhaustive();
 
     if (result?.error) {
       setError(result.error);
@@ -104,35 +96,39 @@ export function MarginRatchetDialog({
     }
   }
 
-  const dialogTitle =
-    mode === "edit"
-      ? "Edit Margin Ratchet"
-      : mode === "duplicate"
-        ? "Duplicate Margin Ratchet"
-        : "Configure Margin Ratchet";
-  const dialogDescription =
-    mode === "edit"
-      ? "Update the margin ratchet configuration. Changes will be saved immediately."
-      : mode === "duplicate"
-        ? "Create a new margin ratchet based on the existing configuration. Modify the values as needed."
-        : "Define how the loan margin adjusts based on KPI performance. Step up increases interest rate when targets are not met, step down decreases interest rate when targets are met.";
-  const submitButtonText =
-    mode === "edit"
-      ? "Save Changes"
-      : mode === "duplicate"
-        ? "Create Duplicate"
-        : "Create Ratchet";
+  const dialogTitle: string = match(mode)
+    .with("create", () => "Configure Margin Ratchet")
+    .with("edit", () => "Edit Margin Ratchet")
+    .with("duplicate", () => "Duplicate Margin Ratchet")
+    .exhaustive();
+
+  const dialogDescription: string = match(mode)
+    .with(
+      "create",
+      () =>
+        "Define how the loan margin adjusts based on KPI performance. Step up increases interest rate when targets are not met, step down decreases interest rate when targets are met.",
+    )
+    .with(
+      "edit",
+      () =>
+        "Update the margin ratchet configuration. Changes will be saved immediately.",
+    )
+    .with(
+      "duplicate",
+      () =>
+        "Create a new margin ratchet based on the existing configuration. Modify the values as needed.",
+    )
+    .exhaustive();
+
+  const submitButtonText: string = match(mode)
+    .with("edit", () => "Save Changes")
+    .with("duplicate", () => "Create Duplicate")
+    .with("create", () => "Create Ratchet")
+    .exhaustive();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {triggerButton || (
-          <Button variant="outline" size="sm">
-            <Settings2 className="mr-2 h-4 w-4" />
-            Add Margin Ratchet
-          </Button>
-        )}
-      </DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -152,10 +148,7 @@ export function MarginRatchetDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>KPI</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select KPI" />
@@ -185,7 +178,17 @@ export function MarginRatchetDialog({
                   <FormItem>
                     <FormLabel>Observation Start</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="date"
+                        {...field}
+                        value={
+                          z.coerce
+                            .date()
+                            .safeParse(field.value)
+                            .data?.toISOString()
+                            .split("T")[0] ?? ""
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -198,7 +201,17 @@ export function MarginRatchetDialog({
                   <FormItem>
                     <FormLabel>Observation End (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="date"
+                        {...field}
+                        value={
+                          z.coerce
+                            .date()
+                            .safeParse(field.value)
+                            .data?.toISOString()
+                            .split("T")[0] ?? ""
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,6 +260,8 @@ export function MarginRatchetDialog({
                           type="number"
                           placeholder="5"
                           {...field}
+                          // seems like e.target.value is a always a string
+                          // no matter the type="number"
                           onChange={(e) =>
                             field.onChange(parseInt(e.target.value) || 0)
                           }

@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import {
-  CLOUD_SERVICES,
   CLOUD_SERVICE_LABELS,
+  CloudServices,
   TimeRangeValue,
   type CloudService,
 } from "@/lib/constants";
@@ -17,7 +17,7 @@ import {
   type ConnectGCPInput,
 } from "@/lib/validations/cloud";
 import { subDays, subYears } from "date-fns";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { match } from "ts-pattern";
 import { Prisma } from "../generated/prisma/client";
 
@@ -33,7 +33,7 @@ export async function connectAWS(data: ConnectAWSInput) {
     });
 
     if (!user || !user.organizationId) {
-      return { error: "Only borrowers can connect cloud providers" };
+      return { error: "User not found" };
     }
 
     const validated = await ConnectAWSSchema.parseAsync(data);
@@ -82,9 +82,6 @@ export async function connectAWS(data: ConnectAWSInput) {
 
     revalidatePath("/cloud");
     revalidatePath("/dashboard");
-    revalidateTag(`cloud-${user.id}`);
-    revalidateTag(`org-${user.organizationId}`);
-    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -105,7 +102,7 @@ export async function connectGCP(data: ConnectGCPInput) {
     });
 
     if (!user || !user.organizationId) {
-      return { error: "Only borrowers can connect cloud providers" };
+      return { error: "User not found" };
     }
 
     const validated = await ConnectGCPSchema.parseAsync(data);
@@ -137,9 +134,6 @@ export async function connectGCP(data: ConnectGCPInput) {
 
     revalidatePath("/cloud");
     revalidatePath("/dashboard");
-    revalidateTag(`cloud-${user.id}`);
-    revalidateTag(`org-${user.organizationId}`);
-    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -156,24 +150,21 @@ export async function disconnectCloud(connectionId: string) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: {
+        id: session.user.id,
+        organization: { cloudConnections: { some: { id: connectionId } } },
+      },
     });
 
     if (!user) {
       return { error: "Unauthorized" };
     }
 
-    const connection = await prisma.cloudConnection.findUnique({
-      where: { id: connectionId },
-    });
-
-    if (!connection || connection.organizationId !== user.organizationId) {
-      return { error: "Connection not found" };
-    }
-
-    await prisma.cloudConnection.update({
+    // todo: add logic to show in the UI the past inactive connections so they can reconnect them
+    const connection = await prisma.cloudConnection.update({
       where: { id: connectionId },
       data: { isActive: false },
+      select: { provider: true },
     });
 
     // Create audit log
@@ -190,9 +181,6 @@ export async function disconnectCloud(connectionId: string) {
 
     revalidatePath("/cloud");
     revalidatePath("/dashboard");
-    revalidateTag(`cloud-${user.id}`);
-    revalidateTag(`org-${user.organizationId}`);
-    revalidateTag(`dashboard-${user.id}`);
 
     return { success: true };
   } catch (error) {
@@ -284,7 +272,7 @@ export async function backfillCloudUsageAction(): Promise<{
       }).catch((error) => {
         console.error(
           `Error triggering backfill for connection ${connection.id}:`,
-          error
+          error,
         );
       });
     }
@@ -322,7 +310,7 @@ export async function backfillCloudUsageAction(): Promise<{
 function calculateDateRange(
   timeRange: TimeRangeValue,
   customStartDate?: Date,
-  customEndDate?: Date
+  customEndDate?: Date,
 ): { startDate: Date; endDate: Date } {
   const now = new Date();
 
@@ -418,7 +406,7 @@ function getWeekKey(date: Date): string {
   const yearStart = new Date(tempDate.getFullYear(), 0, 1);
   // Calculate full weeks to nearest Thursday
   const weekNo = Math.ceil(
-    ((tempDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+    ((tempDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
   );
   // Return ISO week format
   return `${tempDate.getFullYear()}-W${weekNo.toString().padStart(2, "0")}`;
@@ -457,7 +445,7 @@ function aggregateByDate(
     cost: number | null;
     type: string;
   }>,
-  aggregation: "day" | "week" | "month" = "day"
+  aggregation: "day" | "week" | "month" = "day",
 ): CloudUsageDataPoint[] {
   const dateMap = new Map<string, CloudUsageDataPoint>();
 
@@ -515,7 +503,7 @@ function aggregateByDate(
   }
 
   return Array.from(dateMap.values()).sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 }
 
@@ -529,7 +517,7 @@ function aggregateByService(
     kilowattHours: number | null;
     cost: number | null;
   }>,
-  serviceLabels: Record<CloudService, string>
+  serviceLabels: Record<CloudService, string>,
 ): CloudUsageByService[] {
   const serviceMap = new Map<string, CloudUsageByService>();
 
@@ -567,7 +555,7 @@ function aggregateByRegion(
     co2e: number;
     kilowattHours: number | null;
     cost: number | null;
-  }>
+  }>,
 ): CloudUsageByRegion[] {
   const regionMap = new Map<string, CloudUsageByRegion>();
 
@@ -614,11 +602,11 @@ function aggregateByInstanceType(
     kilowattHours: number | null;
     cost: number | null;
     type: string;
-  }>
+  }>,
 ): CloudUsageByInstanceType[] {
   // Filter to only embodied metrics as requested
   const embodiedFootprints = footprints.filter(
-    (fp) => fp.type === "EMBODIED_METRICS"
+    (fp) => fp.type === "EMBODIED_METRICS",
   );
 
   const instanceTypeMap = new Map<string, CloudUsageByInstanceType>();
@@ -657,7 +645,7 @@ function calculateTotals(
     co2e: number;
     kilowattHours: number | null;
     cost: number | null;
-  }>
+  }>,
 ): { co2e: number; kilowattHours: number; cost: number } {
   return footprints.reduce<{
     co2e: number;
@@ -669,7 +657,7 @@ function calculateTotals(
       kilowattHours: totals.kilowattHours + (footprint.kilowattHours ?? 0),
       cost: totals.cost + (footprint.cost ?? 0),
     }),
-    { co2e: 0, kilowattHours: 0, cost: 0 }
+    { co2e: 0, kilowattHours: 0, cost: 0 },
   );
 }
 
@@ -693,7 +681,7 @@ async function fetchCloudUsageDataInternal(
   validated: CloudUsageFilterInput,
   startDate: Date,
   endDate: Date,
-  connectionIds: string[]
+  connectionIds: string[],
 ): Promise<CloudUsageResponse> {
   console.log("fetchCloudUsageDataInternal", {
     userId,
@@ -714,7 +702,7 @@ async function fetchCloudUsageDataInternal(
   // Filter by services if specified
   if (
     validated.services.length > 0 &&
-    validated.services.length < CLOUD_SERVICES.length
+    validated.services.length < CloudServices.length
   ) {
     whereClause.serviceName = { in: validated.services };
   }
@@ -772,7 +760,7 @@ async function fetchCloudUsageDataInternal(
  * Fetches cloud usage data with filtering
  */
 export async function getCloudUsageData(
-  filters: Partial<CloudUsageFilterInput>
+  filters: Partial<CloudUsageFilterInput>,
 ): Promise<{ data?: CloudUsageResponse; error?: string }> {
   try {
     // 1. Auth check
@@ -799,7 +787,7 @@ export async function getCloudUsageData(
     const { startDate, endDate } = calculateDateRange(
       validated.timeRange,
       validated.startDate,
-      validated.endDate
+      validated.endDate,
     );
 
     // 6. Fetch cloud connections for the organization
@@ -831,17 +819,7 @@ export async function getCloudUsageData(
 
     const connectionIds = connections.map((c) => c.id);
 
-    // Generate cache key based on filters and connection IDs
-    // organizationId is guaranteed to be non-null due to check above
     const organizationId = user.organizationId;
-    // const cacheKey = generateCacheKey(
-    //   user.id,
-    //   organizationId,
-    //   validated,
-    //   startDate,
-    //   endDate,
-    //   connectionIds
-    // );
 
     const data = await fetchCloudUsageDataInternal(
       user.id,
@@ -849,32 +827,8 @@ export async function getCloudUsageData(
       validated,
       startDate,
       endDate,
-      connectionIds
+      connectionIds,
     );
-
-    // Fetch data with caching (60 second revalidation)
-    // const cachedFetch = unstable_cache(
-    //   async () => {
-    //     return fetchCloudUsageDataInternal(
-    //       user.id,
-    //       organizationId,
-    //       validated,
-    //       startDate,
-    //       endDate,
-    //       connectionIds
-    //     );
-    //   },
-    //   [cacheKey],
-    //   {
-    //     revalidate: 3600, // Revalidate every hour
-    //     tags: [
-    //       `cloud-usage-${user.id}`,
-    //       `org-${organizationId}`,
-    //       `cloud-connections-${organizationId}`,
-    //     ],
-    //   }
-    // );
-    // const data = await cachedFetch();
 
     return { data };
   } catch (error) {
@@ -884,97 +838,6 @@ export async function getCloudUsageData(
         error instanceof Error
           ? error.message
           : "Failed to fetch cloud usage data",
-    };
-  }
-}
-
-/**
- * Exports cloud usage data as CSV based on filters
- */
-export async function exportCloudUsageCSV(
-  footprints: CloudFootprint[]
-): Promise<{ csv?: string; error?: string }> {
-  try {
-    // 1. Auth check
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
-    // 2. Get user
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { organization: true },
-    });
-
-    // 3. Authorization - only borrowers can export cloud usage
-    if (!user || !user.organizationId) {
-      return { error: "Only borrowers can export cloud usage data" };
-    }
-
-    // 9. Convert to CSV
-    if (footprints.length === 0) {
-      return { csv: "" };
-    }
-
-    // CSV header
-    const headers = [
-      "Period Start",
-      "Period End",
-      "Cloud Provider",
-      "Service Name",
-      "Region",
-      "Energy (kWh)",
-      "CO2e (mtCO2e)",
-      "Cost ($)",
-      "Metric Type",
-      "Service Type",
-      "Tags",
-    ];
-
-    // CSV rows
-    const rows = footprints.map((fp) => [
-      fp.periodStartDate.toLocaleString(),
-      fp.periodEndDate.toLocaleString(),
-      fp.cloudProvider,
-      fp.serviceName,
-      fp.region,
-      fp.kilowattHours?.toString() ?? "N/A",
-      fp.co2e.toString(),
-      fp.cost?.toString() ?? "N/A",
-      fp.type,
-      fp.serviceType ?? "N/A",
-      fp.tags ?? "",
-    ]);
-
-    // Combine header and rows with proper CSV escaping
-    const csvLines = [headers, ...rows].map((row) =>
-      row
-        .map((cell) => {
-          // Escape quotes and wrap in quotes if needed
-          const cellStr = cell.toString();
-          if (
-            cellStr.includes(",") ||
-            cellStr.includes('"') ||
-            cellStr.includes("\n")
-          ) {
-            return `"${cellStr.replace(/"/g, '""')}"`;
-          }
-          return cellStr;
-        })
-        .join(",")
-    );
-
-    const csv = csvLines.join("\n");
-
-    return { csv };
-  } catch (error) {
-    console.error("Error exporting cloud usage data:", error);
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to export cloud usage data",
     };
   }
 }

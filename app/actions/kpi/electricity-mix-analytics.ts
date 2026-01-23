@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { withServerAction } from "@/lib/server-action-utils";
 import {
   buildCloudFootprintWhereClause,
   getOrganizationConnectionIds,
@@ -11,11 +12,7 @@ import {
   calculateLowCarbonPercentage,
   calculateRenewablePercentage,
 } from "@/lib/services/electricity-mix-service";
-import {
-  formatToMonth,
-  getAuthenticatedOrganizationId,
-  handleAnalyticsError,
-} from "@/lib/utils/analytics-helpers";
+import { formatToMonth } from "@/lib/utils/analytics-helpers";
 import { subMonths } from "date-fns";
 
 export interface ElectricityMixDataPoint {
@@ -41,7 +38,7 @@ export interface ElectricityMixData {
  * Uses shared service functions for consistency with KPI calculator
  */
 const calculateEnergyShares = (
-  sourcePercentages: Record<string, number>
+  sourcePercentages: Record<string, number>,
 ): {
   lowCarbonShare: number;
   fossilShare: number;
@@ -54,16 +51,9 @@ const calculateEnergyShares = (
   };
 };
 
-export async function getElectricityMixDataAction(): Promise<
-  { data: ElectricityMixData } | { error: string }
-> {
-  try {
-    const authResult = await getAuthenticatedOrganizationId();
-    if ("error" in authResult) {
-      return authResult;
-    }
-
-    const { organizationId } = authResult;
+export async function getElectricityMixDataAction() {
+  return withServerAction(async (user) => {
+    const organizationId = user.organizationId;
 
     // Get last 12 months of data
     const endDate = new Date();
@@ -72,7 +62,7 @@ export async function getElectricityMixDataAction(): Promise<
     const connectionIds = await getOrganizationConnectionIds(organizationId);
 
     if (connectionIds.length === 0) {
-      return { error: "No active cloud connections found" };
+      throw new Error("No active cloud connections found");
     }
 
     // Get regional energy data grouped by region, provider, and month
@@ -87,7 +77,7 @@ export async function getElectricityMixDataAction(): Promise<
     });
 
     if (regionalEnergy.length === 0) {
-      return { error: "No cloud footprint data available" };
+      throw new Error("No cloud footprint data available");
     }
 
     // Group by month and calculate weighted electricity mix
@@ -171,7 +161,7 @@ export async function getElectricityMixDataAction(): Promise<
           // Calculate weighted average for each source using shared service
           const sourcePercentages = calculateEnergySourcePercentages(
             data.weightedMix,
-            data.totalEnergy
+            data.totalEnergy,
           );
 
           const shares = calculateEnergyShares(sourcePercentages);
@@ -201,13 +191,9 @@ export async function getElectricityMixDataAction(): Promise<
     };
 
     return {
-      data: {
-        timeline,
-        averages,
-        totalCo2e,
-      },
+      timeline,
+      averages,
+      totalCo2e,
     };
-  } catch (error) {
-    return handleAnalyticsError(error, "getElectricityMixDataAction");
-  }
+  }, "get electricity mix data");
 }

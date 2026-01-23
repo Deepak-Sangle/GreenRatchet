@@ -1,12 +1,9 @@
 "use server";
 
 import { AWS_WATER_STRESS_BY_REGION } from "@/lib/constants";
+import { withServerAction } from "@/lib/server-action-utils";
 import { calculateKPI } from "@/lib/services/kpi-calculator";
-import {
-  getAuthenticatedOrganizationId,
-  getDateRange,
-  handleAnalyticsError,
-} from "@/lib/utils/analytics-helpers";
+import { getDateRange } from "@/lib/utils/analytics-helpers";
 import {
   buildCategoryStats,
   buildPieData,
@@ -28,16 +25,9 @@ export interface RegionalWaterData {
   };
 }
 
-export async function getWaterStressedRegionDataAction(): Promise<
-  { data: RegionalWaterData } | { error: string }
-> {
-  try {
-    const authResult = await getAuthenticatedOrganizationId();
-    if ("error" in authResult) {
-      return authResult;
-    }
-
-    const { organizationId } = authResult;
+export async function getWaterStressedRegionDataAction() {
+  return withServerAction(async (user) => {
+    const organizationId = user.organizationId;
     const { startDate, endDate } = getDateRange(30);
 
     const result = await calculateKPI(
@@ -48,7 +38,7 @@ export async function getWaterStressedRegionDataAction(): Promise<
       },
       organizationId,
       startDate,
-      endDate
+      endDate,
     );
 
     const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
@@ -71,11 +61,11 @@ export async function getWaterStressedRegionDataAction(): Promise<
 
     const totalWaterUsage = Object.values(categoryTotals).reduce(
       (sum, val) => sum + val,
-      0
+      0,
     );
 
     if (totalWaterUsage === 0) {
-      return { error: "No water usage data calculated" };
+      throw new Error("No water usage data calculated");
     }
 
     const pieData = buildPieData(categoryTotals, ["low", "medium", "high"], {
@@ -106,13 +96,9 @@ export async function getWaterStressedRegionDataAction(): Promise<
     };
 
     return {
-      data: {
-        pieData: typedPieData,
-        totalWaterUsage,
-        categoryStats: typedCategoryStats,
-      },
+      pieData: typedPieData,
+      totalWaterUsage,
+      categoryStats: typedCategoryStats,
     };
-  } catch (error) {
-    return handleAnalyticsError(error, "getWaterStressedRegionDataAction");
-  }
+  }, "get water-stressed region data");
 }

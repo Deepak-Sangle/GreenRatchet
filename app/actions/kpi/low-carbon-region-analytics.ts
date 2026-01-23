@@ -2,10 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import {
-  getAuthenticatedOrganizationId,
-  handleAnalyticsError,
-} from "@/lib/utils/analytics-helpers";
-import {
   buildCategoryStats,
   buildPieData,
   classifyByThresholds,
@@ -26,16 +22,11 @@ export interface RegionalCo2eData {
   };
 }
 
-export async function getLowCarbonRegionDataAction(): Promise<
-  { data: RegionalCo2eData } | { error: string }
-> {
-  try {
-    const authResult = await getAuthenticatedOrganizationId();
-    if ("error" in authResult) {
-      return authResult;
-    }
+import { withServerAction } from "@/lib/server-action-utils";
 
-    const { organizationId } = authResult;
+export async function getLowCarbonRegionDataAction() {
+  return withServerAction(async (user) => {
+    const organizationId = user.organizationId;
 
     const latestCarbonIntensity = await prisma.gridCarbonIntensity.findMany({
       where: {
@@ -55,7 +46,7 @@ export async function getLowCarbonRegionDataAction(): Promise<
       latestCarbonIntensity.map(({ dataCenterRegion, value }) => [
         dataCenterRegion,
         value,
-      ])
+      ]),
     );
 
     const footprintData = await prisma.cloudFootprint.groupBy({
@@ -71,7 +62,7 @@ export async function getLowCarbonRegionDataAction(): Promise<
     });
 
     if (footprintData.length === 0) {
-      return { error: "No cloud footprint data available" };
+      throw new Error("No cloud footprint data available");
     }
 
     const categoryTotals: Record<Category, number> = {
@@ -89,7 +80,7 @@ export async function getLowCarbonRegionDataAction(): Promise<
 
     const totalCo2e = Object.values(categoryTotals).reduce(
       (sum, val) => sum + val,
-      0
+      0,
     );
 
     const pieData = buildPieData(categoryTotals, ["low", "medium", "high"], {
@@ -120,13 +111,9 @@ export async function getLowCarbonRegionDataAction(): Promise<
     };
 
     return {
-      data: {
-        pieData: typedPieData,
-        totalCo2e,
-        categoryStats: typedCategoryStats,
-      },
+      pieData: typedPieData,
+      totalCo2e,
+      categoryStats: typedCategoryStats,
     };
-  } catch (error) {
-    return handleAnalyticsError(error, "getLowCarbonRegionDataAction");
-  }
+  }, "get low-carbon region data");
 }

@@ -1,53 +1,20 @@
 "use client";
 
-import { getCarbonFreeEnergyDataAction } from "@/app/actions/carbon-free-energy-analytics";
-import { Card } from "@/components/ui/card";
-import { useExpandableKpi } from "@/lib/hooks/use-expandable-kpi";
-import {
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Loader2,
-  Zap,
-} from "lucide-react";
+import { getCarbonFreeEnergyDataAction } from "@/app/actions/kpi/carbon-free-energy-analytics";
+import { ExternalLink, Zap } from "lucide-react";
+import { BaseKpiCard } from "./base-kpi-card";
 import { CarbonFreeEnergyStats } from "./carbon-free-energy-stats";
 
 export function CarbonFreeEnergyKpi() {
-  const { isExpanded, setIsExpanded, data, loading, error } = useExpandableKpi(
-    getCarbonFreeEnergyDataAction
-  );
-
   return (
-    <Card className="p-6 shadow-soft transition-all duration-200">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-            <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-          </div>
-          <div>
-            <h2 className="font-heading text-xl font-semibold">
-              Carbon-Free Energy %
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Track percentage of workloads powered by clean electricity
-            </p>
-          </div>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="h-5 w-5 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-muted-foreground" />
-        )}
-      </button>
-
-      {isExpanded && (
-        <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-          <div>
-            <p className="text-muted-foreground leading-relaxed">
-              Carbon-Free Energy (CFE) % measures the share of cloud workloads
+    <BaseKpiCard
+      title="Carbon-Free Energy %"
+      subtitle="Track percentage of workloads powered by clean electricity"
+      icon={Zap}
+      iconColor="text-purple-600 dark:text-purple-400"
+      iconBgColor="bg-purple-100 dark:bg-purple-900/20"
+      analyticsTitle="Carbon-Free Energy Analysis"
+      longDescription="Carbon-Free Energy (CFE) % measures the share of cloud workloads
               that are powered by electricity generated from carbon-free sources
               such as wind, solar, hydro, or nuclear. This KPI is significant
               because increasing the use of clean electricity directly reduces
@@ -62,49 +29,27 @@ export function CarbonFreeEnergyKpi() {
               with long-term decarbonisation pathways, reduces transition risk
               associated with fossil-fuel dependency, and provides confidence
               that emissions reductions are being achieved through structural
-              changes rather than short-term measures.
-            </p>
+              changes rather than short-term measures."
+      fetchAction={getCarbonFreeEnergyDataAction}
+      renderAnalytics={(data) => (
+        <>
+          <CarbonFreeEnergyStats data={data} />
+          <div className="mt-6 pt-4 border-t">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Data source: Electricity Maps</span>
+              <a
+                href="https://www.electricitymaps.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+              >
+                Learn more
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </div>
-
-          <div className="pt-4 border-t">
-            <h3 className="font-heading text-lg font-semibold mb-4">
-              Carbon-Free Energy Analysis
-            </h3>
-            {loading && (
-              <div className="bg-muted/50 rounded-lg p-8 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">
-                  Loading carbon-free energy data...
-                </p>
-              </div>
-            )}
-            {error && (
-              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-            {data && !loading && !error && (
-              <>
-                <CarbonFreeEnergyStats data={data} />
-                <div className="mt-6 pt-4 border-t">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Data source: Electricity Maps</span>
-                    <a
-                      href="https://www.electricitymaps.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 hover:text-foreground transition-colors"
-                    >
-                      Learn more
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        </>
       )}
-    </Card>
+    />
   );
 }

@@ -4,11 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { calculateKPI } from "@/lib/services/kpi-calculator";
 import {
   calculateAverage,
-  getAuthenticatedOrganizationId,
   getDateRange,
   getPercentageStatus,
   getTopN,
-  handleAnalyticsError,
   type PercentageStatus,
 } from "@/lib/utils/analytics-helpers";
 
@@ -24,16 +22,11 @@ export interface RenewableEnergyData {
   status: PercentageStatus;
 }
 
-export async function getRenewableEnergyDataAction(): Promise<
-  { data: RenewableEnergyData } | { error: string }
-> {
-  try {
-    const authResult = await getAuthenticatedOrganizationId();
-    if ("error" in authResult) {
-      return authResult;
-    }
+import { withServerAction } from "@/lib/server-action-utils";
 
-    const { organizationId } = authResult;
+export async function getRenewableEnergyDataAction() {
+  return withServerAction(async (user) => {
+    const organizationId = user.organizationId;
     const { startDate, endDate } = getDateRange(30);
 
     // Fetch CO2e data and calculate KPI in parallel to avoid sequential queries
@@ -46,7 +39,7 @@ export async function getRenewableEnergyDataAction(): Promise<
         },
         organizationId,
         startDate,
-        endDate
+        endDate,
       ),
       prisma.cloudFootprint.groupBy({
         by: ["region"],
@@ -62,12 +55,12 @@ export async function getRenewableEnergyDataAction(): Promise<
 
     // Build CO2e map
     const co2eByRegion = new Map(
-      co2eData.map((r) => [r.region, r._sum.co2e ?? 0])
+      co2eData.map((r) => [r.region, r._sum.co2e ?? 0]),
     );
 
     const totalCo2e = Array.from(co2eByRegion.values()).reduce(
       (sum, val) => sum + val,
-      0
+      0,
     );
 
     // Combine percentage and CO2e data
@@ -76,11 +69,11 @@ export async function getRenewableEnergyDataAction(): Promise<
         region,
         renewablePercentage: percentage,
         co2e: co2eByRegion.get(region) ?? 0,
-      })
+      }),
     );
 
     const averageRenewablePercentage = calculateAverage(
-      regionDetails.map((r) => r.renewablePercentage)
+      regionDetails.map((r) => r.renewablePercentage),
     );
 
     const topRegions = getTopN(regionDetails, (r) => r.renewablePercentage, 5);
@@ -88,15 +81,11 @@ export async function getRenewableEnergyDataAction(): Promise<
     const status = getPercentageStatus(weightedRenewablePercentage);
 
     return {
-      data: {
-        averageRenewablePercentage,
-        totalCo2e,
-        weightedRenewablePercentage,
-        topRegions,
-        status,
-      },
+      averageRenewablePercentage,
+      totalCo2e,
+      weightedRenewablePercentage,
+      topRegions,
+      status,
     };
-  } catch (error) {
-    return handleAnalyticsError(error, "getRenewableEnergyDataAction");
-  }
+  }, "get renewable energy data");
 }

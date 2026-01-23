@@ -66,13 +66,15 @@ export function MarginRatchetActions({
         <MarginRatchetDialog
           loanId={loanId}
           kpis={kpis}
-          defaultKpiId={ratchet.kpi.id}
-          defaultValues={{
+          initialValue={{
+            kpiId: ratchet.kpi.id,
+            observationStart: ratchet.observationStart,
+            observationEnd: ratchet.observationEnd,
             stepUpBps: ratchet.stepUpBps,
             stepDownBps: ratchet.stepDownBps,
             maxAdjustmentBps: ratchet.maxAdjustmentBps,
           }}
-          triggerButton={
+          dialogTrigger={
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Pencil className="h-4 w-4" />
             </Button>
@@ -87,13 +89,15 @@ export function MarginRatchetActions({
         <MarginRatchetDialog
           loanId={loanId}
           kpis={kpis}
-          defaultKpiId={ratchet.kpi.id}
-          defaultValues={{
+          initialValue={{
+            kpiId: ratchet.kpi.id,
+            observationStart: ratchet.observationStart,
+            observationEnd: ratchet.observationEnd,
             stepUpBps: ratchet.stepUpBps,
             stepDownBps: ratchet.stepDownBps,
             maxAdjustmentBps: ratchet.maxAdjustmentBps,
           }}
-          triggerButton={
+          dialogTrigger={
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Copy className="h-4 w-4" />
             </Button>
