@@ -1,6 +1,6 @@
 "use client";
 
-import { getAIUsageAnalytics } from "@/app/actions/kpi/ai-usage-analytics";
+import { getAIUsageAction } from "@/app/actions/kpi/ai-usage-analytics";
 import { formatPercentage } from "@/lib/utils";
 import { Cpu, Zap } from "lucide-react";
 import { AIUsageTimelineChart } from "./ai-usage-timeline-chart";
@@ -48,7 +48,7 @@ export function AIUsageKPI() {
               proactively managing the sustainability implications of AI
               adoption rather than allowing emissions and energy use to scale
               unchecked."
-      fetchAction={getAIUsageAnalytics}
+      fetchAction={getAIUsageAction}
       renderAnalytics={(data) => (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

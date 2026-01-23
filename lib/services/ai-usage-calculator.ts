@@ -4,10 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import {
-  buildCloudFootprintWhereClause,
-  getOrganizationConnectionIds,
-} from "./cloud-data-service";
+import { buildCloudFootprintWhereClause } from "./cloud-data-service";
 
 /**
  * AWS GPU instance types used for AI/ML workloads
@@ -39,15 +36,13 @@ export function isAIInstance(serviceType: string | null): boolean {
 export async function calculateAIUsagePercentage(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  connectionIds: string[],
 ): Promise<{
   aiKwh: number;
   totalKwh: number;
   percentage: number;
 }> {
-  // Get all cloud connections for the organization
-  const connectionIds = await getOrganizationConnectionIds(organizationId);
-
   if (connectionIds.length === 0) {
     return { aiKwh: 0, totalKwh: 0, percentage: 0 };
   }
@@ -95,7 +90,8 @@ export async function calculateAIUsagePercentage(
 export async function getAIUsageTimeline(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  connectionIds: string[],
 ): Promise<
   Array<{
     date: string;
@@ -105,9 +101,6 @@ export async function getAIUsageTimeline(
     cumulativeAiKwh: number;
   }>
 > {
-  // Get all cloud connections for the organization
-  const connectionIds = await getOrganizationConnectionIds(organizationId);
-
   if (connectionIds.length === 0) {
     return [];
   }
