@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { getKPIUnit } from "@/lib/utils";
 import { Cloud, Plus, Target } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
@@ -81,7 +82,7 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user.name}</p>
         </div>
-        <Link href="/kpis">
+        <Link href="/analytics">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Manage KPIs
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{kpi.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Target: {kpi.targetValue}
+                        Target: {kpi.targetValue} {getKPIUnit(kpi)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

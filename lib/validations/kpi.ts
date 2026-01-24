@@ -6,7 +6,6 @@ export const CreateKPIFormSchema = KPISchema.omit({
   id: true,
   // loanId removed from schema
   organizationId: true,
-
   createdAt: true,
   updatedAt: true,
   // for additional validation, omit fields here

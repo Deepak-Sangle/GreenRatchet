@@ -1,6 +1,6 @@
 "use client";
 
-import { createKpiAction } from "@/app/actions/kpi/create";
+import { createKPI } from "@/app/actions/kpis";
 import {
   KpiDirection,
   KpiType,
@@ -65,21 +65,7 @@ export function CreateKpiForm() {
   async function onSubmit(values: z.infer<typeof CreateKPIFormSchema>) {
     setIsSubmitting(true);
     try {
-      const result = await createKpiAction({
-        ...values,
-        targetValue: Number(values.targetValue),
-        baselineValue: values.baselineValue
-          ? Number(values.baselineValue)
-          : undefined,
-        thresholdMin: values.thresholdMin
-          ? Number(values.thresholdMin)
-          : undefined,
-        thresholdMax: values.thresholdMax
-          ? Number(values.thresholdMax)
-          : undefined,
-        effectiveFrom: values.effectiveFrom,
-        effectiveTo: values.effectiveTo,
-      });
+      const result = await createKPI(values);
 
       if ("error" in result) {
         toast.error(result.error);
@@ -164,7 +150,7 @@ export function CreateKpiForm() {
                         step="any"
                         placeholder="0.0"
                         {...field}
-                        value={Number(field.value) ?? undefined}
+                        value={Number(field.value) ?? 0}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>

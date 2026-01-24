@@ -37,6 +37,7 @@ export async function createKPI(data: CreateKPIForm) {
     // Extract form-specific fields, transform to KPI model structure
     const { effectiveFrom, effectiveTo, ...kpiFields } = validated;
 
+    console.log("validated", validated);
     const kpi = await prisma.kPI.create({
       data: {
         ...kpiFields,

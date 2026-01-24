@@ -26,10 +26,12 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Plus,
   RefreshCw,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 type KPIResult = {
@@ -94,19 +96,27 @@ export function AnalyticsPageClient({
             Track environmental performance across your organization
           </p>
         </div>
-        <Button onClick={handleRefresh} disabled={isPending} className="gap-2">
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Calculating...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4" />
-              Calculate KPIs
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleRefresh} disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Calculating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                Calculate KPIs
+              </>
+            )}
+          </Button>
+          <Link href="/kpis/new">
+            <Button variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              Create KPI
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Success Message */}
