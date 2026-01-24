@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('BORROWER', 'LENDER');
 
@@ -11,19 +8,13 @@ CREATE TYPE "CloudProvider" AS ENUM ('AWS', 'GCP', 'AZURE');
 CREATE TYPE "KPIResultStatus" AS ENUM ('PASSED', 'FAILED', 'PENDING');
 
 -- CreateEnum
-CREATE TYPE "LoanType" AS ENUM ('FIXED_RATE', 'FLOATING_RATE', 'AMORTIZED', 'ANNUITY', 'BALLOON', 'CREDIT_LINE', 'REVOLVING_CREDIT_LINE', 'CREDIT_CARD');
-
--- CreateEnum
 CREATE TYPE "CloudServiceSource" AS ENUM ('OPERATIONAL_METRICS', 'EMBODIED_METRICS');
-
--- CreateEnum
-CREATE TYPE "LoanCurrency" AS ENUM ('USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF');
 
 -- CreateEnum
 CREATE TYPE "ObservationPeriod" AS ENUM ('ANNUAL', 'QUARTERLY', 'MONTHLY');
 
 -- CreateEnum
-CREATE TYPE "KpiType" AS ENUM ('CO2_EMISSION', 'AI_COMPUTE_HOURS', 'LOW_CARBON_REGION_PERCENTAGE', 'CARBON_FREE_ENERGY_PERCENTAGE', 'ELECTRICITY_MIX_BREAKDOWN', 'RENEWABLE_ENERGY_PERCENTAGE', 'ENERGY_CONSUMPTION', 'WATER_WITHDRAWAL');
+CREATE TYPE "KpiType" AS ENUM ('CO2_EMISSION', 'AI_COMPUTE_HOURS', 'LOW_CARBON_REGION_PERCENTAGE', 'CARBON_FREE_ENERGY_PERCENTAGE', 'ELECTRICITY_MIX_BREAKDOWN', 'RENEWABLE_ENERGY_PERCENTAGE', 'ENERGY_CONSUMPTION', 'WATER_WITHDRAWAL', 'GHG_INTENSITY', 'WATER_STRESSED_REGION_PERCENTAGE');
 
 -- CreateEnum
 CREATE TYPE "KpiDirection" AS ENUM ('LOWER_IS_BETTER', 'HIGHER_IS_BETTER');
@@ -42,11 +33,11 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "name" TEXT,
     "email" TEXT NOT NULL,
-    "emailVerified" TIMESTAMP(3),
     "password" TEXT NOT NULL,
     "image" TEXT,
     "role" "UserRole" NOT NULL,
     "organizationId" TEXT,
+    "lastLoginAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "avatarUrl" TEXT,
@@ -71,46 +62,12 @@ CREATE TABLE "Organization" (
 );
 
 -- CreateTable
-CREATE TABLE "Loan" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "borrowerOrgId" TEXT NOT NULL,
-    "lenderOrgId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "committedAmount" DOUBLE PRECISION NOT NULL,
-    "createdByUserId" TEXT NOT NULL,
-    "drawnAmount" DOUBLE PRECISION NOT NULL,
-    "maturityDate" TIMESTAMP(3) NOT NULL,
-    "principalAmount" DOUBLE PRECISION NOT NULL,
-    "startDate" TIMESTAMP(3) NOT NULL,
-    "type" "LoanType" NOT NULL,
-    "currency" "LoanCurrency" NOT NULL,
-
-    CONSTRAINT "Loan_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "MarginRatchet" (
-    "id" TEXT NOT NULL,
-    "loanId" TEXT NOT NULL,
-    "kpiId" TEXT NOT NULL,
-    "stepUpBps" INTEGER NOT NULL,
-    "stepDownBps" INTEGER NOT NULL,
-    "maxAdjustmentBps" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "MarginRatchet_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "KPI" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "targetValue" DOUBLE PRECISION NOT NULL,
     "baselineValue" DOUBLE PRECISION,
-    "loanId" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "direction" "KpiDirection" NOT NULL,
@@ -148,6 +105,7 @@ CREATE TABLE "CloudConnection" (
     "externalId" TEXT,
     "serviceAccountKey" TEXT,
     "projectId" TEXT,
+    "tenantId" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "lastSync" TIMESTAMP(3),
     "organizationId" TEXT NOT NULL,
@@ -188,7 +146,6 @@ CREATE TABLE "AuditLog" (
     "entityId" TEXT NOT NULL,
     "details" TEXT NOT NULL,
     "userId" TEXT,
-    "loanId" TEXT,
     "kpiId" TEXT,
     "kpiResultId" TEXT,
     "cloudConnectionId" TEXT,
@@ -309,6 +266,9 @@ CREATE TABLE "GridElectricityMix" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
 CREATE INDEX "CloudFootprint_cloudConnectionId_idx" ON "CloudFootprint"("cloudConnectionId");
 
 -- CreateIndex
@@ -366,22 +326,7 @@ CREATE UNIQUE INDEX "GridElectricityMix_dataCenterRegion_dataCenterProvider_date
 ALTER TABLE "User" ADD CONSTRAINT "User_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Loan" ADD CONSTRAINT "Loan_borrowerOrgId_fkey" FOREIGN KEY ("borrowerOrgId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Loan" ADD CONSTRAINT "Loan_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Loan" ADD CONSTRAINT "Loan_lenderOrgId_fkey" FOREIGN KEY ("lenderOrgId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MarginRatchet" ADD CONSTRAINT "MarginRatchet_kpiId_fkey" FOREIGN KEY ("kpiId") REFERENCES "KPI"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MarginRatchet" ADD CONSTRAINT "MarginRatchet_loanId_fkey" FOREIGN KEY ("loanId") REFERENCES "Loan"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "KPI" ADD CONSTRAINT "KPI_loanId_fkey" FOREIGN KEY ("loanId") REFERENCES "Loan"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "KPI" ADD CONSTRAINT "KPI_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KPIResult" ADD CONSTRAINT "KPIResult_kpiId_fkey" FOREIGN KEY ("kpiId") REFERENCES "KPI"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -402,11 +347,7 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_kpiId_fkey" FOREIGN KEY ("kpiId"
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_kpiResultId_fkey" FOREIGN KEY ("kpiResultId") REFERENCES "KPIResult"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_loanId_fkey" FOREIGN KEY ("loanId") REFERENCES "Loan"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

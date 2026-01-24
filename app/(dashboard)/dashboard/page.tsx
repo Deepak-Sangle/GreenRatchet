@@ -10,34 +10,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { Cloud, FileText, Plus, TrendingUp } from "lucide-react";
+import { Cloud, Plus, Target } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const getDashboardData = unstable_cache(
   async (userId: string) => {
-    console.log("dashboard cache miss");
     return prisma.user.findUnique({
       where: { id: userId },
       include: {
         organization: {
           include: {
-            borrowerLoans: {
-              include: {
-                kpis: true,
-                lenderOrg: true,
-                borrowerOrg: true,
-              },
+            kpis: {
               orderBy: { createdAt: "desc" },
-            },
-            lenderLoans: {
               include: {
-                kpis: true,
-                borrowerOrg: true,
-                lenderOrg: true,
+                results: {
+                  orderBy: { periodEnd: "desc" },
+                  take: 1,
+                },
               },
-              orderBy: { createdAt: "desc" },
             },
             cloudConnections: {
               where: { isActive: true },
@@ -47,7 +39,6 @@ const getDashboardData = unstable_cache(
       },
     });
   },
-  // unstable_cache already uses function arguments to identify cache items
   ["dashboard"],
   {
     revalidate: 60,
@@ -78,20 +69,10 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
-  const isBorrower = user.role === "BORROWER";
-  const loans = isBorrower
-    ? user.organization.borrowerLoans
-    : user.organization.lenderLoans;
+  const kpis = user.organization.kpis;
   const cloudConnections = user.organization.cloudConnections;
 
-  const allKPIs = loans.flatMap((l) => l.kpis);
-  const totalKPIs = allKPIs.length;
-  const acceptedKPIs = allKPIs.filter(
-    (kpi) => kpi.status === "ACCEPTED",
-  ).length;
-  const proposedKPIs = allKPIs.filter(
-    (kpi) => kpi.status === "PROPOSED",
-  ).length;
+  const totalKPIs = kpis.length;
 
   return (
     <div className="space-y-6">
@@ -100,97 +81,68 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user.name}</p>
         </div>
-        {isBorrower && (
-          <Link href="/loans/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create SLL Deal
-            </Button>
-          </Link>
-        )}
+        <Link href="/kpis">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Manage KPIs
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardItem
-          title="Total Deals"
-          icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-          contentTitle={loans.length.toString()}
-          contentBody={isBorrower ? "Borrowing deals" : "Lending deals"}
-        />
-
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <DashboardItem
           title="Total KPIs"
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          icon={<Target className="h-4 w-4 text-muted-foreground" />}
           contentTitle={totalKPIs.toString()}
-          contentBody={`${acceptedKPIs} accepted, ${proposedKPIs} proposed`}
+          contentBody="Tracked sustainability metrics"
         />
 
         <DashboardItem
           title="Cloud Connections"
           icon={<Cloud className="h-4 w-4 text-muted-foreground" />}
           contentTitle={cloudConnections.length.toString()}
-          contentBody="Active connections"
+          contentBody="Active data sources"
         />
 
-        <DashboardItem
-          title="Pending Actions"
-          icon={null}
-          contentTitle={proposedKPIs.toString()}
-          contentBody={
-            isBorrower ? "Awaiting lender review" : "Require your review"
-          }
-        />
+        {/* Removed "Total Deals" and "Pending Actions" related to loans */}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent SLL Deals</CardTitle>
+          <CardTitle>Recent KPIs</CardTitle>
           <CardDescription>
-            {isBorrower
-              ? "Your sustainability-linked loan deals"
-              : "Deals requiring your review"}
+            Your organization's key performance indicators
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loans.length === 0 ? (
+          {kpis.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <Target className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
-                {isBorrower
-                  ? "No deals yet. Create your first SLL deal to get started."
-                  : "No deals assigned to you yet."}
+                No KPIs yet. Create your first KPI to get started.
               </p>
-              {isBorrower && (
-                <Link href="/loans/new">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create SLL Deal
-                  </Button>
-                </Link>
-              )}
+              <Link href="/kpis/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create KPI
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              {loans.slice(0, 5).map((loan) => (
-                <Link
-                  key={loan.id}
-                  href={`/loans/${loan.id}`}
-                  className="block"
-                >
+              {kpis.slice(0, 5).map((kpi) => (
+                <Link key={kpi.id} href={`/analytics`} className="block">
                   <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
                     <div className="space-y-1">
-                      <p className="font-medium">{loan.name}</p>
+                      <p className="font-medium">{kpi.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {isBorrower
-                          ? `Lender: ${loan.lenderOrg?.name ?? "No lender assigned"}`
-                          : `Borrower: ${loan.borrowerOrg.name}`}
+                        Target: {kpi.targetValue}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{loan.kpis.length} KPI</Badge>
-                      {loan.kpis.some((kpi) => kpi.status === "PROPOSED") && (
-                        <Badge variant="warning">Pending</Badge>
-                      )}
+                      <Badge variant="outline">
+                        {kpi.type.replace(/_/g, " ")}
+                      </Badge>
                     </div>
                   </div>
                 </Link>

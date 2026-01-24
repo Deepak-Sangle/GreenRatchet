@@ -24,21 +24,10 @@ const getAuditLogsData = unstable_cache(
   async (userId: string, organizationId: string) => {
     return prisma.auditLog.findMany({
       where: {
-        OR: [
-          { userId: userId },
-          {
-            loan: {
-              OR: [
-                { borrowerOrgId: organizationId },
-                { lenderOrgId: organizationId },
-              ],
-            },
-          },
-        ],
+        OR: [{ userId: userId }, { organizationId: organizationId }],
       },
       include: {
         user: true,
-        loan: true,
         kpi: true,
       },
       orderBy: { createdAt: "desc" },
@@ -48,7 +37,7 @@ const getAuditLogsData = unstable_cache(
   [`audit`],
   {
     revalidate: 60,
-  }
+  },
 );
 
 export default async function AuditTrailPage() {
@@ -71,7 +60,7 @@ export default async function AuditTrailPage() {
   // Get cached audit logs data
   const auditLogs = await getAuditLogsData(
     basicUser.id,
-    basicUser.organizationId
+    basicUser.organizationId,
   );
 
   const actionBadgeVariant = (action: string) => {
@@ -142,11 +131,7 @@ export default async function AuditTrailPage() {
                             <strong>KPI:</strong> {details.kpiName}
                           </div>
                         )}
-                        {details.loanName && (
-                          <div>
-                            <strong>Deal:</strong> {details.loanName}
-                          </div>
-                        )}
+
                         {details.actualValue !== undefined && (
                           <div>
                             <strong>Value:</strong> {details.actualValue}

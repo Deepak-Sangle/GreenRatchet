@@ -49,6 +49,7 @@ export function WaterWithdrawalKpi() {
           </div>
         </>
       )}
+      kpiType="WATER_WITHDRAWAL"
     />
   );
 }

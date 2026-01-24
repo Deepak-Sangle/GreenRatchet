@@ -87,6 +87,7 @@ export function AIUsageKPI() {
           </div>
         </div>
       )}
+      kpiType="AI_COMPUTE_HOURS"
     />
   );
 }

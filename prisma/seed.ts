@@ -58,26 +58,6 @@ async function main() {
     },
   });
 
-  // Create sample loan with all required fields (updated for new schema)
-  const loan = await prisma.loan.upsert({
-    where: { id: "loan-1" },
-    update: {},
-    create: {
-      id: "loan-1",
-      name: "Q4 2024 AI Infrastructure Financing",
-      currency: "USD",
-      principalAmount: 5000000,
-      committedAmount: 5000000,
-      drawnAmount: 3500000,
-      type: "FIXED_RATE",
-      startDate: new Date("2024-01-01"),
-      maturityDate: new Date("2029-01-01"),
-      borrowerOrgId: borrowerOrg.id,
-      lenderOrgId: lenderOrg.id,
-      createdByUserId: borrowerUser.id,
-    },
-  });
-
   // Create sample KPIs with new structure
   const kpi1 = await prisma.kPI.upsert({
     where: { id: "kpi-1" },
@@ -92,9 +72,8 @@ async function main() {
       thresholdMax: 11.0,
       frequency: "ANNUAL",
       baselineValue: 12.5,
-      status: "ACCEPTED",
       effectiveFrom: new Date("2024-01-01"),
-      loanId: loan.id,
+      organizationId: borrowerOrg.id,
     },
   });
 
@@ -111,40 +90,8 @@ async function main() {
       thresholdMax: 80.0,
       frequency: "ANNUAL",
       baselineValue: 45.0,
-      status: "ACCEPTED",
       effectiveFrom: new Date("2024-01-01"),
-      loanId: loan.id,
-    },
-  });
-
-  // Create sample margin ratchets
-  await prisma.marginRatchet.upsert({
-    where: { id: "ratchet-1" },
-    update: {},
-    create: {
-      observationStart: new Date("2024-01-01"),
-      observationEnd: new Date("2024-12-31"),
-      id: "ratchet-1",
-      loanId: loan.id,
-      kpiId: kpi1.id,
-      stepUpBps: 15,
-      stepDownBps: 15,
-      maxAdjustmentBps: 50,
-    },
-  });
-
-  await prisma.marginRatchet.upsert({
-    where: { id: "ratchet-2" },
-    update: {},
-    create: {
-      observationStart: new Date("2024-01-01"),
-      observationEnd: new Date("2024-12-31"),
-      id: "ratchet-2",
-      loanId: loan.id,
-      kpiId: kpi2.id,
-      stepUpBps: 10,
-      stepDownBps: 10,
-      maxAdjustmentBps: 30,
+      organizationId: borrowerOrg.id,
     },
   });
 

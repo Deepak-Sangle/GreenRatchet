@@ -58,6 +58,7 @@ export function ElectricityMixKpi() {
           </div>
         </div>
       )}
+      kpiType="ELECTRICITY_MIX_BREAKDOWN"
     />
   );
 }

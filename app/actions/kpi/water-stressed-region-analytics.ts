@@ -65,7 +65,15 @@ export async function getWaterStressedRegionDataAction() {
     );
 
     if (totalWaterUsage === 0) {
-      throw new Error("No water usage data calculated");
+      return {
+        pieData: [],
+        totalWaterUsage: 0,
+        categoryStats: {
+          low: { percentage: 0, waterUsage: 0 },
+          medium: { percentage: 0, waterUsage: 0 },
+          high: { percentage: 0, waterUsage: 0 },
+        },
+      };
     }
 
     const pieData = buildPieData(categoryTotals, ["low", "medium", "high"], {

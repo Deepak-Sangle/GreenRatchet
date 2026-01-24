@@ -1,5 +1,6 @@
 "use client";
 
+import { CreateKpiDialog } from "@/components/kpis/create-kpi-dialog";
 import { ExpandableKpiCard } from "@/components/ui/expandable-kpi-card";
 import { useExpandableData } from "@/lib/hooks/use-expandable-data";
 import { LucideIcon } from "lucide-react";
@@ -16,6 +17,7 @@ interface BaseKpiCardProps<T> {
   renderAnalytics: (data: T) => ReactNode;
   analyticsTitle?: string;
   className?: string;
+  kpiType?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export function BaseKpiCard<T>({
   renderAnalytics,
   analyticsTitle = "Performance Analytics",
   className,
+  kpiType,
 }: BaseKpiCardProps<T>) {
   const { isExpanded, data, loading, error, toggleExpanded } =
     useExpandableData<T>({
@@ -55,13 +58,20 @@ export function BaseKpiCard<T>({
       onToggle={toggleExpanded}
     >
       <div className="space-y-6">
-        <div>
-          {typeof longDescription === "string" ? (
-            <p className="text-muted-foreground leading-relaxed">
-              {longDescription}
-            </p>
-          ) : (
-            longDescription
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            {typeof longDescription === "string" ? (
+              <p className="text-muted-foreground leading-relaxed">
+                {longDescription}
+              </p>
+            ) : (
+              longDescription
+            )}
+          </div>
+          {kpiType && (
+            <div className="shrink-0">
+              <CreateKpiDialog kpiType={kpiType} defaultName={title} />
+            </div>
           )}
         </div>
 

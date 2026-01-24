@@ -13,20 +13,12 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SignUpSchema, type SignUpInput } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -69,7 +61,8 @@ export default function SignUpPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
           <CardDescription>
-            Sign up to start managing your Sustainability-Linked Loans
+            Sign up to start managing your Organization&apos;s Sustainability
+            KPIs
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -80,32 +73,11 @@ export default function SignUpPage() {
                   {error}
                 </div>
               )}
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="BORROWER">Borrower</SelectItem>
-                        <SelectItem value="LENDER">Lender</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Are you a borrower or a lender?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              {/* Default role to BORROWER (Organization Admin) */}
+              <input
+                type="hidden"
+                {...form.register("role")}
+                value="BORROWER"
               />
               <FormField
                 control={form.control}

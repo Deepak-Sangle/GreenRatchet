@@ -30,6 +30,7 @@ export function EnergyConsumptionKpi() {
               reductions, especially when paired with carbon-based metrics."
       fetchAction={getEnergyTimelineAction}
       renderAnalytics={(data) => <EnergyTimelineChart data={data} />}
+      kpiType="ENERGY_CONSUMPTION"
     />
   );
 }

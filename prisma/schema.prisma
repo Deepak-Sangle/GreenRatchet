@@ -16,7 +16,7 @@ model User {
   id             String        @id @default(cuid())
   name           String?
   email          String        @unique
-  emailVerified  DateTime?
+  // emailVerified  DateTime?
   password       String
   image          String?
   role           UserRole
@@ -26,7 +26,6 @@ model User {
   updatedAt      DateTime      @updatedAt
   avatarUrl      String?
   auditLogs      AuditLog[]
-  loans          Loan[]
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([email])
@@ -45,47 +44,8 @@ model Organization {
   employeeCount    Int?
   auditLogs        AuditLog[]
   cloudConnections CloudConnection[]
-  borrowerLoans    Loan[]            @relation("BorrowerOrganization")
-  lenderLoans      Loan[]            @relation("LenderOrganization")
+  kpis             KPI[]
   users            User[]
-}
-
-model Loan {
-  id              String          @id @default(cuid())
-  name            String
-  borrowerOrgId   String
-  lenderOrgId     String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  committedAmount Float
-  createdByUserId String
-  drawnAmount     Float
-  maturityDate    DateTime
-  principalAmount Float
-  startDate       DateTime
-  type            LoanType
-  currency        LoanCurrency
-  auditLogs       AuditLog[]
-  kpis            KPI[]
-  borrowerOrg     Organization    @relation("BorrowerOrganization", fields: [borrowerOrgId], references: [id])
-  createdByUser   User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-  lenderOrg       Organization?   @relation("LenderOrganization", fields: [lenderOrgId], references: [id])
-  marginRatchets  MarginRatchet[]
-}
-
-model MarginRatchet {
-  id               String   @id @default(uuid())
-  loanId           String
-  kpiId            String
-  stepUpBps        Int
-  stepDownBps      Int
-  observationStart DateTime
-  observationEnd   DateTime
-  maxAdjustmentBps Int
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  kpi              KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
-  loan             Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
 }
 
 model KPI {
@@ -93,7 +53,7 @@ model KPI {
   name           String
   targetValue    Float
   baselineValue  Float?
-  loanId         String
+  organizationId String
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   direction      KpiDirection
@@ -101,13 +61,11 @@ model KPI {
   effectiveTo    DateTime?
   thresholdMax   Float?
   thresholdMin   Float?
-  status         KpiStatus
   type           KpiType
   frequency      ObservationPeriod
   auditLogs      AuditLog[]
-  loan           Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   results        KPIResult[]
-  marginRatchets MarginRatchet[]
 }
 
 model KPIResult {
@@ -177,7 +135,6 @@ model AuditLog {
   entityId          String
   details           String
   userId            String?
-  loanId            String?
   kpiId             String?
   kpiResultId       String?
   cloudConnectionId String?
@@ -186,7 +143,6 @@ model AuditLog {
   cloudConnection   CloudConnection? @relation(fields: [cloudConnectionId], references: [id], onDelete: Cascade)
   kpi               KPI?             @relation(fields: [kpiId], references: [id], onDelete: Cascade)
   kpiResult         KPIResult?       @relation(fields: [kpiResultId], references: [id], onDelete: Cascade)
-  loan              Loan?            @relation(fields: [loanId], references: [id], onDelete: Cascade)
   organization      Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user              User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -320,30 +276,9 @@ enum KPIResultStatus {
   PENDING
 }
 
-enum LoanType {
-  FIXED_RATE
-  FLOATING_RATE
-  AMORTIZED
-  ANNUITY
-  BALLOON
-  CREDIT_LINE
-  REVOLVING_CREDIT_LINE
-  CREDIT_CARD
-}
-
 enum CloudServiceSource {
   OPERATIONAL_METRICS
   EMBODIED_METRICS
-}
-
-enum LoanCurrency {
-  USD
-  EUR
-  GBP
-  JPY
-  AUD
-  CAD
-  CHF
 }
 
 enum ObservationPeriod {
@@ -368,12 +303,6 @@ enum KpiType {
 enum KpiDirection {
   LOWER_IS_BETTER
   HIGHER_IS_BETTER
-}
-
-enum KpiStatus {
-  PROPOSED
-  ACCEPTED
-  REJECTED
 }
 
 enum CloudFootprintType {

@@ -28,6 +28,7 @@ export function Co2EmissionKpi() {
               or emissions cap aligned with broader decarbonisation targets."
       fetchAction={getCo2eTimelineAction}
       renderAnalytics={(data) => <Co2eTimelineChart data={data} />}
+      kpiType="CO2_EMISSION"
     />
   );
 }

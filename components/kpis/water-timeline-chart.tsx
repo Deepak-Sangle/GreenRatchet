@@ -65,7 +65,7 @@ export function WaterTimelineChart({ data }: WaterTimelineChartProps) {
     projectedData.length > 0
   ) {
     const lastHistoricalIndex = chartData.findIndex(
-      (d) => d.month === lastHistoricalMonth
+      (d) => d.month === lastHistoricalMonth,
     );
     if (lastHistoricalIndex >= 0) {
       chartData[lastHistoricalIndex] = {
@@ -180,7 +180,7 @@ export function WaterTimelineChart({ data }: WaterTimelineChartProps) {
                       historical?: number;
                       projected?: number;
                     };
-                  }
+                  },
                 ) => {
                   // At boundary point (has both values), only show historical
                   if (
@@ -193,7 +193,7 @@ export function WaterTimelineChart({ data }: WaterTimelineChartProps) {
                   const label = name === "historical" ? "Actual" : "Projected";
                   return [formatValue(value), label];
                 }}
-                labelFormatter={(label: string) => formatMonth(label)}
+                labelFormatter={(label: any) => formatMonth(String(label))}
                 contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
                   borderColor: "hsl(var(--border))",
@@ -307,7 +307,7 @@ export function WaterTimelineChart({ data }: WaterTimelineChartProps) {
             <p className="text-2xl font-bold">
               {projectedData.length > 0
                 ? formatValue(
-                    projectedData[projectedData.length - 1].cumulative
+                    projectedData[projectedData.length - 1].cumulative,
                   )
                 : "N/A"}
             </p>

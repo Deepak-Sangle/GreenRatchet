@@ -12,8 +12,6 @@ export interface KPIAnalytics {
   kpiId: string;
   kpiName: string;
   kpiType: string;
-  loanId: string;
-  loanName: string;
   targetValue: number;
   direction: string;
   latestResult: {
@@ -26,11 +24,6 @@ export interface KPIAnalytics {
     direction: "increasing" | "decreasing" | "stable";
     percentageChange: number;
   } | null;
-  marginRatchet: {
-    stepUpBps: number;
-    stepDownBps: number;
-    maxAdjustmentBps: number;
-  } | null;
   historicalResults: Array<{
     actualValue: number;
     targetValue: number;
@@ -38,7 +31,6 @@ export interface KPIAnalytics {
     periodStart: Date;
     periodEnd: Date;
   }>;
-  borrowerOrgName?: string;
 }
 
 export interface DetailedKPIAnalytics extends KPIAnalytics {
@@ -84,24 +76,19 @@ export async function refreshKPICalculationsAction(): Promise<
       return { error: "Only borrowers can trigger KPI calculations" };
     }
 
-    // 4. Fetch all loans with accepted KPIs for the organization
-    const loans = await prisma.loan.findMany({
-      where: { borrowerOrgId: user.organizationId },
+    // 4. Fetch all accepted KPIs for the organization
+    const kpis = await prisma.kPI.findMany({
+      where: {
+        organizationId: user.organizationId,
+      },
       select: {
         id: true,
         name: true,
-        borrowerOrgId: true,
-        kpis: {
-          where: { status: "ACCEPTED" },
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            targetValue: true,
-            direction: true,
-            frequency: true,
-          },
-        },
+        type: true,
+        targetValue: true,
+        direction: true,
+        frequency: true,
+        organizationId: true,
       },
     });
 
@@ -124,95 +111,93 @@ export async function refreshKPICalculationsAction(): Promise<
     let resultsCreated = 0;
     const errors: string[] = [];
 
-    // 6. Calculate all accepted KPIs across all loans
-    for (const loan of loans) {
-      for (const kpi of loan.kpis) {
-        try {
-          // Determine period start based on KPI frequency
-          const periodStart = new Date();
-          switch (kpi.frequency) {
-            case "MONTHLY":
-              periodStart.setMonth(periodStart.getMonth() - 1);
-              break;
-            case "QUARTERLY":
-              periodStart.setMonth(periodStart.getMonth() - 3);
-              break;
-            case "ANNUAL":
-              periodStart.setFullYear(periodStart.getFullYear() - 1);
-              break;
-            default:
-              periodStart.setMonth(periodStart.getMonth() - 1);
-          }
+    // 6. Calculate all accepted KPIs
+    for (const kpi of kpis) {
+      try {
+        // Determine period start based on KPI frequency
+        const periodStart = new Date();
+        switch (kpi.frequency) {
+          case "MONTHLY":
+            periodStart.setMonth(periodStart.getMonth() - 1);
+            break;
+          case "QUARTERLY":
+            periodStart.setMonth(periodStart.getMonth() - 3);
+            break;
+          case "ANNUAL":
+            periodStart.setFullYear(periodStart.getFullYear() - 1);
+            break;
+          default:
+            periodStart.setMonth(periodStart.getMonth() - 1);
+        }
 
-          // Call the calculator service
-          const calculationResult = await calculateKPI(
-            kpi,
-            loan.borrowerOrgId,
+        // Call the calculator service
+        const calculationResult = await calculateKPI(
+          kpi,
+          kpi.organizationId,
+          periodStart,
+          periodEnd,
+        );
+
+        // Create KPIResult
+        await prisma.kPIResult.create({
+          data: {
+            kpiId: kpi.id,
             periodStart,
             periodEnd,
-          );
+            actualValue: calculationResult.actualValue,
+            targetValue: calculationResult.targetValue,
+            status: calculationResult.status,
+          },
+        });
 
-          // Create KPIResult
-          await prisma.kPIResult.create({
-            data: {
-              kpiId: kpi.id,
-              periodStart,
-              periodEnd,
+        // Create audit log
+        await prisma.auditLog.create({
+          data: {
+            action: "KPI_CALCULATED",
+            entity: "KPI",
+            entityId: kpi.id,
+            details: JSON.stringify({
+              kpiName: kpi.name,
+              kpiType: kpi.type,
               actualValue: calculationResult.actualValue,
               targetValue: calculationResult.targetValue,
               status: calculationResult.status,
-            },
-          });
+              formula: calculationResult.calculationDetails.formula,
+              dataSource: calculationResult.dataSource,
+              periodStart: periodStart.toISOString(),
+              periodEnd: periodEnd.toISOString(),
+            }),
+            userId: user.id,
+            organizationId: user.organizationId,
+            kpiId: kpi.id,
+          },
+        });
 
-          // Create audit log
-          await prisma.auditLog.create({
-            data: {
-              action: "KPI_CALCULATED",
-              entity: "KPI",
-              entityId: kpi.id,
-              details: JSON.stringify({
-                kpiName: kpi.name,
-                kpiType: kpi.type,
-                actualValue: calculationResult.actualValue,
-                targetValue: calculationResult.targetValue,
-                status: calculationResult.status,
-                formula: calculationResult.calculationDetails.formula,
-                dataSource: calculationResult.dataSource,
-                periodStart: periodStart.toISOString(),
-                periodEnd: periodEnd.toISOString(),
-              }),
-              userId: user.id,
-              loanId: loan.id,
-              kpiId: kpi.id,
-            },
-          });
+        resultsCreated++;
+      } catch (error) {
+        console.error(`Error calculating KPI ${kpi.name}:`, error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        errors.push(`${kpi.name}: ${errorMessage}`);
 
-          resultsCreated++;
-        } catch (error) {
-          console.error(`Error calculating KPI ${kpi.name}:`, error);
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          errors.push(`${kpi.name}: ${errorMessage}`);
-
-          // Log the error in audit log
-          await prisma.auditLog.create({
-            data: {
-              action: "KPI_CALCULATION_FAILED",
-              entity: "KPI",
-              entityId: kpi.id,
-              details: JSON.stringify({
-                kpiName: kpi.name,
-                kpiType: kpi.type,
-                error: errorMessage,
-                periodStart: periodEnd.toISOString(),
-                periodEnd: periodEnd.toISOString(),
-              }),
-              userId: user.id,
-              loanId: loan.id,
-              kpiId: kpi.id,
-            },
-          });
-        }
+        // Log the error in audit log
+        await prisma.auditLog.create({
+          data: {
+            action: "KPI_CALCULATION_FAILED",
+            entity: "KPI",
+            entityId: kpi.id,
+            details: JSON.stringify({
+              kpiName: kpi.name,
+              kpiType: kpi.type,
+              error: errorMessage,
+              periodStart: periodEnd.toISOString(),
+              periodEnd: periodEnd.toISOString(),
+            }),
+            userId: user.id,
+            organizationId: user.organizationId,
+            kpiId: kpi.id,
+          },
+        });
       }
     }
 

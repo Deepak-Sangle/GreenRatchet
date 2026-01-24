@@ -41,6 +41,7 @@ export function LowCarbonRegionKpi() {
           />
         </div>
       )}
+      kpiType="LOW_CARBON_REGION_PERCENTAGE"
     />
   );
 }

@@ -7,10 +7,10 @@ import {
 // S3-compatible configuration for Supabase Storage
 const s3Client = new S3Client({
   region: "auto",
-  endpoint: process.env.S3_ENDPOINT!,
+  endpoint: process.env.S3_ENDPOINT_2!,
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID_2!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY_2!,
   },
   forcePathStyle: true, // Required for Supabase S3 compatibility
 });

@@ -50,6 +50,7 @@ export function CarbonFreeEnergyKpi() {
           </div>
         </>
       )}
+      kpiType="CARBON_FREE_ENERGY_PERCENTAGE"
     />
   );
 }

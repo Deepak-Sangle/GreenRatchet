@@ -19,11 +19,8 @@ export default function KPIsPage() {
         <p className="text-muted-foreground">
           Explore different KPI types to understand how your cloud usage
           performs across a range of sustainability metrics. These insights help
-          lenders assess whether proposed KPIs are sufficiently ambitious and
-          material, while enabling borrowers to evaluate whether the targets are
-          realistic, achievable, and aligned with their operational
-          capabilities—ensuring sustainability-linked loans are both credible
-          and executable.{" "}
+          organizations assess their environmental impact, track progress
+          against targets, and align with operational sustainability goals.
         </p>
       </div>
 

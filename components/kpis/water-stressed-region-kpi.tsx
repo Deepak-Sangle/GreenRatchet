@@ -60,6 +60,7 @@ export function WaterStressedRegionKpi() {
           </div>
         </>
       )}
+      kpiType="WATER_STRESSED_REGION_PERCENTAGE"
     />
   );
 }

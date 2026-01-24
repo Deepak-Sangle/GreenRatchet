@@ -23,50 +23,27 @@ export default async function AnalyticsPage() {
     redirect("/auth/signin");
   }
 
-  // Build query based on user role
-  const whereClause =
-    user.role === "BORROWER"
-      ? { borrowerOrgId: user.organizationId }
-      : { lenderOrgId: user.organizationId };
+  // Build query based on user role (now just organization check)
+  // Assuming Lender/Borrower distinction is removed or irrelevant for direct KPI view
 
-  // Fetch all loans with KPIs, margin ratchets, and results in one query
-  const loans = await prisma.loan.findMany({
-    where: whereClause,
+  // Fetch kpis for the organization
+  const kpis = await prisma.kPI.findMany({
+    where: { organizationId: user.organizationId },
     select: {
       id: true,
       name: true,
-      borrowerOrg: {
-        select: { name: true },
-      },
-      lenderOrg: {
-        select: { name: true },
-      },
-      kpis: {
+      type: true,
+      targetValue: true,
+      direction: true,
+      results: {
+        orderBy: { periodEnd: "desc" },
+        take: 10,
         select: {
-          id: true,
-          name: true,
-          type: true,
+          actualValue: true,
           targetValue: true,
-          direction: true,
-          marginRatchets: {
-            select: {
-              stepUpBps: true,
-              stepDownBps: true,
-              maxAdjustmentBps: true,
-            },
-            take: 1,
-          },
-          results: {
-            orderBy: { periodEnd: "desc" },
-            take: 10,
-            select: {
-              actualValue: true,
-              targetValue: true,
-              status: true,
-              periodStart: true,
-              periodEnd: true,
-            },
-          },
+          status: true,
+          periodStart: true,
+          periodEnd: true,
         },
       },
     },
@@ -74,6 +51,6 @@ export default async function AnalyticsPage() {
   });
 
   return (
-    <AnalyticsPageClient loans={loans} userRole={user.role} userId={user.id} />
+    <AnalyticsPageClient kpis={kpis} userRole={user.role} userId={user.id} />
   );
 }

@@ -62,7 +62,15 @@ export async function getLowCarbonRegionDataAction() {
     });
 
     if (footprintData.length === 0) {
-      throw new Error("No cloud footprint data available");
+      return {
+        pieData: [],
+        totalCo2e: 0,
+        categoryStats: {
+          low: { percentage: 0, co2e: 0 },
+          medium: { percentage: 0, co2e: 0 },
+          high: { percentage: 0, co2e: 0 },
+        },
+      };
     }
 
     const categoryTotals: Record<Category, number> = {

@@ -304,7 +304,7 @@ export function UsageTabs({ data, aggregationPeriod }: UsageTabsProps) {
                         label,
                       ];
                     }}
-                    labelFormatter={(label: string) =>
+                    labelFormatter={(label: any) =>
                       match(aggregationPeriod)
                         .with("day", () =>
                           format(new Date(label), "MMM d, yyyy"),

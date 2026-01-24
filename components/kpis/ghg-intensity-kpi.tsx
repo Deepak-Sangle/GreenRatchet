@@ -80,6 +80,7 @@ export function GhgIntensityKpi() {
         ];
         return <MetricGrid metrics={metrics} columns={5} />;
       }}
+      kpiType="GHG_INTENSITY"
     />
   );
 }

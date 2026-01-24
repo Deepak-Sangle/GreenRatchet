@@ -49,6 +49,7 @@ export function RenewableEnergyKpi() {
           </div>
         </>
       )}
+      kpiType="RENEWABLE_ENERGY_PERCENTAGE"
     />
   );
 }

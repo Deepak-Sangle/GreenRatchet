@@ -62,7 +62,15 @@ export async function getElectricityMixDataAction() {
     const connectionIds = await getOrganizationConnectionIds(organizationId);
 
     if (connectionIds.length === 0) {
-      throw new Error("No active cloud connections found");
+      return {
+        timeline: [],
+        averages: {
+          lowCarbonShare: 0,
+          fossilShare: 0,
+          renewableShare: 0,
+        },
+        totalCo2e: 0,
+      };
     }
 
     // Get regional energy data grouped by region, provider, and month
@@ -77,7 +85,15 @@ export async function getElectricityMixDataAction() {
     });
 
     if (regionalEnergy.length === 0) {
-      throw new Error("No cloud footprint data available");
+      return {
+        timeline: [],
+        averages: {
+          lowCarbonShare: 0,
+          fossilShare: 0,
+          renewableShare: 0,
+        },
+        totalCo2e: 0,
+      };
     }
 
     // Group by month and calculate weighted electricity mix
