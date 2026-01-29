@@ -37,7 +37,6 @@ export function BaseKpiCard<T>({
   fetchAction,
   renderAnalytics,
   analyticsTitle = "Performance Analytics",
-  className,
   kpiType,
 }: BaseKpiCardProps<T>) {
   const { isExpanded, data, loading, error, toggleExpanded } =

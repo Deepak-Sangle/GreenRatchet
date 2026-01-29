@@ -1,4 +1,5 @@
-import type { ResolvedTheme, ThemePreference } from "./theme-config";
+export type ThemePreference = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
 
 /**
  * Gets the system theme preference
@@ -25,7 +26,7 @@ export function resolveTheme(theme: ThemePreference): ResolvedTheme {
  * Gets the stored theme preference from localStorage
  */
 export function getStoredTheme(
-  storageKey: string = "ui-theme"
+  storageKey: string = "ui-theme",
 ): ThemePreference | null {
   if (typeof window === "undefined") return null;
 
@@ -46,7 +47,7 @@ export function getStoredTheme(
  */
 export function setStoredTheme(
   theme: ThemePreference,
-  storageKey: string = "ui-theme"
+  storageKey: string = "ui-theme",
 ): void {
   if (typeof window === "undefined") return;
 
@@ -72,7 +73,7 @@ export function applyTheme(theme: ResolvedTheme): void {
  * Creates a media query listener for system theme changes
  */
 export function createSystemThemeListener(
-  callback: (theme: ResolvedTheme) => void
+  callback: (theme: ResolvedTheme) => void,
 ): () => void {
   if (typeof window === "undefined") return () => {};
 

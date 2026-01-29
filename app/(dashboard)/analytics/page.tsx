@@ -3,9 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { AnalyticsPageClient } from "./analytics-client";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
-
 export default async function AnalyticsPage() {
   const session = await auth();
 
@@ -22,9 +19,6 @@ export default async function AnalyticsPage() {
   if (!user || !user.organizationId) {
     redirect("/auth/signin");
   }
-
-  // Build query based on user role (now just organization check)
-  // Assuming Lender/Borrower distinction is removed or irrelevant for direct KPI view
 
   // Fetch kpis for the organization
   const kpis = await prisma.kPI.findMany({

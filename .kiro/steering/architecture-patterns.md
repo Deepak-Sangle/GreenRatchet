@@ -31,22 +31,7 @@ prisma/
 - **Types**: PascalCase (`CreateLoanForm`, `KPIResult`)
 - **Zod Schemas**: PascalCase with `Schema` suffix (`CreateLoanSchema`)
 
-## TypeScript & Imports
-
-```tsx
-// Avoid `any`, use proper types, explicit when needed
-const form = useForm<FormType>({ ... });
-const name = user?.name ?? "Unknown"; // Optional chaining + nullish coalescing
-
-// Import order: React -> Third-party -> Internal -> Types
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import type { CreateLoanForm } from "@/lib/validations/loan";
-```
-
 ## Performance Guidelines
 
 - Use Server Components by default, "use client" only when needed
-- Memoize expensive computations: useMemo, useCallback
-- Lazy load: `dynamic(() => import("./chart"), { ssr: false })`
+- Memoize computations, functions, variables whenever you can in React: useMemo, useCallback

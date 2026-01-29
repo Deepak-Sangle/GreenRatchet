@@ -16,7 +16,6 @@ The application has comprehensive dark mode support that works automatically. **
 
 ### Theme System
 
-- **Automatic**: Components automatically adapt to light/dark themes
 - **CSS Variables**: All colors are defined as CSS custom properties that change based on theme
 - **Tailwind Integration**: Use standard Tailwind classes - they automatically work in both themes
 - **Theme Toggle**: Available in the header for users to switch themes manually
@@ -91,168 +90,28 @@ const chartColors = {
 </ResponsiveContainer>;
 ```
 
-### Theme Toggle Integration
-
-The theme toggle is available in the header. To add it to other locations:
-
-```tsx
-import { ThemeToggle } from "@/components/theme/theme-toggle";
-
-// Different variants available
-<ThemeToggle variant="default" />  // Button with text
-<ThemeToggle variant="icon" />     // Icon only
-<ThemeToggle variant="dropdown" /> // Dropdown with options
-```
-
-## Component Patterns
+## UI Patterns to take care of
 
 ### Forms
 
-Always use react-hook-form + Zod:
+Always use react-hook-form + Zod: Use schemas auto generated from prisma zod generator and do not try to recreate schemas again
 
 ```tsx
 const form = useForm<T>({ resolver: zodResolver(Schema) });
 ```
 
-### Dialogs
-
-Use shadcn Dialog with consistent error display:
-
-```tsx
-{
-  error && (
-    <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-      {error}
-    </div>
-  );
-}
-```
-
-### Success Messages
-
-Use primary color for success states:
-
-```tsx
-{
-  success && (
-    <div className="rounded-md bg-primary/10 p-3 text-sm">
-      <p className="font-medium text-primary">{successMessage}</p>
-      <p className="text-xs text-muted-foreground mt-1">{details}</p>
-    </div>
-  );
-}
-```
-
-### Buttons
-
-Include loading states and icons:
-
-```tsx
-<Button disabled={loading}>
-  {loading ? (
-    <>
-      <Loader2 className="h-4 w-4 animate-spin" />
-      Loading...
-    </>
-  ) : (
-    "Submit"
-  )}
-</Button>
-```
-
-### Icon Buttons
-
-Use size="icon" for icon-only buttons:
-
-```tsx
-<Button type="button" size="icon" variant="outline" disabled={loading}>
-  {loading ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : (
-    <ArrowRight className="h-4 w-4" />
-  )}
-</Button>
-```
-
 ### Responsive Design
 
-Mobile-first with sm: md: lg: breakpoints:
+Design should be compatible with all sizes. Use sm: md: lg: breakpoints:
 
 ```tsx
 className = "flex flex-col sm:flex-row";
 className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4";
 ```
 
-### Read-Only Inputs
-
-Use disabled state with muted background:
-
-```tsx
-<Input
-  value={value || "Not set"}
-  disabled
-  className="bg-muted"
-/>
-<p className="text-xs text-muted-foreground">
-  Explanation of why it's read-only
-</p>
-```
-
-### Expandable Cards
-
-Use consistent expand/collapse pattern:
-
-```tsx
-<Card className="p-6 shadow-soft transition-all duration-200">
-  <button
-    onClick={() => setIsExpanded(!isExpanded)}
-    className="w-full flex items-center justify-between text-left"
-  >
-    <div className="flex items-center gap-3">
-      <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
-        <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-      </div>
-      <div>
-        <h2 className="font-heading text-xl font-semibold">Title</h2>
-        <p className="text-sm text-muted-foreground">Description</p>
-      </div>
-    </div>
-    {isExpanded ? (
-      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-    ) : (
-      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-    )}
-  </button>
-
-  {isExpanded && (
-    <div className="mt-6 space-y-6 animate-in fade-in duration-200">
-      {/* Content */}
-    </div>
-  )}
-</Card>
-```
-
-### Metric Display Cards
-
-Use consistent styling for data display:
-
-```tsx
-// Regular metric
-<div className="bg-muted/50 rounded-lg p-4">
-  <p className="text-xs text-muted-foreground mb-1">Label</p>
-  <p className="text-2xl font-semibold">{value}</p>
-</div>
-
-// Highlighted metric (primary KPI)
-<div className="bg-primary/10 rounded-lg p-4">
-  <p className="text-xs text-muted-foreground mb-1">Label</p>
-  <p className="text-2xl font-semibold text-primary">{value}</p>
-</div>
-```
-
 ### Loading States
 
-Use Loader2 from lucide-react:
+Use spinning loader when the data is being fetched always. Use Loader2 from lucide-react:
 
 ```tsx
 {
@@ -264,23 +123,6 @@ Use Loader2 from lucide-react:
   );
 }
 ```
-
-## Accessibility & Dark Mode
-
-### Contrast Requirements
-
-All color combinations automatically meet WCAG AA standards in both themes:
-
-- Normal text: 4.5:1 contrast ratio minimum
-- Large text: 3.0:1 contrast ratio minimum
-- Interactive elements have proper focus states
-
-### Testing Dark Mode
-
-- Always test components in both light and dark themes
-- Use the theme toggle in the header to switch between modes
-- Verify that all text remains readable and interactive elements are clearly visible
-- Check that custom colors (if any) work in both themes
 
 ### Common Dark Mode Issues to Avoid
 

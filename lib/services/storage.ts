@@ -57,7 +57,7 @@ export async function uploadAvatar(
 
   // Construct the public URL
   // Supabase public URL format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
-  const endpoint = process.env.S3_ENDPOINT!;
+  const endpoint = process.env.S3_ENDPOINT_2!;
   // Extract the base URL from the S3 endpoint
   const baseUrl = endpoint.replace("/storage/v1/s3", "");
   const publicUrl = `${baseUrl}/storage/v1/object/public/${AVATAR_BUCKET}/${fileName}`;

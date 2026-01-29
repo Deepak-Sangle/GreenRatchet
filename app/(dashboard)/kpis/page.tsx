@@ -1,13 +1,13 @@
-import { AIUsageKPI } from "@/components/kpis/ai-usage-kpi";
-import { CarbonFreeEnergyKpi } from "@/components/kpis/carbon-free-energy-kpi";
-import { Co2EmissionKpi } from "@/components/kpis/co2-emission-kpi";
-import { ElectricityMixKpi } from "@/components/kpis/electricity-mix-kpi";
-import { EnergyConsumptionKpi } from "@/components/kpis/energy-consumption-kpi";
-import { GhgIntensityKpi } from "@/components/kpis/ghg-intensity-kpi";
-import { LowCarbonRegionKpi } from "@/components/kpis/low-carbon-region-kpi";
-import { RenewableEnergyKpi } from "@/components/kpis/renewable-energy-kpi";
-import { WaterStressedRegionKpi } from "@/components/kpis/water-stressed-region-kpi";
-import { WaterWithdrawalKpi } from "@/components/kpis/water-withdrawal-kpi";
+import { AIUsageKPI } from "@/components/kpis/base/ai-usage-kpi";
+import { CarbonFreeEnergyKpi } from "@/components/kpis/base/carbon-free-energy-kpi";
+import { Co2EmissionKpi } from "@/components/kpis/base/co2-emission-kpi";
+import { ElectricityMixKpi } from "@/components/kpis/base/electricity-mix-kpi";
+import { EnergyConsumptionKpi } from "@/components/kpis/base/energy-consumption-kpi";
+import { GhgIntensityKpi } from "@/components/kpis/base/ghg-intensity-kpi";
+import { LowCarbonRegionKpi } from "@/components/kpis/base/low-carbon-region-kpi";
+import { RenewableEnergyKpi } from "@/components/kpis/base/renewable-energy-kpi";
+import { WaterStressedRegionKpi } from "@/components/kpis/base/water-stressed-region-kpi";
+import { WaterWithdrawalKpi } from "@/components/kpis/base/water-withdrawal-kpi";
 
 export default function KPIsPage() {
   return (

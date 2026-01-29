@@ -1,6 +1,6 @@
 "use client";
 
-import type { ResolvedTheme, ThemePreference } from "@/lib/theme/theme-config";
+import type { ResolvedTheme, ThemePreference } from "@/lib/theme/theme-utils";
 import { useContext } from "react";
 import { ThemeProviderContext } from "./theme-provider";
 
