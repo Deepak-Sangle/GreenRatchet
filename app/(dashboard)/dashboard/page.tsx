@@ -104,8 +104,6 @@ export default async function DashboardPage() {
           contentTitle={cloudConnections.length.toString()}
           contentBody="Active data sources"
         />
-
-        {/* Removed "Total Deals" and "Pending Actions" related to loans */}
       </div>
 
       <Card>

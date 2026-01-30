@@ -3,13 +3,13 @@
 import { AWS_WATER_STRESS_BY_REGION } from "@/lib/constants";
 import { withServerAction } from "@/lib/server-action-utils";
 import { getWaterWithdrawalByRegion } from "@/lib/services/cloud-data-service";
-import { getDateRange } from "@/lib/utils/analytics-helpers";
 import {
   buildCategoryStats,
   buildPieData,
   classifyByThresholds,
+  getDateRange,
   type Category,
-} from "@/lib/utils/category-analytics-helpers";
+} from "@/lib/utils/analytics-helpers";
 
 export interface RegionalWaterData {
   pieData: Array<{

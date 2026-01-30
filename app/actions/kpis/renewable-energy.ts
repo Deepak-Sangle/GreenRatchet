@@ -56,6 +56,33 @@ export async function getRenewableEnergyDataAction() {
       }),
     ]);
 
+    // Get unique region/provider pairs and fetch renewable data in batch
+    const regionProviderPairs = regionalEnergy.map((r) => ({
+      region: r.region,
+      cloudProvider: r.cloudProvider,
+    }));
+
+    const renewableDataResults = await Promise.all(
+      regionProviderPairs.map(({ region, cloudProvider }) =>
+        prisma.gridRenewableEnergy.findFirst({
+          where: {
+            dataCenterRegion: region,
+            dataCenterProvider: cloudProvider as "AWS" | "GCP" | "AZURE",
+            datetime: { gte: startDate, lte: endDate },
+          },
+          orderBy: { datetime: "desc" },
+        }),
+      ),
+    );
+
+    // Build lookup map
+    const renewableDataMap = new Map(
+      regionProviderPairs.map(({ region, cloudProvider }, index) => [
+        `${region}|${cloudProvider}`,
+        renewableDataResults[index],
+      ]),
+    );
+
     // Calculate weighted renewable energy percentage
     let totalWeightedRenewable = 0;
     let totalEnergy = 0;
@@ -64,17 +91,11 @@ export async function getRenewableEnergyDataAction() {
     for (const r of regionalEnergy) {
       if (r._sum.kilowattHours !== null) {
         const energy = r._sum.kilowattHours;
-
-        const renewableData = await prisma.gridRenewableEnergy.findFirst({
-          where: {
-            dataCenterRegion: r.region,
-            dataCenterProvider: r.cloudProvider as "AWS" | "GCP" | "AZURE",
-            datetime: { gte: startDate, lte: endDate },
-          },
-          orderBy: { datetime: "desc" },
-        });
-
+        const renewableData = renewableDataMap.get(
+          `${r.region}|${r.cloudProvider}`,
+        );
         const renewablePercentage = renewableData?.value ?? 0;
+
         totalWeightedRenewable += energy * renewablePercentage;
         totalEnergy += energy;
         byRegion[r.region] = renewablePercentage;

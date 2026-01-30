@@ -17,7 +17,8 @@ const bricolage = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   title: "GreenRatchet",
-  description: "Sustainability-Linked Loan Management Platform",
+  description:
+    "GreenRatchet manages cloud usage with automated environmental impact tracking",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",

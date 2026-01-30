@@ -114,7 +114,10 @@ export async function withServerAction<T>(
 
     // Wrap action with caching - unstable_cache handles cache keys automatically
     const cachedAction = unstable_cache(
-      async () => action(user),
+      async () => {
+        console.log(`Cache miss for the context: ${context}`);
+        return action(user);
+      },
       [context, user.organizationId],
       {
         revalidate: 300, // 5 minutes

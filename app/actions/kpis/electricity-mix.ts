@@ -8,9 +8,9 @@ import {
 } from "@/lib/services/cloud-data-service";
 import {
   calculateEnergySourcePercentages,
-  calculateFossilPercentage,
-  calculateLowCarbonPercentage,
-  calculateRenewablePercentage,
+  calculateTotalFossilMix,
+  calculateTotalLowCarbonMix,
+  calculateTotalRenewableMix,
 } from "@/lib/services/electricity-mix-service";
 import { formatToMonth } from "@/lib/utils/analytics-helpers";
 import { subMonths } from "date-fns";
@@ -45,9 +45,9 @@ const calculateEnergyShares = (
   renewableShare: number;
 } => {
   return {
-    lowCarbonShare: calculateLowCarbonPercentage(sourcePercentages) * 100,
-    fossilShare: calculateFossilPercentage(sourcePercentages) * 100,
-    renewableShare: calculateRenewablePercentage(sourcePercentages) * 100,
+    lowCarbonShare: calculateTotalLowCarbonMix(sourcePercentages) * 100,
+    fossilShare: calculateTotalFossilMix(sourcePercentages) * 100,
+    renewableShare: calculateTotalRenewableMix(sourcePercentages) * 100,
   };
 };
 
@@ -74,7 +74,6 @@ export async function getElectricityMixDataAction() {
     }
 
     // Get regional energy data grouped by region, provider, and month
-    // This matches the KPI calculator approach
     const regionalEnergy = await prisma.cloudFootprint.groupBy({
       by: ["region", "cloudProvider", "periodStartDate"],
       where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
@@ -96,15 +95,35 @@ export async function getElectricityMixDataAction() {
       };
     }
 
-    // Group by month and calculate weighted electricity mix
-    const monthlyData = new Map<
-      string,
-      {
-        weightedMix: Record<string, number>;
-        totalEnergy: number;
-        totalCo2e: number;
-      }
-    >();
+    // Get unique region/provider combinations
+    const regionProviderPairs = [
+      ...new Set(regionalEnergy.map((r) => `${r.region}|${r.cloudProvider}`)),
+    ].map((pair) => {
+      const [region, cloudProvider] = pair.split("|");
+      return { region, cloudProvider };
+    });
+
+    // Fetch electricity mix data for all regions in one batch
+    const mixDataResults = await Promise.all(
+      regionProviderPairs.map(({ region, cloudProvider }) =>
+        prisma.gridElectricityMix.findFirst({
+          where: {
+            dataCenterRegion: region,
+            dataCenterProvider: cloudProvider as "AWS" | "GCP" | "AZURE",
+            datetime: { gte: startDate, lte: endDate },
+          },
+          orderBy: { datetime: "desc" },
+        }),
+      ),
+    );
+
+    // Build lookup map for mix data
+    const mixDataMap = new Map(
+      regionProviderPairs.map(({ region, cloudProvider }, index) => [
+        `${region}|${cloudProvider}`,
+        mixDataResults[index],
+      ]),
+    );
 
     const energySources = [
       "nuclear",
@@ -119,47 +138,56 @@ export async function getElectricityMixDataAction() {
       "unknown",
     ];
 
-    for (const r of regionalEnergy) {
-      if (r._sum.kilowattHours !== null) {
-        const energy = r._sum.kilowattHours;
-        const co2e = r._sum.co2e ?? 0;
-        const month = formatToMonth(new Date(r.periodStartDate));
-
-        // Get electricity mix data for this region
-        const mixData = await prisma.gridElectricityMix.findFirst({
-          where: {
-            dataCenterRegion: r.region,
-            dataCenterProvider: r.cloudProvider as "AWS" | "GCP" | "AZURE",
-            datetime: { gte: startDate, lte: endDate },
-          },
-          orderBy: { datetime: "desc" },
-        });
-
-        if (mixData) {
-          if (!monthlyData.has(month)) {
-            const initialMix: Record<string, number> = {};
-            energySources.forEach((source) => {
-              initialMix[source] = 0;
-            });
-            monthlyData.set(month, {
-              weightedMix: initialMix,
-              totalEnergy: 0,
-              totalCo2e: 0,
-            });
-          }
-
-          const data = monthlyData.get(month)!;
-
-          // Weight each energy source by the regional energy consumption
-          energySources.forEach((source) => {
-            const value = mixData[source as keyof typeof mixData] as number;
-            data.weightedMix[source] += energy * value;
-          });
-
-          data.totalEnergy += energy;
-          data.totalCo2e += co2e;
-        }
+    // Group by month and calculate weighted electricity mix
+    const monthlyData = new Map<
+      string,
+      {
+        weightedMix: Record<string, number>;
+        totalEnergy: number;
+        totalCo2e: number;
       }
+    >();
+
+    for (const r of regionalEnergy) {
+      if (r._sum.kilowattHours === null) continue;
+
+      const energy = r._sum.kilowattHours;
+      const co2e = r._sum.co2e ?? 0;
+      const month = formatToMonth(new Date(r.periodStartDate));
+      const mixData = mixDataMap.get(`${r.region}|${r.cloudProvider}`);
+
+      if (!mixData) continue;
+
+      if (!monthlyData.has(month)) {
+        const initialMix: Record<string, number> = {};
+        energySources.forEach((source) => {
+          initialMix[source] = 0;
+        });
+        monthlyData.set(month, {
+          weightedMix: initialMix,
+          totalEnergy: 0,
+          totalCo2e: 0,
+        });
+      }
+
+      const data = monthlyData.get(month)!;
+
+      // Calculate total MW for this region to convert to fractions (0-1)
+      const totalMW = energySources.reduce((sum, source) => {
+        return sum + ((mixData[source as keyof typeof mixData] as number) || 0);
+      }, 0);
+
+      // Weight each energy source by the regional energy consumption
+      if (totalMW > 0) {
+        energySources.forEach((source) => {
+          const mwValue = mixData[source as keyof typeof mixData] as number;
+          const fraction = mwValue / totalMW;
+          data.weightedMix[source] += energy * fraction;
+        });
+      }
+
+      data.totalEnergy += energy;
+      data.totalCo2e += co2e;
     }
 
     // Calculate timeline with weighted averages
@@ -174,7 +202,6 @@ export async function getElectricityMixDataAction() {
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([month, data]) => {
         if (data.totalEnergy > 0) {
-          // Calculate weighted average for each source using shared service
           const sourcePercentages = calculateEnergySourcePercentages(
             data.weightedMix,
             data.totalEnergy,

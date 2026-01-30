@@ -7,7 +7,7 @@ import {
   buildPieData,
   classifyByThresholds,
   type Category,
-} from "@/lib/utils/category-analytics-helpers";
+} from "@/lib/utils/analytics-helpers";
 
 export interface RegionalCo2eData {
   pieData: Array<{

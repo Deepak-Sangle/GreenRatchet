@@ -49,7 +49,7 @@ export interface DetailedKPIAnalytics extends KPIAnalytics {
 
 /**
  * Refresh all KPI calculations for the user's organization
- * Triggers calculations for all accepted KPIs across all loans
+ * Triggers calculations for all KPIs
  */
 export async function refreshKPICalculationsAction(): Promise<
   { success: true; resultsCreated: number } | { error: string }

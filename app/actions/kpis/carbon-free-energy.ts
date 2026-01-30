@@ -56,6 +56,33 @@ export async function getCarbonFreeEnergyDataAction() {
       }),
     ]);
 
+    // Get unique region/provider pairs and fetch CFE data in batch
+    const regionProviderPairs = regionalEnergy.map((r) => ({
+      region: r.region,
+      cloudProvider: r.cloudProvider,
+    }));
+
+    const cfeDataResults = await Promise.all(
+      regionProviderPairs.map(({ region, cloudProvider }) =>
+        prisma.gridCarbonFreeEnergy.findFirst({
+          where: {
+            dataCenterRegion: region,
+            dataCenterProvider: cloudProvider as "AWS" | "GCP" | "AZURE",
+            datetime: { gte: startDate, lte: endDate },
+          },
+          orderBy: { datetime: "desc" },
+        }),
+      ),
+    );
+
+    // Build lookup map
+    const cfeDataMap = new Map(
+      regionProviderPairs.map(({ region, cloudProvider }, index) => [
+        `${region}|${cloudProvider}`,
+        cfeDataResults[index],
+      ]),
+    );
+
     // Calculate weighted carbon-free energy percentage
     let totalWeightedCFE = 0;
     let totalEnergy = 0;
@@ -64,17 +91,9 @@ export async function getCarbonFreeEnergyDataAction() {
     for (const r of regionalEnergy) {
       if (r._sum.kilowattHours !== null) {
         const energy = r._sum.kilowattHours;
-
-        const cfeData = await prisma.gridCarbonFreeEnergy.findFirst({
-          where: {
-            dataCenterRegion: r.region,
-            dataCenterProvider: r.cloudProvider as "AWS" | "GCP" | "AZURE",
-            datetime: { gte: startDate, lte: endDate },
-          },
-          orderBy: { datetime: "desc" },
-        });
-
+        const cfeData = cfeDataMap.get(`${r.region}|${r.cloudProvider}`);
         const cfePercentage = cfeData?.value ?? 0;
+
         totalWeightedCFE += energy * cfePercentage;
         totalEnergy += energy;
         byRegion[r.region] = cfePercentage;

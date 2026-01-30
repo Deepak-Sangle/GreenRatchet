@@ -4,7 +4,6 @@ import { z } from "zod";
 export const CreateKPIFormSchema = KPISchema.omit({
   // omit metadata fields
   id: true,
-  // loanId removed from schema
   organizationId: true,
   createdAt: true,
   updatedAt: true,

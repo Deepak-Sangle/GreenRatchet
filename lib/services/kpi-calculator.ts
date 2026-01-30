@@ -24,7 +24,7 @@ import {
 } from "./cloud-data-service";
 import {
   calculateEnergySourcePercentages,
-  calculateRenewablePercentage,
+  calculateTotalRenewableMix,
   calculateWeightedElectricityMix,
 } from "./electricity-mix-service";
 
@@ -982,7 +982,7 @@ async function calculateElectricityMixBreakdown(
   );
 
   // Calculate renewable percentage
-  const renewablePercentage = calculateRenewablePercentage(byEnergySource);
+  const renewablePercentage = calculateTotalRenewableMix(byEnergySource);
 
   inputs.totalEnergy = totalEnergy;
   Object.entries(byRegion).forEach(([region, energy]) => {

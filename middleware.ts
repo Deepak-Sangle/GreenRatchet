@@ -11,7 +11,6 @@ export default auth((req) => {
   // Protected routes
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/loans") ||
     pathname.startsWith("/analytics") ||
     pathname.startsWith("/audit") ||
     pathname.startsWith("/cloud");
