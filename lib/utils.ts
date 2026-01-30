@@ -50,7 +50,8 @@ export function formatBps(bps: number): string {
 /**
  * Format percentage with proper precision
  */
-export function formatPercentage(value: number, decimals: number = 1): string {
+export function formatPercentage(value: number | undefined, decimals: number = 1): string {
+  if (value == null) return "N/A";
   return `${value.toFixed(decimals)}%`;
 }
 

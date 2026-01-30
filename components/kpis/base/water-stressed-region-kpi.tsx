@@ -6,7 +6,6 @@ import {
 } from "@/app/actions/kpi/water-stressed-region-analytics";
 import { Droplets, ExternalLink } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
-import { WaterInsightsCard } from "../water-insights-card";
 import { WaterStressedRegionPieChart } from "../water-stressed-region-pie-chart";
 
 export function WaterStressedRegionKpi() {
@@ -37,13 +36,7 @@ export function WaterStressedRegionKpi() {
       fetchAction={getWaterStressedRegionDataAction}
       renderAnalytics={(data) => (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <WaterStressedRegionPieChart data={data.pieData} />
-            <WaterInsightsCard
-              categoryStats={data.categoryStats}
-              totalWaterUsage={data.totalWaterUsage}
-            />
-          </div>
+          <WaterStressedRegionPieChart data={data.pieData} />
           <div className="mt-6 pt-4 border-t">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Water stress data source: WRI Aqueduct</span>

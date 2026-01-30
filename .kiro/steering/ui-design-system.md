@@ -70,13 +70,12 @@ When you need theme-specific styling, use Tailwind's `dark:` prefix:
 For charts, use theme-aware colors that maintain contrast and accessibility:
 
 ```tsx
-// Chart colors that work in both themes
-const chartColors = {
-  primary: "hsl(var(--primary))",
-  secondary: "hsl(var(--secondary))",
-  accent: "hsl(var(--accent))",
-  muted: "hsl(var(--muted-foreground))",
-};
+// For timeline charts
+"hsl(var(--chart-1))"
+"hsl(var(--chart-2))"
+// for pie charts
+"hsl(var(--pie-chart-1))"
+"hsl(var(--pie-chart-2))"
 
 // Recharts example with theme support
 <ResponsiveContainer>

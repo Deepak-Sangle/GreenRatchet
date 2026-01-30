@@ -272,7 +272,7 @@ export function GhgIntensityAnalytics({
                         <span className="text-muted-foreground">{key}:</span>{" "}
                         <span className="font-medium">{String(value)}</span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>

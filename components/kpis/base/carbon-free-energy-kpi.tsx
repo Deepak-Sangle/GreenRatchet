@@ -3,7 +3,7 @@
 import { getCarbonFreeEnergyDataAction } from "@/app/actions/kpi/carbon-free-energy-analytics";
 import { ExternalLink, Zap } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
-import { CarbonFreeEnergyStats } from "../carbon-free-energy-stats";
+import { CarbonFreeEnergyStats } from "../carbon-free-energy-pie-chart";
 
 export function CarbonFreeEnergyKpi() {
   return (

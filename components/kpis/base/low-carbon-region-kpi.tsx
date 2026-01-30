@@ -4,7 +4,6 @@ import { getLowCarbonRegionDataAction } from "@/app/actions/kpi/low-carbon-regio
 import { Globe } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { LowCarbonRegionPieChart } from "../low-carbon-region-pie-chart";
-import { RegionalInsightsCard } from "../regional-insights-card";
 
 export function LowCarbonRegionKpi() {
   return (
@@ -33,13 +32,7 @@ export function LowCarbonRegionKpi() {
               solely on offsets."
       fetchAction={getLowCarbonRegionDataAction}
       renderAnalytics={(data) => (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <LowCarbonRegionPieChart data={data.pieData} />
-          <RegionalInsightsCard
-            categoryStats={data.categoryStats}
-            totalCo2e={data.totalCo2e}
-          />
-        </div>
+        <LowCarbonRegionPieChart data={data.pieData} />
       )}
       kpiType="LOW_CARBON_REGION_PERCENTAGE"
     />

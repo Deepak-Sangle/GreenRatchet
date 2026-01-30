@@ -1,16 +1,8 @@
 "use client";
 
-import { formatDate, formatPercentage } from "@/lib/utils";
-import { useMemo } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { GenericTimelineChart, type TimelineConfig, type LineConfig } from "@/components/ui/generic-timeline-chart";
+import { formatPercentage } from "@/lib/utils";
+import { Cpu } from "lucide-react";
 
 interface AIUsageTimelineData {
   date: string;
@@ -25,157 +17,96 @@ interface AIUsageTimelineChartProps {
   showCumulative?: boolean;
 }
 
+function formatEnergy(value: number | undefined): string {
+  if (value == null) return "N/A";
+  return `${value.toFixed(2)} kWh`;
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function AIUsageTimelineChart({
   data,
   showCumulative = false,
 }: AIUsageTimelineChartProps) {
-  const chartData = useMemo(() => {
-    return data.map((item) => ({
-      month: new Date(item.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      percentage: item.percentage,
-      aiKwh: item.aiKwh,
-      cumulative: showCumulative ? item.cumulativeAiKwh : null,
-    }));
-  }, [data, showCumulative]);
+  const timelineData = data.map((d) => ({
+    month: d.date,
+    lines: showCumulative
+      ? { percentage: d.percentage, cumulative: d.cumulativeAiKwh }
+      : { percentage: d.percentage, cumulative: null },
+    isProjected: false,
+  }));
 
-  const maxPercentage = Math.max(...data.map((d) => d.percentage), 10);
+  const totalAiEnergy = data.reduce((sum, d) => sum + d.aiKwh, 0);
+
+  const config: TimelineConfig = {
+    title: "AI Usage Timeline",
+    description: `AI workload percentage over time${showCumulative ? " with cumulative energy" : ""}`,
+    icon: Cpu,
+    iconColor: "text-primary",
+    height: 320,
+    yAxisFormatter: (value: number) => `${value}%`,
+    showProjectionLine: false,
+    showStats: true,
+    stats: [
+      {
+        label: "Current Period",
+        value:
+          data.length > 0
+            ? `${formatDate(data[0]?.date)} - ${formatDate(data[data.length - 1]?.date)}`
+            : "No data",
+      },
+      {
+        label: "Total AI Energy",
+        value: totalAiEnergy,
+        formatter: formatEnergy,
+      },
+    ],
+  };
+
+  const lines: LineConfig[] = showCumulative
+    ? [
+        {
+          key: "percentage",
+          label: "AI Usage %",
+          color: "hsl(var(--primary))",
+        },
+        {
+          key: "cumulative",
+          label: "Cumulative AI kWh",
+          color: "hsl(var(--chart-2))",
+        },
+      ]
+    : [
+        {
+          key: "percentage",
+          label: "AI Usage %",
+          color: "hsl(var(--primary))",
+        },
+      ];
+
+  const tooltipFormatter = (
+    value: number | undefined,
+    lineKey: string,
+  ): [string, string] => {
+    if (lineKey === "percentage") {
+      return [formatPercentage(value), "AI Usage"];
+    }
+    if (lineKey === "cumulative") {
+      return [formatEnergy(value), "Cumulative"];
+    }
+    return [value?.toString() || "N/A", lineKey];
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="aiUsageGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="hsl(var(--primary))"
-                  stopOpacity={0.3}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="hsl(var(--primary))"
-                  stopOpacity={0}
-                />
-              </linearGradient>
-              {showCumulative && (
-                <linearGradient
-                  id="cumulativeGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--chart-2))"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--chart-2))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              )}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis
-              dataKey="month"
-              axisLine={false}
-              tickLine={false}
-              className="text-xs fill-muted-foreground"
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              className="text-xs fill-muted-foreground"
-              domain={[0, Math.ceil(maxPercentage * 1.1)]}
-              tickFormatter={(value) => `${value}%`}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0]?.payload;
-                  return (
-                    <div className="rounded-lg border bg-background p-3 shadow-md">
-                      <p className="font-medium">{label}</p>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-muted-foreground">
-                            AI Usage:
-                          </span>
-                          <span className="font-medium text-primary">
-                            {formatPercentage(data.percentage)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-muted-foreground">
-                            AI Energy:
-                          </span>
-                          <span>{data.aiKwh.toFixed(2)} kWh</span>
-                        </div>
-                        {showCumulative && data.cumulative !== null && (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">
-                              Cumulative:
-                            </span>
-                            <span>{data.cumulative.toFixed(2)} kWh</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="percentage"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              fill="url(#aiUsageGradient)"
-              name="AI Usage %"
-            />
-            {showCumulative && (
-              <Area
-                type="monotone"
-                dataKey="cumulative"
-                stroke="hsl(var(--chart-2))"
-                strokeWidth={2}
-                fill="url(#cumulativeGradient)"
-                name="Cumulative AI kWh"
-                yAxisId="right"
-              />
-            )}
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div className="space-y-1">
-          <p className="text-muted-foreground">Current Period</p>
-          <p className="font-medium">
-            {data.length > 0 ? formatDate(data[0]?.date) : "No data"} -{" "}
-            {data.length > 0
-              ? formatDate(data[data.length - 1]?.date)
-              : "No data"}
-          </p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-muted-foreground">Total AI Energy</p>
-          <p className="font-medium">
-            {data.reduce((sum, d) => sum + d.aiKwh, 0).toFixed(2)} kWh
-          </p>
-        </div>
-      </div>
-    </div>
+    <GenericTimelineChart
+      data={timelineData}
+      config={config}
+      lines={lines}
+      xAxisFormatter={formatDate}
+      tooltipFormatter={tooltipFormatter}
+    />
   );
 }

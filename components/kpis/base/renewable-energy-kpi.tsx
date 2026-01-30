@@ -3,7 +3,7 @@
 import { getRenewableEnergyDataAction } from "@/app/actions/kpi/renewable-energy-analytics";
 import { ExternalLink, Wind } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
-import { RenewableEnergyStats } from "../renewable-energy-stats";
+import { RenewableEnergyStats } from "../renewable-energy-pie-chart";
 
 export function RenewableEnergyKpi() {
   return (

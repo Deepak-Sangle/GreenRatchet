@@ -37,10 +37,7 @@ export function ElectricityMixKpi() {
       fetchAction={getElectricityMixDataAction}
       renderAnalytics={(data) => (
         <div className="space-y-6">
-          <ElectricityMixStats
-            averages={data.averages}
-            totalCo2e={data.totalCo2e}
-          />
+          <ElectricityMixStats averages={data.averages} />
           <ElectricityMixTimelineChart data={data.timeline} />
           <div className="pt-4 border-t">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
