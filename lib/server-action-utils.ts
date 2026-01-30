@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 export type UserWithOrg = {
   id: string;
@@ -94,12 +95,14 @@ export function handleServerActionError(error: unknown, context: string) {
     error: error instanceof Error ? error.message : `Failed to ${context}`,
   };
 }
+
 /**
- * Simple wrapper for server actions
+ * Wrapper for server actions with automatic caching (5 minutes default)
+ * unstable_cache automatically creates cache keys from function implementation and arguments
  */
 export async function withServerAction<T>(
   action: (user: UserWithOrg) => Promise<T>,
-  context: string
+  context: string,
 ): Promise<{ success: true; data: T } | { error: string }> {
   try {
     const userResult = await getAuthenticatedUser();
@@ -107,7 +110,19 @@ export async function withServerAction<T>(
       return { error: userResult.error };
     }
 
-    const data = await action(userResult.user);
+    const user = userResult.user;
+
+    // Wrap action with caching - unstable_cache handles cache keys automatically
+    const cachedAction = unstable_cache(
+      async () => action(user),
+      [context, user.organizationId],
+      {
+        revalidate: 300, // 5 minutes
+        tags: [`org:${user.organizationId}`, `action:${context}`],
+      },
+    );
+
+    const data = await cachedAction();
     return { success: true, data };
   } catch (error) {
     return handleServerActionError(error, context);

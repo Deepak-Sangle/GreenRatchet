@@ -1,6 +1,6 @@
 "use client";
 
-import type { CarbonFreeEnergyData } from "@/app/actions/kpi/carbon-free-energy-analytics";
+import type { CarbonFreeEnergyData } from "@/app/actions/kpis/carbon-free-energy";
 import {
   GenericPieChart,
   type GenericPieChartConfig,
@@ -26,7 +26,7 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
     height: 300,
     showInsights: true,
     insightTitle: "Regional Carbon-Free Energy Insights",
-    insightRules: data.topRegions.slice(0,3).map((region) => ({
+    insightRules: data.topRegions.slice(0, 3).map((region) => ({
       category: region.region,
       thresholds: {
         // Low co2 allocation is good only if the carbon free is low
@@ -49,7 +49,7 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
         status:
           data.weightedCarbonFreePercentage >= 75
             ? "good"
-            : data.weightedCarbonFreePercentage >= 50
+            : data.weightedCarbonFreePercentage >= 40
               ? "warning"
               : "alert",
         title: "Overall Performance",

@@ -1,6 +1,6 @@
 "use client";
 
-import { getRenewableEnergyDataAction } from "@/app/actions/kpi/renewable-energy-analytics";
+import { getRenewableEnergyDataAction } from "@/app/actions/kpis/renewable-energy";
 import { ExternalLink, Wind } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { RenewableEnergyStats } from "../renewable-energy-pie-chart";

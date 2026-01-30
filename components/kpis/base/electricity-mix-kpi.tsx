@@ -3,7 +3,7 @@
 import {
   getElectricityMixDataAction,
   type ElectricityMixData,
-} from "@/app/actions/kpi/electricity-mix-analytics";
+} from "@/app/actions/kpis/electricity-mix";
 import { BarChart3, ExternalLink } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { ElectricityMixStats } from "../electricity-mix-stats";

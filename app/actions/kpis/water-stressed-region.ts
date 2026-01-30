@@ -2,7 +2,7 @@
 
 import { AWS_WATER_STRESS_BY_REGION } from "@/lib/constants";
 import { withServerAction } from "@/lib/server-action-utils";
-import { calculateKPI } from "@/lib/services/kpi-calculator";
+import { getWaterWithdrawalByRegion } from "@/lib/services/cloud-data-service";
 import { getDateRange } from "@/lib/utils/analytics-helpers";
 import {
   buildCategoryStats,
@@ -30,18 +30,11 @@ export async function getWaterStressedRegionDataAction() {
     const organizationId = user.organizationId;
     const { startDate, endDate } = getDateRange(30);
 
-    const result = await calculateKPI(
-      {
-        type: "WATER_WITHDRAWAL",
-        targetValue: 0,
-        direction: "LOWER_IS_BETTER",
-      },
+    const { byRegion } = await getWaterWithdrawalByRegion(
       organizationId,
       startDate,
       endDate,
     );
-
-    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
 
     const categoryTotals: Record<Category, number> = {
       low: 0,

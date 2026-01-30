@@ -1,6 +1,6 @@
 "use client";
 
-import type { RenewableEnergyData } from "@/app/actions/kpi/renewable-energy-analytics";
+import type { RenewableEnergyData } from "@/app/actions/kpis/renewable-energy";
 import {
   GenericPieChart,
   type GenericPieChartConfig,

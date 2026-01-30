@@ -1,6 +1,6 @@
 "use client";
 
-import { getEnergyTimelineAction } from "@/app/actions/kpi/energy-analytics-actions";
+import { getEnergyTimelineAction } from "@/app/actions/kpis/energy-consumption";
 import { Zap } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { EnergyTimelineChart } from "../energy-timeline-chart";

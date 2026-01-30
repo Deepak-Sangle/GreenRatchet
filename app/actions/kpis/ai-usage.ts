@@ -1,39 +1,17 @@
-/**
- * AI Usage Calculator Service
- * Calculates AI-related energy consumption based on EC2 GPU instance types
- */
+"use server";
 
+import { isAIInstance } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { buildCloudFootprintWhereClause } from "./cloud-data-service";
-
-/**
- * AWS GPU instance types used for AI/ML workloads
- */
-const AI_INSTANCE_TYPES = [
-  "p3",
-  "p4",
-  "p5", // NVIDIA V100, A100, H100 for ML training
-  "g4",
-  "g5", // NVIDIA T4, A10G for ML inference/graphics
-  "inf1",
-  "inf2", // AWS Inferentia for ML inference
-  "trn1", // AWS Trainium for ML training
-];
-
-/**
- * Check if a service type represents an AI/ML instance
- */
-export function isAIInstance(serviceType: string | null): boolean {
-  if (!serviceType) return false;
-
-  const instanceFamily = serviceType.split(".")[0]?.toLowerCase();
-  return AI_INSTANCE_TYPES.includes(instanceFamily);
-}
+import { withServerAction } from "@/lib/server-action-utils";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "@/lib/services/cloud-data-service";
 
 /**
  * Calculate AI usage percentage for an organization
  */
-export async function calculateAIUsagePercentage(
+async function calculateAIUsagePercentage(
   organizationId: string,
   startDate: Date,
   endDate: Date,
@@ -87,7 +65,7 @@ export async function calculateAIUsagePercentage(
 /**
  * Get AI usage timeline data for charts
  */
-export async function getAIUsageTimeline(
+async function getAIUsageTimeline(
   organizationId: string,
   startDate: Date,
   endDate: Date,
@@ -165,4 +143,44 @@ export async function getAIUsageTimeline(
       cumulativeAiKwh,
     };
   });
+}
+
+/**
+ * Get AI usage data for the current organization
+ */
+export async function getAIUsageAction() {
+  return withServerAction(async (user) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 30); // Last 30 days
+
+    // Get all cloud connections for the organization
+    const connectionIds = await getOrganizationConnectionIds(
+      user.organizationId,
+    );
+
+    const [currentUsage, timeline] = await Promise.all([
+      calculateAIUsagePercentage(
+        user.organizationId,
+        startDate,
+        endDate,
+        connectionIds,
+      ),
+      getAIUsageTimeline(
+        user.organizationId,
+        startDate,
+        endDate,
+        connectionIds,
+      ),
+    ]);
+
+    return {
+      currentUsage,
+      timeline,
+      period: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+    };
+  }, "get AI usage data");
 }

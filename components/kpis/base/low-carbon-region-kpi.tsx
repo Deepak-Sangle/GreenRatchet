@@ -1,6 +1,6 @@
 "use client";
 
-import { getLowCarbonRegionDataAction } from "@/app/actions/kpi/low-carbon-region-analytics";
+import { getLowCarbonRegionDataAction } from "@/app/actions/kpis/low-carbon-region";
 import { Globe } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { LowCarbonRegionPieChart } from "../low-carbon-region-pie-chart";

@@ -1,6 +1,6 @@
 "use client";
 
-import { getWaterTimelineAction } from "@/app/actions/kpi/water-analytics-actions";
+import { getWaterTimelineAction } from "@/app/actions/kpis/water-withdrawl";
 import { Droplets, ExternalLink } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { WaterTimelineChart } from "../water-timeline-chart";

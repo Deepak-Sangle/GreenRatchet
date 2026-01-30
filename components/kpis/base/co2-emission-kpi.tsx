@@ -1,6 +1,6 @@
 "use client";
 
-import { getCo2eTimelineAction } from "@/app/actions/kpi/co2e-analytics-actions";
+import { getCo2eTimelineAction } from "@/app/actions/kpis/total-co2e-consumption";
 import { Leaf } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { Co2eTimelineChart } from "../co2e-timeline-chart";

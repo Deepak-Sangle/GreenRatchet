@@ -1,7 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { calculateKPI } from "@/lib/services/kpi-calculator";
+import { withServerAction } from "@/lib/server-action-utils";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "@/lib/services/cloud-data-service";
 import {
   calculateAverage,
   getDateRange,
@@ -22,25 +26,27 @@ export interface RenewableEnergyData {
   status: PercentageStatus;
 }
 
-import { withServerAction } from "@/lib/server-action-utils";
-
 export async function getRenewableEnergyDataAction() {
   return withServerAction(async (user) => {
     const organizationId = user.organizationId;
     const { startDate, endDate } = getDateRange(30);
 
-    // Fetch CO2e data and calculate KPI in parallel to avoid sequential queries
-    const [result, co2eData] = await Promise.all([
-      calculateKPI(
-        {
-          type: "RENEWABLE_ENERGY_PERCENTAGE",
-          targetValue: 0,
-          direction: "HIGHER_IS_BETTER",
-        },
-        organizationId,
-        startDate,
-        endDate,
-      ),
+    const connectionIds = await getOrganizationConnectionIds(organizationId);
+
+    // Fetch regional energy and CO2e data in parallel
+    const [regionalEnergy, co2eData] = await Promise.all([
+      prisma.cloudFootprint.groupBy({
+        by: ["region", "cloudProvider"],
+        where: buildCloudFootprintWhereClause(
+          connectionIds,
+          startDate,
+          endDate,
+          {
+            kilowattHours: { not: null },
+          },
+        ),
+        _sum: { kilowattHours: true },
+      }),
       prisma.cloudFootprint.groupBy({
         by: ["region"],
         where: {
@@ -50,8 +56,33 @@ export async function getRenewableEnergyDataAction() {
       }),
     ]);
 
-    const weightedRenewablePercentage = result.actualValue;
-    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
+    // Calculate weighted renewable energy percentage
+    let totalWeightedRenewable = 0;
+    let totalEnergy = 0;
+    const byRegion: Record<string, number> = {};
+
+    for (const r of regionalEnergy) {
+      if (r._sum.kilowattHours !== null) {
+        const energy = r._sum.kilowattHours;
+
+        const renewableData = await prisma.gridRenewableEnergy.findFirst({
+          where: {
+            dataCenterRegion: r.region,
+            dataCenterProvider: r.cloudProvider as "AWS" | "GCP" | "AZURE",
+            datetime: { gte: startDate, lte: endDate },
+          },
+          orderBy: { datetime: "desc" },
+        });
+
+        const renewablePercentage = renewableData?.value ?? 0;
+        totalWeightedRenewable += energy * renewablePercentage;
+        totalEnergy += energy;
+        byRegion[r.region] = renewablePercentage;
+      }
+    }
+
+    const weightedRenewablePercentage =
+      totalEnergy > 0 ? totalWeightedRenewable / totalEnergy : 0;
 
     // Build CO2e map
     const co2eByRegion = new Map(

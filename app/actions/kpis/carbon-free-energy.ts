@@ -2,7 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { withServerAction } from "@/lib/server-action-utils";
-import { calculateKPI } from "@/lib/services/kpi-calculator";
+import {
+  buildCloudFootprintWhereClause,
+  getOrganizationConnectionIds,
+} from "@/lib/services/cloud-data-service";
 import {
   calculateAverage,
   getDateRange,
@@ -28,18 +31,22 @@ export async function getCarbonFreeEnergyDataAction() {
     const organizationId = user.organizationId;
     const { startDate, endDate } = getDateRange(30);
 
-    // Fetch CO2e data and calculate KPI in parallel to avoid sequential queries
-    const [result, co2eData] = await Promise.all([
-      calculateKPI(
-        {
-          type: "CARBON_FREE_ENERGY_PERCENTAGE",
-          targetValue: 0,
-          direction: "HIGHER_IS_BETTER",
-        },
-        organizationId,
-        startDate,
-        endDate,
-      ),
+    const connectionIds = await getOrganizationConnectionIds(organizationId);
+
+    // Fetch regional energy and CO2e data in parallel
+    const [regionalEnergy, co2eData] = await Promise.all([
+      prisma.cloudFootprint.groupBy({
+        by: ["region", "cloudProvider"],
+        where: buildCloudFootprintWhereClause(
+          connectionIds,
+          startDate,
+          endDate,
+          {
+            kilowattHours: { not: null },
+          },
+        ),
+        _sum: { kilowattHours: true },
+      }),
       prisma.cloudFootprint.groupBy({
         by: ["region"],
         where: {
@@ -49,8 +56,33 @@ export async function getCarbonFreeEnergyDataAction() {
       }),
     ]);
 
-    const weightedCarbonFreePercentage = result.actualValue;
-    const byRegion = result.calculationDetails.breakdown?.byRegion ?? {};
+    // Calculate weighted carbon-free energy percentage
+    let totalWeightedCFE = 0;
+    let totalEnergy = 0;
+    const byRegion: Record<string, number> = {};
+
+    for (const r of regionalEnergy) {
+      if (r._sum.kilowattHours !== null) {
+        const energy = r._sum.kilowattHours;
+
+        const cfeData = await prisma.gridCarbonFreeEnergy.findFirst({
+          where: {
+            dataCenterRegion: r.region,
+            dataCenterProvider: r.cloudProvider as "AWS" | "GCP" | "AZURE",
+            datetime: { gte: startDate, lte: endDate },
+          },
+          orderBy: { datetime: "desc" },
+        });
+
+        const cfePercentage = cfeData?.value ?? 0;
+        totalWeightedCFE += energy * cfePercentage;
+        totalEnergy += energy;
+        byRegion[r.region] = cfePercentage;
+      }
+    }
+
+    const weightedCarbonFreePercentage =
+      totalEnergy > 0 ? totalWeightedCFE / totalEnergy : 0;
 
     // Build CO2e map
     const co2eByRegion = new Map(

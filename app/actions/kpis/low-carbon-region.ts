@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { withServerAction } from "@/lib/server-action-utils";
 import {
   buildCategoryStats,
   buildPieData,
@@ -21,8 +22,6 @@ export interface RegionalCo2eData {
     high: { percentage: number; co2e: number };
   };
 }
-
-import { withServerAction } from "@/lib/server-action-utils";
 
 export async function getLowCarbonRegionDataAction() {
   return withServerAction(async (user) => {

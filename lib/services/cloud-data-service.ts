@@ -6,6 +6,7 @@
 
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getWUEForRegion } from "../constants";
 
 /**
  * Get cloud connection IDs for an organization
@@ -209,9 +210,6 @@ export async function getWaterWithdrawalByRegion(
 
   let total = 0;
   const byRegion: Record<string, number> = {};
-
-  // Import WUE function dynamically to avoid circular dependency
-  const { getWUEForRegion } = await import("@/lib/constants/wue-data");
 
   results.forEach((result) => {
     if (result._sum.kilowattHours !== null) {

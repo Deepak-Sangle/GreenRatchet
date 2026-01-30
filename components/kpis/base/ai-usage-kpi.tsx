@@ -1,6 +1,6 @@
 "use client";
 
-import { getAIUsageAction } from "@/app/actions/kpi/ai-usage-analytics";
+import { getAIUsageAction } from "@/app/actions/kpis/ai-usage";
 import { formatPercentage } from "@/lib/utils";
 import { Cpu, Zap } from "lucide-react";
 import { AIUsageTimelineChart } from "../ai-usage-timeline-chart";

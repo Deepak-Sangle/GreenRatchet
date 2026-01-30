@@ -3,7 +3,7 @@
 import {
   getWaterStressedRegionDataAction,
   type RegionalWaterData,
-} from "@/app/actions/kpi/water-stressed-region-analytics";
+} from "@/app/actions/kpis/water-stressed-region";
 import { Droplets, ExternalLink } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
 import { WaterStressedRegionPieChart } from "../water-stressed-region-pie-chart";

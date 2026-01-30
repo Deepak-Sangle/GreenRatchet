@@ -1,7 +1,11 @@
 "use client";
 
-import type { ElectricityMixDataPoint } from "@/app/actions/kpi/electricity-mix-analytics";
-import { GenericTimelineChart, type TimelineConfig, type LineConfig } from "@/components/ui/generic-timeline-chart";
+import type { ElectricityMixDataPoint } from "@/app/actions/kpis/electricity-mix";
+import {
+  GenericTimelineChart,
+  type LineConfig,
+  type TimelineConfig,
+} from "@/components/ui/generic-timeline-chart";
 import { formatPercentage } from "@/lib/utils";
 import { Zap } from "lucide-react";
 import { formatMonth } from "../ui/chart-wrapper";

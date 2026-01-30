@@ -1,6 +1,6 @@
 "use client";
 
-import { getGhgIntensityAction } from "@/app/actions/kpi/ghg-intensity-actions";
+import { getGhgIntensityAction } from "@/app/actions/kpis/ghg-intensity";
 import { DashboardItem } from "@/components/shared/dashboard-card";
 import { TrendingDown } from "lucide-react";
 import { BaseKpiCard } from "../base-kpi-card";
