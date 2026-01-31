@@ -12,39 +12,32 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getKPIUnit } from "@/lib/utils";
 import { Cloud, Plus, Target } from "lucide-react";
-import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-const getDashboardData = unstable_cache(
-  async (userId: string) => {
-    return prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        organization: {
-          include: {
-            kpis: {
-              orderBy: { createdAt: "desc" },
-              include: {
-                results: {
-                  orderBy: { periodEnd: "desc" },
-                  take: 1,
-                },
+const getDashboardData = async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      organization: {
+        include: {
+          kpis: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              results: {
+                orderBy: { periodEnd: "desc" },
+                take: 1,
               },
             },
-            cloudConnections: {
-              where: { isActive: true },
-            },
+          },
+          cloudConnections: {
+            where: { isActive: true },
           },
         },
       },
-    });
-  },
-  ["dashboard"],
-  {
-    revalidate: 60,
-  },
-);
+    },
+  });
+};
 
 export default async function DashboardPage() {
   const session = await auth();
