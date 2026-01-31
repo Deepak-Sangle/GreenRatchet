@@ -13,7 +13,7 @@ export default async function AnalyticsPage() {
   // Get user with organization
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, organizationId: true, role: true },
+    select: { id: true, organizationId: true },
   });
 
   if (!user || !user.organizationId) {
@@ -44,7 +44,5 @@ export default async function AnalyticsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  return (
-    <AnalyticsPageClient kpis={kpis} userRole={user.role} userId={user.id} />
-  );
+  return <AnalyticsPageClient kpis={kpis} userId={user.id} />;
 }

@@ -24,10 +24,7 @@ export function EnergyConsumptionKpi() {
               provider disclosures and industry-standard conversion factors. A
               decrease in total energy consumption indicates more efficient
               workload design, reduced waste, and better use of managed or
-              serverless services. From a lender’s perspective, this KPI
-              provides a transparent, technology-level indicator of operational
-              efficiency and serves as a leading signal for future emissions
-              reductions, especially when paired with carbon-based metrics."
+              serverless services."
       fetchAction={getEnergyTimelineAction}
       renderAnalytics={(data) => <EnergyTimelineChart data={data} />}
       kpiType="ENERGY_CONSUMPTION"

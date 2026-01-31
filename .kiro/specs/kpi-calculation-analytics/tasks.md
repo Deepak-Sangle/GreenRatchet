@@ -64,7 +64,6 @@
   - Implement `getKPIAnalyticsAction()` to fetch all KPIs with results for user's organization
   - Implement `refreshKPICalculationsAction()` to trigger calculations for all accepted KPIs
   - Implement `getKPIDetailedAnalyticsAction()` to fetch detailed analytics for a specific KPI
-  - Include authorization checks (borrower or lender access)
   - Calculate trend direction from historical results
   - Include margin ratchet details if they exist
   - Add proper error handling
@@ -190,7 +189,6 @@
   - Show loading states while fetching data
   - Show error states if fetching fails
   - Show empty state if no KPIs exist
-  - Include lender context (borrower org name) when user is lender
   - _Requirements: 2.1, 2.2, 3.1, 3.3, 3.4, 3.5, 6.1, 6.2, 6.3, 8.6, 8.7_
 
 - [ ]\* 13.1 Write property test for KPI display completeness

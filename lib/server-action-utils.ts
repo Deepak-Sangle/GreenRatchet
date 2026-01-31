@@ -1,11 +1,9 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { unstable_cache } from "next/cache";
 
 export type UserWithOrg = {
   id: string;
   organizationId: string;
-  role: string;
   organization: {
     id: string;
     employeeCount: number | null;
@@ -28,7 +26,6 @@ export async function getAuthenticatedUser(): Promise<
     where: { id: session.user.id },
     select: {
       id: true,
-      role: true,
       organizationId: true,
       organization: {
         select: {
@@ -48,7 +45,6 @@ export async function getAuthenticatedUser(): Promise<
     success: true,
     user: {
       id: user.id,
-      role: user.role,
       organizationId: user.organizationId,
       organization: user.organization,
     },
@@ -113,19 +109,20 @@ export async function withServerAction<T>(
     const user = userResult.user;
 
     // Wrap action with caching - unstable_cache handles cache keys automatically
-    const cachedAction = unstable_cache(
-      async () => {
-        console.log(`Cache miss for the context: ${context}`);
-        return action(user);
-      },
-      [context, user.organizationId],
-      {
-        revalidate: 300, // 5 minutes
-        tags: [`org:${user.organizationId}`, `action:${context}`],
-      },
-    );
+    // not using cache by/default bcz it causes issues if some other data is updated
+    // const cachedAction = unstable_cache(
+    //   async () => {
+    //     console.log(`Cache miss for the context: ${context}`);
+    //     return action(user);
+    //   },
+    //   [context, user.organizationId],
+    //   {
+    //     revalidate: 300, // 5 minutes
+    //     tags: [`org:${user.organizationId}`, `action:${context}`],
+    //   },
+    // );
 
-    const data = await cachedAction();
+    const data = await action(user);
     return { success: true, data };
   } catch (error) {
     return handleServerActionError(error, context);

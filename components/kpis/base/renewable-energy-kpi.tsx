@@ -24,11 +24,7 @@ export function RenewableEnergyKpi() {
               certificates to regional workload energy consumption, expressed as
               a percentage of total cloud energy use. An increase in this metric
               indicates stronger alignment with clean-energy sourcing strategies
-              and supports emissions reduction over time. For lenders, Renewable
-              Energy % is a familiar and comparable indicator that signals
-              progress toward net-zero commitments, while also providing
-              assurance that cloud-related emissions are being addressed through
-              verifiable energy sourcing mechanisms."
+              and supports emissions reduction over time."
       fetchAction={getRenewableEnergyDataAction}
       renderAnalytics={(data) => (
         <>

@@ -26,7 +26,7 @@ export function CarbonFreeEnergyStats({ data }: CarbonFreeEnergyStatsProps) {
     height: 300,
     showInsights: true,
     insightTitle: "Regional Carbon-Free Energy Insights",
-    insightRules: data.topRegions.slice(0, 3).map((region) => ({
+    insightRules: data.topRegions.map((region) => ({
       category: region.region,
       thresholds: {
         // Low co2 allocation is good only if the carbon free is low

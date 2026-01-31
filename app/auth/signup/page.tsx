@@ -73,12 +73,6 @@ export default function SignUpPage() {
                   {error}
                 </div>
               )}
-              {/* Default role to BORROWER (Organization Admin) */}
-              <input
-                type="hidden"
-                {...form.register("role")}
-                value="BORROWER"
-              />
               <FormField
                 control={form.control}
                 name="organizationName"

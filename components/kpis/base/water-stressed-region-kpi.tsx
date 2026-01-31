@@ -28,11 +28,7 @@ export function WaterStressedRegionKpi() {
               extremely high water stress based on recognised water-risk
               indices. A decrease in this percentage indicates more responsible
               workload placement, reduced exposure to physical water risk, and
-              improved resilience of cloud operations. For lenders, this KPI
-              highlights how the borrower is managing location-specific
-              natural-resource risks and demonstrates a more holistic approach
-              to sustainability beyond carbon alone, which is increasingly
-              important in long-term credit assessments."
+              improved resilience of cloud operations."
       fetchAction={getWaterStressedRegionDataAction}
       renderAnalytics={(data) => (
         <>

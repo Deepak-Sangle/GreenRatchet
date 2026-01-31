@@ -24,11 +24,7 @@ export function WaterWithdrawalKpi() {
               and services. A reduction in total water withdrawal indicates
               improved efficiency, smarter workload placement, or greater
               reliance on facilities with advanced cooling technologies and
-              lower water intensity. For lenders, this KPI highlights exposure
-              to physical climate and resource-availability risks and
-              demonstrates that the borrower is managing not only carbon impacts
-              but also broader natural-resource dependencies associated with
-              digital infrastructure."
+              lower water intensity."
       fetchAction={getWaterTimelineAction}
       renderAnalytics={(data) => (
         <>

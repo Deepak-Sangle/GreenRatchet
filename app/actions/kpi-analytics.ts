@@ -66,14 +66,13 @@ export async function refreshKPICalculationsAction(): Promise<
       where: { id: session.user.id },
       select: {
         id: true,
-        role: true,
         organizationId: true,
       },
     });
 
     // 3. Authorization
     if (!user || !user.organizationId) {
-      return { error: "Only borrowers can trigger KPI calculations" };
+      return { error: "No user or organization found" };
     }
 
     // 4. Fetch all accepted KPIs for the organization

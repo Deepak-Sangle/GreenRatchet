@@ -25,11 +25,7 @@ export function CarbonFreeEnergyKpi() {
               basis, expressed as a percentage of total cloud energy use. An
               increase in CFE % indicates that workloads are increasingly
               aligned with cleaner grids or regions supported by renewable
-              energy procurement. For lenders, this KPI demonstrates alignment
-              with long-term decarbonisation pathways, reduces transition risk
-              associated with fossil-fuel dependency, and provides confidence
-              that emissions reductions are being achieved through structural
-              changes rather than short-term measures."
+              energy procurement."
       fetchAction={getCarbonFreeEnergyDataAction}
       renderAnalytics={(data) => (
         <>

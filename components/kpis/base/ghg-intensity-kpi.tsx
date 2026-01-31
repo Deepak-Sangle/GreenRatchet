@@ -32,11 +32,7 @@ export function GhgIntensityKpi() {
             total revenue over the same period. A reduction in this metric
             indicates that the organisation is becoming more carbon-efficient as
             it grows, through improved cloud architecture, better resource
-            utilisation, or cleaner energy sources. For lenders, this KPI is
-            especially valuable because it normalises emissions against business
-            performance, enabling fair comparison across companies and ensuring
-            that sustainability targets remain ambitious yet achievable during
-            periods of expansion."
+            utilisation, or cleaner energy sources."
       fetchAction={getGhgIntensityAction}
       renderAnalytics={(data) => (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">

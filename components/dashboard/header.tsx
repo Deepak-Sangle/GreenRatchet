@@ -13,7 +13,6 @@ interface HeaderProps {
     id: string;
     name: string | null;
     email: string | null;
-    role: string;
     avatarUrl: string | null;
   };
   organization: {
@@ -97,9 +96,6 @@ export function Header({ user, organization }: HeaderProps) {
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-foreground leading-tight">
                 {user.name}
-              </p>
-              <p className="text-xs font-medium text-muted-foreground">
-                {user.role === "BORROWER" ? "Borrower" : "Lender"}
               </p>
             </div>
 

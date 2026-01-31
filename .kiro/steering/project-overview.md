@@ -1,22 +1,21 @@
 # GreenRatchet - Project Overview
 
-GreenRatchet is a platform for users to manage their sustainability initiatives by regularly monitoring their cloud performance and associated KPIs.
+Cloud sustainability monitoring platform for tracking environmental metrics and KPIs.
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15, TypeScript, shadcn/ui, Tailwind CSS
-- **Backend**: Server Actions, Prisma ORM, NextJs Backend
-- **Database**: PostgreSQL (via Prisma + Supabase)
-- **Authentication**: NextAuth.js v5
-- **Validation**: Zod schemas (auto-generated from Prisma)
-- **Pattern Matching**: ts-pattern library
-- **Icons**: lucide-react
+- **Backend**: Server Actions, Prisma ORM
+- **Database**: PostgreSQL (Supabase)
+- **Auth**: NextAuth.js v5
+- **Validation**: Zod (auto-generated from Prisma)
 - **Charts**: Recharts
-- **Scraping**: Cheerio + user-agents
-- **Proxy**: https-proxy-agent
+- **Icons**: lucide-react
+- **External APIs**: Electricity Maps, AWS/GCP/Azure
 
-## Key Features
+## Key Patterns
 
-- Cloud usage monitoring and optimization (AWS, GCP, Azure)
-- Complete transparency in associated calculations
-- Real-time KPI tracking and pre-warnings
+- Server Actions with `withServerAction` wrapper (auto-caching)
+- Prisma groupBy for aggregations
+- Parallel DB queries with `Promise.all`
+- Batch fetching with lookup maps for N+1 prevention

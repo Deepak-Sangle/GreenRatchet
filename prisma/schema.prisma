@@ -19,7 +19,6 @@ model User {
   // emailVerified  DateTime?
   password       String
   image          String?
-  role           UserRole
   organizationId String?
   lastLoginAt    DateTime?     @default(now())
   createdAt      DateTime      @default(now())
@@ -34,7 +33,6 @@ model User {
 model Organization {
   id               String            @id @default(cuid())
   name             String
-  type             UserRole
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   logoUrl          String?
@@ -257,11 +255,6 @@ model GridElectricityMix {
   @@unique([dataCenterRegion, dataCenterProvider, datetime])
   @@index([dataCenterRegion, dataCenterProvider])
   @@index([datetime])
-}
-
-enum UserRole {
-  BORROWER
-  LENDER
 }
 
 enum CloudProvider {

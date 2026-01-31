@@ -53,13 +53,11 @@ type KPI = {
 
 interface AnalyticsPageClientProps {
   kpis: KPI[];
-  userRole: string;
   userId: string;
 }
 
 export function AnalyticsPageClient({
   kpis,
-  userRole,
   userId,
 }: AnalyticsPageClientProps) {
   const [isPending, startTransition] = useTransition();

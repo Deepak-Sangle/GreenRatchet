@@ -29,11 +29,7 @@ export function ElectricityMixKpi() {
               provided by cloud providers or grid operators and expressing each
               source as a percentage of total energy consumption. A shift toward
               cleaner sources within the mix indicates structural
-              decarbonisation rather than short-term optimisation. For lenders,
-              this KPI provides transparency into energy dependency risks,
-              enables trend-based assessment of sustainability progress, and
-              supports confidence that emissions reductions are driven by
-              lasting changes in the underlying power supply."
+              decarbonization rather than short-term optimization."
       fetchAction={getElectricityMixDataAction}
       renderAnalytics={(data) => (
         <div className="space-y-6">

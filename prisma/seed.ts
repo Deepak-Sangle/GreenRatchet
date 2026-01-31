@@ -6,55 +6,25 @@ import bcrypt from "bcryptjs";
 async function main() {
   console.log("Seeding database...");
 
-  // Create borrower organization
-  const borrowerOrg = await prisma.organization.upsert({
-    where: { id: "borrower-org-1" },
+  const org = await prisma.organization.upsert({
+    where: { id: "org-1" },
     update: {},
     create: {
-      id: "borrower-org-1",
+      id: "org-1",
       name: "TechCorp AI",
-      type: "BORROWER",
     },
   });
 
-  // Create lender organization
-  const lenderOrg = await prisma.organization.upsert({
-    where: { id: "lender-org-1" },
-    update: {},
-    create: {
-      id: "lender-org-1",
-      name: "Green Capital Bank",
-      type: "LENDER",
-    },
-  });
-
-  // Create borrower user
-  const hashedPasswordBorrower = await bcrypt.hash("password123", 10);
-  const borrowerUser = await prisma.user.upsert({
-    where: { email: "borrower@techcorp.ai" },
-    update: {},
-    create: {
-      id: "borrower-user-1",
-      email: "borrower@techcorp.ai",
-      password: hashedPasswordBorrower,
-      name: "Alice Johnson",
-      role: "BORROWER",
-      organizationId: borrowerOrg.id,
-    },
-  });
-
-  // Create lender user
-  const hashedPasswordLender = await bcrypt.hash("password123", 10);
+  const hashedPassword = await bcrypt.hash("password123", 10);
   await prisma.user.upsert({
-    where: { email: "lender@greencapital.com" },
+    where: { email: "user@techcorp.ai" },
     update: {},
     create: {
-      id: "lender-user-1",
-      email: "lender@greencapital.com",
-      password: hashedPasswordLender,
-      name: "Bob Smith",
-      role: "LENDER",
-      organizationId: lenderOrg.id,
+      id: "user-1",
+      email: "user@techcorp.ai",
+      password: hashedPassword,
+      name: "Alice Johnson",
+      organizationId: org.id,
     },
   });
 
@@ -73,7 +43,7 @@ async function main() {
       frequency: "ANNUAL",
       baselineValue: 12.5,
       effectiveFrom: new Date("2024-01-01"),
-      organizationId: borrowerOrg.id,
+      organizationId: org.id,
     },
   });
 
@@ -91,14 +61,12 @@ async function main() {
       frequency: "ANNUAL",
       baselineValue: 45.0,
       effectiveFrom: new Date("2024-01-01"),
-      organizationId: borrowerOrg.id,
+      organizationId: org.id,
     },
   });
 
   console.log("Seed data created successfully!");
   console.log("\nDemo Credentials:");
-  console.log("Borrower: borrower@techcorp.ai / password123");
-  console.log("Lender: lender@greencapital.com / password123");
 }
 
 main()

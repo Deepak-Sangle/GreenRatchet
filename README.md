@@ -1,95 +1,112 @@
-# GreenRatchet - Sustainability-Linked Loans Platform
+# The problem - Cloud Sustainability
 
-A production-credible platform for managing Sustainability-Linked Loans (SLLs) with automated ESG assurance for AI workloads. GreenRatchet enables financial institutions and organizations to create, monitor, and manage sustainability-linked financing with real-time environmental impact tracking.
+AI and cloud usage is growing rapidly. Every day, new applications are built and shipped without much thought about how this invisible infrastructure impacts the environment. And the reason is because sustainability in the cloud is rarely treated as a first-class concern and many people don’t even realize it’s a real, measurable problem.
+
+Most large tech companies publish sustainability reports as part of their compliance, but creating these reports is a painful, manual process. The required data is scattered across invoices, monitoring tools, and internal dashboards, often stitched together using spreadsheets. On top of that, the calculations depend on CO₂e and greenhouse gas emission formulas that the average engineer isn’t familiar with, which means producing these reports usually requires dedicated experts rather than the teams actually running the infrastructure.
+
+Even worse, these reports arrive too late to be useful. They’re published at the end of the year, long after architectural decisions have been made and inefficient workloads have already run at scale. During the actual evaluation period, when changes could still be made, developers have no clear visibility into whether their key performance indicators (KPIs) are improving or worsening from a sustainability perspective.
 
 ## 🌱 What is GreenRatchet?
 
-GreenRatchet is a comprehensive platform that bridges the gap between sustainable finance and AI infrastructure. It provides automated, continuous, cloud-native ESG assurance by connecting directly to cloud providers (AWS, GCP, Azure) to track real-time environmental metrics and automatically calculate sustainability KPIs.
+GreenRatchet automates cloud sustainability monitoring by integrating directly with cloud providers to track environmental metrics. It provides real-time KPI tracking, analytics, and reporting for organizations committed to reducing their cloud infrastructure's environmental footprint.
 
 ### Key Value Propositions
 
-- **Automated ESG Assurance**: No manual reporting - direct cloud integration provides real-time data
-- **AI-Focused Sustainability**: Specialized tracking for AI workloads and GPU-intensive operations
-- **Financial Integration**: Direct impact on loan margins through margin ratchets tied to KPI performance
-- **Complete Auditability**: Immutable audit trail with versioned calculations and full metadata
-- **Production-Ready**: Built for enterprise use with security, scalability, and compliance in mind
+- **Automated Monitoring**: Direct cloud integration eliminates manual reporting
+- **Real-Time Insights**: Live environmental metrics and KPI tracking
+- **Multi-Cloud Support**: AWS, GCP, and Azure integration
+- **Complete Transparency**: Full calculation methodology and audit trails
+- **Production-Ready**: Enterprise-grade security and scalability
 
 ## 🎯 Core Features
 
-### Sustainability-Linked Loans Management
+### Environmental Tracking
 
-- **Loan Creation**: Define loan terms, amounts, and sustainability targets
-- **KPI Definition**: Set measurable environmental KPIs with specific targets and thresholds
-- **Margin Ratchets**: Automatic interest rate adjustments based on KPI performance
-- **Multi-Party Workflow**: Borrower-lender collaboration with approval workflows
-
-### Real-Time Environmental Tracking
-
-- **Cloud Integration**: Direct connections to AWS, GCP, and Azure accounts
+- **Cloud Integration**: Direct connections to AWS, GCP, and Azure
+- **Carbon Footprint**: Real-time CO2e emissions tracking with regional grid data
+- **Energy Monitoring**: Comprehensive energy consumption analytics
+- **Water Usage**: Water consumption metrics for data centers
 - **AI Workload Detection**: Automatic identification of GPU instances and AI services
-- **Carbon Footprint Calculation**: Real-time CO2e emissions tracking with regional grid data
-- **Energy Consumption Monitoring**: Comprehensive energy usage analytics
-- **Water Usage Tracking**: Water consumption metrics for data centers
 
-### Advanced Analytics & Reporting
+### KPI Dashboard
 
-- **Interactive Dashboards**: Real-time KPI performance visualization
-- **Trend Analysis**: Historical performance tracking and forecasting
-- **Regional Analysis**: Geographic breakdown of environmental impact
-- **Comparative Analytics**: Benchmarking against industry standards
-- **Export Capabilities**: Generate reports for compliance and legal documentation
-
-### Comprehensive KPI Suite
-
-- **CO2 Emissions**: Total greenhouse gas emissions tracking
-- **GHG Intensity**: Emissions per employee and per revenue metrics
+- **CO2 Emissions**: Total greenhouse gas emissions
+- **GHG Intensity**: Emissions per employee and per revenue
 - **Energy Consumption**: Total and renewable energy usage
-- **Water Withdrawal**: Water usage in water-stressed regions
-- **AI Compute Hours**: Specialized AI workload tracking
-- **Low-Carbon Regions**: Percentage of workloads in low-carbon regions
-- **Water Stressed Region**: Percentage of workloads in water-stressed regions
-- **Carbon-Free Energy**: Percentage of carbon-free energy usage
-- **Renewable Energy**: Renewable energy consumption tracking
+- **Water Withdrawal**: Usage in water-stressed regions
+- **AI Compute Hours**: AI/ML workload tracking
+- **Renewable Energy %**: Clean energy consumption
+- **Carbon-Free Energy %**: Zero-carbon electricity usage
+- **Low-Carbon Regions %**: Workloads in low-carbon areas
 - **Electricity Mix**: Grid composition analysis
 
-## 🏗️ Architecture & Technology
+### Analytics & Reporting
 
-### Modern Tech Stack
+- **Interactive Dashboards**: Real-time KPI visualization
+- **Trend Analysis**: Historical performance and forecasting
+- **Regional Breakdown**: Geographic environmental impact
+- **Export Capabilities**: Generate compliance reports
 
-- **Frontend**: Next.js 15 with App Router and Server Components
+## 🏗️ Architecture
+
+### Tech Stack
+
+- **Frontend**: Next.js 15 with App Router, TypeScript, Tailwind CSS
 - **Backend**: Server Actions with Prisma ORM
-- **Database**: PostgreSQL with comprehensive indexing
-- **Authentication**: NextAuth.js v5 with role-based access
-- **UI/UX**: Tailwind CSS with shadcn/ui components
-- **Charts**: Recharts with custom dark mode support
-- **Validation**: Zod schemas with auto-generation from Prisma
-- **Type Safety**: Full TypeScript coverage with strict mode
+- **Database**: PostgreSQL (Supabase)
+- **Auth**: NextAuth.js v5
+- **UI**: shadcn/ui components with lucide-react icons
+- **Charts**: Recharts with dark mode support
+- **Validation**: Zod schemas (auto-generated from Prisma)
 
-### Cloud Integrations
+### Key Components
 
-- **AWS**: Cost Explorer, EC2, EKS, CloudWatch integration
-- **Google Cloud**: Billing API, Compute Engine, GKE monitoring
-- **Azure**: Cost Management, Virtual Machines, AKS tracking
-- **Electricity Maps**: Real-time grid carbon intensity data
-- **Carbon Cloud Framework**: Industry-standard carbon calculations
+**Server Actions** (`app/actions/`)
 
-### Security & Compliance
+- All data fetching wrapped with `withServerAction`
+- Automatic authentication and 5-minute caching
+- Returns `{ success: true, data }` or `{ error: string }`
 
-- **Role-Based Access Control**: Borrower and Lender role separation
-- **Audit Logging**: Complete activity tracking with immutable records
-- **Data Encryption**: End-to-end encryption for sensitive data
-- **API Security**: Rate limiting and authentication for all endpoints
-- **Compliance Ready**: Built for SOC 2, ISO 27001 requirements
+**Services** (`lib/services/`)
+
+- `cloud-data-service.ts` - Shared query builders
+- `electricity-maps.ts` - Grid data integration
+- `electricity-mix-service.ts` - Energy mix calculations
+
+**Components** (`components/`)
+
+- `kpis/base/` - KPI card components using `BaseKpiCard`
+- `analytics/` - Chart and visualization components
+- `ui/` - Reusable UI components
+
+### Database Schema
+
+**Core Tables**
+
+- `User` - User accounts with organization association
+- `Organization` - Multi-tenant organization data
+- `CloudConnection` - AWS/GCP/Azure connection credentials
+- `CloudFootprint` - Cloud usage and emissions data
+- `KPI` - KPI definitions and targets
+- `KPIResult` - Calculated KPI results
+
+**Grid Data Tables** (from Electricity Maps)
+
+- `GridCarbonIntensity` - Regional carbon intensity
+- `GridCarbonFreeEnergy` - Carbon-free energy percentages
+- `GridRenewableEnergy` - Renewable energy percentages
+- `GridElectricityMix` - Energy source breakdown
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+
 - PostgreSQL database
-- Cloud provider accounts (AWS/GCP/Azure) for production use
+- Electricity Maps API key (for grid data)
+- Cloud provider accounts (optional, for production use)
 
-### Quick Setup
+### Setup
 
 1. **Clone and Install**
 
@@ -102,30 +119,41 @@ npm install
 2. **Environment Configuration**
 
 ```bash
-# Copy environment template
 cp .env.example .env
+```
 
-# Configure required variables
+Required environment variables:
+
+```env
+# Database
+DATABASE_URL="postgresql://..."
+
+# Auth
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
-DATABASE_URL="your-postgresql-url"
+
+# Electricity Maps
+ELECTRICITY_MAPS_API_KEY="your-api-key"
+
+# Cloud Providers (optional)
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
 ```
 
 3. **Database Setup**
 
 ```bash
-# Start local Prisma database
-npx prisma dev
+# Generate Prisma client
+npm run db:generate
 
-# Push schema and generate client
-npx prisma db push
-npx prisma generate
+# Run migrations (handled by user)
+# npx prisma migrate dev
 
-# Seed with demo data
+# Seed demo data
 npx tsx prisma/seed.ts
 ```
 
-4. **Launch Application**
+4. **Launch**
 
 ```bash
 npm run dev
@@ -134,181 +162,206 @@ npm run dev
 
 ### Demo Credentials
 
-**Borrower Organization (TechCorp AI)**
+After seeding, use these credentials:
 
-- Email: `borrower@techcorp.ai`
+- Email: `admin@greenratchet.com`
 - Password: `password123`
 
-**Lender Organization (Green Capital)**
+## 📊 Usage Examples
 
-- Email: `lender@greencapital.com`
-- Password: `password123`
+### Connecting Cloud Providers
 
-## 📊 User Workflows
+1. Navigate to Cloud Connections page
+2. Click "Connect AWS/GCP/Azure"
+3. Follow provider-specific setup instructions
+4. Verify connection and start data sync
 
-### For Borrowers
+### Viewing KPIs
 
-1. **Create Loan**: Define sustainability-linked loan terms
-2. **Set KPIs**: Establish environmental performance targets
-3. **Connect Cloud**: Link AWS/GCP/Azure accounts for data collection
-4. **Invite Lenders**: Send loan proposals to potential lenders
-5. **Monitor Performance**: Track KPI progress in real-time
-6. **Manage Margins**: View automatic interest rate adjustments
+1. Dashboard shows all KPIs at a glance
+2. Click any KPI card to expand analytics
+3. View trends, regional breakdowns, and recommendations
+4. Export data for reporting
 
-### For Lenders
+### Creating Custom KPIs
 
-1. **Review Proposals**: Evaluate loan terms and KPI targets
-2. **Approve KPIs**: Accept or reject sustainability metrics
-3. **Monitor Borrowers**: Track borrower environmental performance
-4. **Access Reports**: Generate compliance and audit reports
-5. **Manage Portfolio**: Oversee multiple sustainability-linked loans
+1. Go to KPIs page
+2. Click "Create KPI"
+3. Select KPI type and set target values
+4. Define thresholds for performance evaluation
+5. Save and monitor on dashboard
 
-### Automated Processes
+## 🔧 Development
 
-1. **Data Collection**: Continuous cloud usage monitoring
-2. **KPI Calculation**: Automated monthly performance calculations
-3. **Margin Adjustments**: Automatic interest rate modifications
-4. **Audit Logging**: Complete activity and calculation tracking
-5. **Reporting**: Scheduled report generation and notifications
+### Project Structure
 
-## 🌍 Environmental Impact Calculation
+```
+app/
+  actions/kpis/      # KPI server actions
+  (dashboard)/       # Dashboard routes
+  generated/         # Auto-generated Prisma types
+components/
+  kpis/base/         # KPI card components
+  analytics/         # Chart components
+lib/
+  services/          # Business logic
+  utils/             # Helper functions
+prisma/
+  schema.prisma      # Database schema
+```
 
-### Data Collection Methodology
+### Key Patterns
 
-1. **Cloud Usage Monitoring**: Direct API integration with cloud providers
-2. **Service Classification**: Automatic identification of AI/ML workloads
-3. **Resource Tracking**: CPU, GPU, storage, and network usage monitoring
-4. **Regional Mapping**: Geographic location of cloud resources
+**Server Actions**
 
-### Carbon Footprint Calculation
+```ts
+export async function getKpiDataAction() {
+  return withServerAction(async (user) => {
+    // Query data using Prisma aggregations
+    // Batch fetch related data
+    // Return calculated results
+  }, "action description");
+}
+```
 
-1. **Operational Emissions (Scope 2)**: Real-time energy consumption
-2. **Embodied Emissions (Scope 3)**: Manufacturing and infrastructure impact
-3. **Grid Intensity Integration**: Regional electricity carbon intensity
-4. **Temporal Accuracy**: Hourly carbon intensity variations
+**Database Queries**
 
-### KPI Computation Engine
+- Use `groupBy` with `_sum`, `_count` for aggregations
+- Parallel queries with `Promise.all`
+- Batch fetch to prevent N+1 queries
 
-1. **Baseline Establishment**: Historical performance benchmarking
-2. **Target Comparison**: Progress against sustainability goals
-3. **Threshold Analysis**: Performance categorization (excellent/good/needs improvement)
-4. **Trend Calculation**: Month-over-month and year-over-year analysis
+**Components**
 
-## 🔧 Configuration & Customization
+```tsx
+<BaseKpiCard
+  title="KPI Title"
+  fetchAction={getKpiDataAction}
+  renderAnalytics={(data) => <Analytics data={data} />}
+  kpiType="KPI_TYPE"
+/>
+```
 
-### Cloud Provider Setup
+### Code Quality
 
-**AWS Configuration**
+Run before committing:
 
-- Deploy CloudFormation stack for IAM role creation
-- Grant read-only access to Cost Explorer, EC2, EKS
-- Configure cross-account access with external ID
+```bash
+# Type check
+npx tsc --noEmit
 
-**Google Cloud Setup**
+# Build check
+npm run build
+```
 
-- Create service account with Billing and Compute viewer roles
-- Generate and securely store JSON service account key
-- Enable required APIs (Billing, Compute, Asset)
+## 🔍 Troubleshooting
 
-**Azure Configuration**
+### Database Connection Issues
 
-- Create service principal with Cost Management reader role
-- Configure application registration and permissions
-- Set up subscription-level access for resource monitoring
+**Problem**: Cannot connect to database
+**Solution**:
 
-### KPI Customization
+- Verify `DATABASE_URL` in `.env`
+- Ensure PostgreSQL is running
+- Check network connectivity
 
-- **Threshold Configuration**: Adjustable performance thresholds
-- **Calculation Logic**: Customizable KPI calculation methods
-- **Reporting Frequency**: Configurable calculation schedules
-- **Alert Settings**: Performance-based notification triggers
+### Cloud Provider Connection Fails
 
-## 📈 Analytics & Insights
+**Problem**: Unable to connect AWS/GCP/Azure
+**Solution**:
 
-### Dashboard Features
+- Verify API credentials are correct
+- Check IAM permissions (read-only access required)
+- Ensure required APIs are enabled
 
-- **Real-Time Metrics**: Live KPI performance indicators
-- **Interactive Charts**: Drill-down capabilities for detailed analysis
-- **Comparative Views**: Multi-period and multi-KPI comparisons
-- **Geographic Analysis**: Regional performance breakdowns
-- **Predictive Analytics**: Trend-based performance forecasting
+### KPI Calculations Show Zero
 
-### Reporting Capabilities
+**Problem**: KPIs display 0 or no data
+**Solution**:
 
-- **Executive Summaries**: High-level performance overviews
-- **Detailed Analytics**: Comprehensive KPI breakdowns
-- **Compliance Reports**: Regulatory and audit documentation
-- **Custom Exports**: Flexible data export formats
-- **Scheduled Reports**: Automated report generation and distribution
+- Verify cloud connections are active
+- Check if CloudFootprint table has data
+- Run data sync manually from Cloud page
+- Verify date range in queries
 
-## 🔒 Security & Compliance
+### Electricity Maps API Errors
 
-### Data Protection
+**Problem**: Grid data not loading
+**Solution**:
 
-- **Encryption at Rest**: Database and file storage encryption
-- **Encryption in Transit**: TLS 1.3 for all communications
-- **Access Controls**: Role-based permissions and API authentication
-- **Audit Trails**: Comprehensive logging of all system activities
+- Verify `ELECTRICITY_MAPS_API_KEY` is set
+- Check API quota limits
+- Ensure regions are supported by Electricity Maps
 
-### Compliance Features
+### Build Errors
 
-- **SOC 2 Ready**: Security and availability controls
-- **GDPR Compliant**: Data privacy and user rights management
-- **ISO 27001 Aligned**: Information security management
-- **Financial Regulations**: Support for banking and finance compliance
+**Problem**: TypeScript or build errors
+**Solution**:
 
-## 🚀 Production Deployment
+```bash
+# Regenerate Prisma client
+npm run db:generate
 
-### Infrastructure Requirements
+# Clear Next.js cache
+rm -rf .next
 
-- **Application Server**: Node.js 18+ with PM2 or similar
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Performance Issues
+
+**Problem**: Slow dashboard loading
+**Solution**:
+
+- Check database query performance
+- Verify caching is working (5-minute cache on server actions)
+- Add database indexes if needed
+- Consider pagination for large datasets
+
+## 📈 Production Deployment
+
+### Infrastructure
+
+- **App Server**: Node.js 18+ with PM2
 - **Database**: PostgreSQL 14+ with connection pooling
-- **Caching**: Redis for session and data caching
-- **Storage**: S3-compatible storage for file uploads
-- **Monitoring**: Application and infrastructure monitoring
+- **Caching**: Built-in Next.js caching (unstable_cache)
+- **Monitoring**: Application and database monitoring
 
-### Scalability Considerations
+### Environment Variables
 
-- **Horizontal Scaling**: Load balancer with multiple app instances
-- **Database Optimization**: Read replicas and query optimization
-- **Caching Strategy**: Multi-layer caching for performance
-- **CDN Integration**: Static asset delivery optimization
-- **Background Jobs**: Queue-based processing for heavy calculations
+Ensure all required variables are set:
 
-## 🔮 Future Roadmap
+- `DATABASE_URL` - PostgreSQL connection string
+- `NEXTAUTH_SECRET` - Random secret for auth
+- `NEXTAUTH_URL` - Production URL
+- `ELECTRICITY_MAPS_API_KEY` - API key for grid data
 
-### Short-Term Enhancements
+### Deployment Checklist
 
-- **Enhanced Cloud Integrations**: Deeper API integrations and more services
-- **Advanced Analytics**: Machine learning-powered insights and predictions
-- **Mobile Application**: Native mobile apps for iOS and Android
-- **API Ecosystem**: Public APIs for third-party integrations
+- [ ] Set all environment variables
+- [ ] Run database migrations
+- [ ] Configure SSL/TLS certificates
+- [ ] Set up monitoring and alerts
+- [ ] Configure backup strategy
+- [ ] Test cloud provider connections
+- [ ] Verify Electricity Maps API access
 
-### Long-Term Vision
+## 📚 Additional Resources
 
-- **Global Expansion**: Multi-currency and multi-region support
-- **Industry Verticals**: Specialized solutions for different sectors
-- **Blockchain Integration**: Immutable sustainability records
-- **AI-Powered Optimization**: Automated sustainability recommendations
+- **Steering Docs**: `.kiro/steering/` - Architecture and patterns
+- **Prompts**: `.kiro/prompts/` - Development templates
+- **Prisma Schema**: `prisma/schema.prisma` - Database structure
+- **API Docs**: Electricity Maps API documentation
 
-## 📞 Support & Community
+## 🤝 Contributing
 
-### Getting Help
-
-- **Documentation**: Comprehensive guides and API references
-- **Community Forum**: User discussions and knowledge sharing
-- **Support Tickets**: Direct technical support for enterprise users
-- **Training Programs**: Onboarding and advanced user training
-
-### Contributing
-
-- **Open Source Components**: Community-driven feature development
-- **Bug Reports**: Issue tracking and resolution
-- **Feature Requests**: User-driven product enhancement
-- **Code Contributions**: Pull requests and code reviews
+1. Follow existing code patterns (see `.kiro/steering/`)
+2. Use TypeScript strict mode (no `any`)
+3. Write immutable code (no mutations)
+4. Extract repeated logic to helpers
+5. Test in both light and dark mode
 
 ---
 
-**Built with ❤️ for sustainable AI infrastructure and responsible finance**
-
-_GreenRatchet - Where sustainability meets technology for a better tomorrow_
+**Built for sustainable cloud infrastructure monitoring**

@@ -101,7 +101,7 @@ export function CreateKpiDialog({
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New KPI</DialogTitle>
+          <DialogTitle>Track KPI</DialogTitle>
           <DialogDescription>
             Set up a tracked KPI for your organization.
           </DialogDescription>

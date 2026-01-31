@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('BORROWER', 'LENDER');
-
--- CreateEnum
 CREATE TYPE "CloudProvider" AS ENUM ('AWS', 'GCP', 'AZURE');
 
 -- CreateEnum

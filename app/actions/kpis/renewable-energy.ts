@@ -50,7 +50,10 @@ export async function getRenewableEnergyDataAction() {
       prisma.cloudFootprint.groupBy({
         by: ["region"],
         where: {
-          cloudConnection: { organizationId, isActive: true },
+          cloudConnection: {
+            organizationId,
+            isActive: true,
+          },
         },
         _sum: { co2e: true },
       }),

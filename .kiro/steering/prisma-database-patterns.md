@@ -2,28 +2,44 @@
 
 ## Schema Design
 
-- Use SCREAMING_SNAKE_CASE for enum values and PascalCase for model names
-- Include `id`, `createdAt` and `updatedAt` on all models
-- Use cascade deletes for dependent data (`onDelete: Cascade`)
-- Use nullable fields (`?`) for optional data
+- SCREAMING_SNAKE_CASE for enum values
+- PascalCase for model names
+- Include `id`, `createdAt`, `updatedAt` on all models
+- Use `onDelete: Cascade` for dependent data
 
-## Query Optimization
+## Generated Types
 
-- Only fetch fields you actually need
-- Use aggregations for calculations (`_sum`, `_count`, `_avg`, `_max`, `_min`) instead of fetching all the data in memory and doing aggregation in backend
-- Use transactions for related operations
+Always import from `@/app/generated/prisma` or `@/app/generated/schemas/schemas`
 
-## Indexing
+For complex types with includes:
 
-- If you implement a query, check if the relevant fields are indexed or not and index them appropriately
+```ts
+type FootprintWithConnection = Prisma.CloudFootprintGetPayload<{
+  include: { cloudConnection: true };
+}>;
+```
 
-## **IMPORTANT** Generated Types & Schemas
+## Query Patterns
 
-- Always import types and schemas from `@/app/generated/prisma` or `@/app/generated/schemas/schemas`
-- There are complex types like `ModelNameCreateManyInput` which you can use if you want to have a schemas with optional fields. Always follow DRY principles and never create a type that somehow relates to database schemas.
-- Use `Prisma.ModelGetPayload<{ include: {...} }>` for complex types
-- Extend generated schemas for forms (omit id, timestamps, add string dates)
+### Use aggregations
+
+```ts
+prisma.cloudFootprint.aggregate({
+  where: { ... },
+  _sum: { co2e: true },
+})
+```
+
+### Use groupBy for breakdowns
+
+```ts
+prisma.cloudFootprint.groupBy({
+  by: ["region", "cloudProvider"],
+  where: { ... },
+  _sum: { kilowattHours: true },
+})
+```
 
 ## Migrations
 
-- Never do actual migration, but only generate the schemas using `npm run db:generate`. Migration will be handled by user.
+Only run `npm run db:generate` to regenerate types. User handles actual migrations.

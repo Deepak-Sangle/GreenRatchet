@@ -42,12 +42,7 @@ export function AIUsageKPI() {
               consumption by total cloud energy usage. Managing and, where
               appropriate, reducing this percentage indicates responsible AI
               deployment through model optimisation, efficient hardware
-              selection, and workload scheduling. For lenders, this KPI provides
-              transparency into emerging energy risks, demonstrates governance
-              over high-growth technologies, and signals that the borrower is
-              proactively managing the sustainability implications of AI
-              adoption rather than allowing emissions and energy use to scale
-              unchecked."
+              selection, and workload scheduling."
       fetchAction={getAIUsageAction}
       renderAnalytics={(data) => (
         <div className="space-y-6">

@@ -1,37 +1,65 @@
-# Architecture & File Structure
+# Architecture Patterns
 
-## Directory Organization
+## Server Actions
 
+All server actions use `withServerAction` wrapper:
+
+- Handles authentication automatically
+- Caches results for 5 minutes
+- Returns `{ success: true, data }` or `{ error: string }`
+
+## Database Query Patterns
+
+### Aggregations
+
+Use Prisma `groupBy` with `_sum`, `_count` instead of fetching all records:
+
+```ts
+prisma.cloudFootprint.groupBy({
+  by: ["region"],
+  _sum: { co2e: true, kilowattHours: true },
+});
 ```
-app/
-  actions/          # Server Actions (mutations)
-  [route]/          # Route folders with page.tsx and layout.tsx
-  api/              # API routes (use sparingly, prefer Server Actions)
-  generated/        # Prisma Client & Zod schemas (auto-generated)
-components/
-  [feature]/        # Feature-specific components
-  ui/               # shadcn/ui components (base layer)
-  dashboard/        # Layout components (header, nav)
-lib/
-  services/         # Business logic, external integrations
-  validations/      # Zod schemas for forms and server actions
-  prisma.ts         # Prisma client singleton
-  utils.ts          # Utility functions
-prisma/
-  schema.prisma     # Database schema
-  migrations/       # Migration history
+
+### Parallel Queries
+
+Fetch independent data in parallel:
+
+```ts
+const [energyData, co2eData] = await Promise.all([
+  prisma.cloudFootprint.groupBy({ ... }),
+  prisma.cloudFootprint.aggregate({ ... }),
+]);
 ```
 
-## Naming Conventions
+### Batch Fetching (N+1 Prevention)
 
-- **Files**: kebab-case (`user-profile.tsx`, `kpi-calculator.ts`)
-- **Components**: PascalCase (`UserProfile`, `KPICalculator`)
-- **Functions**: camelCase (`createLoan`, `calculateKPI`)
-- **Server Actions**: Suffix with `Action` (`createLoanAction`, `updateAvatarAction`)
-- **Types**: PascalCase (`CreateLoanForm`, `KPIResult`)
-- **Zod Schemas**: PascalCase with `Schema` suffix (`CreateLoanSchema`)
+When you need related data for multiple items, fetch all at once:
 
-## Performance Guidelines
+1. Extract unique keys from main query
+2. Fetch all related data in parallel with `Promise.all`
+3. Build a lookup Map for O(1) access
+4. Iterate main data using the Map
 
-- Use Server Components by default, "use client" only when needed
-- Memoize computations, functions, variables whenever you can in React: useMemo, useCallback
+## Component Patterns
+
+### KPI Cards
+
+Use `BaseKpiCard` component with:
+
+- `fetchAction` - server action to call
+- `renderAnalytics` - render function for expanded view
+- `kpiType` - enum value for the KPI
+
+### Analytics Helpers
+
+- `getDateRange(days)` - returns { startDate, endDate }
+- `calculateAverage(numbers)` - safe average calculation
+- `getTopN(items, selector, n)` - get top N items by value
+- `getPercentageStatus(value)` - returns "good" | "warning" | "critical"
+
+### Category Analytics (Pie Charts)
+
+- `classifyByThresholds(value, lowThreshold, highThreshold)` - returns "low" | "medium" | "high"
+- `buildPieData(categoryTotals, categories, options)` - builds pie chart data
+- `buildCategoryStats(pieData)` - builds category statistics

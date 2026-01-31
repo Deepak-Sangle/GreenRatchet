@@ -26,10 +26,7 @@ export function LowCarbonRegionKpi() {
               carbon-intensity threshold. Increasing this percentage indicates
               that workloads are being intentionally placed in cleaner regions,
               leading to immediate emissions reductions without sacrificing
-              business growth. For lenders, this KPI demonstrates strong
-              operational control, clear decarbonisation levers, and a credible
-              pathway for ongoing emissions improvement that does not rely
-              solely on offsets."
+              business growth."
       fetchAction={getLowCarbonRegionDataAction}
       renderAnalytics={(data) => (
         <LowCarbonRegionPieChart data={data.pieData} />

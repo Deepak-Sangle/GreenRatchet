@@ -15,8 +15,8 @@ export default async function CloudLayout({
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true },
   });
+  3;
 
   if (!user) {
     redirect("/dashboard");

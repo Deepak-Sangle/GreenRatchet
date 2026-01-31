@@ -26,7 +26,6 @@ interface NavItem {
 }
 
 interface NavProps {
-  role: string;
   user: {
     id: string;
     name: string | null;
@@ -43,7 +42,7 @@ interface NavProps {
   };
 }
 
-export function Nav({ role, user, organization }: NavProps) {
+export function Nav({ user, organization }: NavProps) {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
 

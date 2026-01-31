@@ -56,7 +56,7 @@ export default async function DashboardPage() {
   // First get basic user info to check organization
   const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, organizationId: true, role: true, name: true },
+    select: { id: true, organizationId: true, name: true },
   });
 
   if (!basicUser || !basicUser.organizationId) {

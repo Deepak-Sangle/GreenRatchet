@@ -31,7 +31,6 @@ export default async function DashboardLayout({
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
           avatarUrl: user.avatarUrl,
         }}
         organization={{
@@ -45,7 +44,6 @@ export default async function DashboardLayout({
       />
       <div className="flex flex-1 overflow-hidden">
         <Nav
-          role={user.role}
           user={{
             id: user.id,
             name: user.name,

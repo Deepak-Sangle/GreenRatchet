@@ -209,9 +209,8 @@ export async function backfillCloudUsageAction(): Promise<{
       include: { organization: true },
     });
 
-    // 3. Authorization - only borrowers can backfill
     if (!user || !user.organizationId) {
-      return { error: "Only borrowers can backfill cloud usage data" };
+      return { error: "No user or organization found" };
     }
 
     // 4. Get active cloud connections
