@@ -14,7 +14,6 @@ GreenRatchet automates cloud sustainability monitoring by integrating directly w
 
 - **Automated Monitoring**: Direct cloud integration eliminates manual reporting
 - **Real-Time Insights**: Live environmental metrics and KPI tracking
-- **Multi-Cloud Support**: AWS, GCP, and Azure integration
 - **Complete Transparency**: Full calculation methodology and audit trails
 - **Production-Ready**: Enterprise-grade security and scalability
 
@@ -353,6 +352,118 @@ Ensure all required variables are set:
 - **Prompts**: `.kiro/prompts/` - Development templates
 - **Prisma Schema**: `prisma/schema.prisma` - Database structure
 - **API Docs**: Electricity Maps API documentation
+
+## 💪 Challenges We Ran Into
+
+### Cloud Provider Integration Complexity
+
+Implementing one-click AWS connection was unexpectedly challenging. The frontend and backend were straightforward, but making the actual connection work required deep understanding of IAM roles, trust policies, and External IDs. After multiple approaches, we solved it using AWS CloudFormation stacks with pre-filled parameters. We had to make the difficult decision to temporarily skip GCP and Azure integration due to infrastructure complexity and time constraints.
+
+### Carbon Calculation Accuracy
+
+The most challenging part was building services to fetch and calculate cloud usage data accurately. We explored multiple solutions including Cloud Carbon Footprint (open source), OxygenIT, Electricity Maps, Climatiq, and CO2 API. Each had limitations - some lacked free tiers, others had incomplete data. We spent significant time customizing the Cloud Carbon Footprint repository, but eventually hit walls. The challenge was that cloud usage extraction needs to be 100% correct, and we had to handle the unique characteristics of each AWS service.
+
+### Data Sourcing and Rate Limiting
+
+Finding reliable data for AWS's Power Usage Effectiveness (PUE) and Water Usage Effectiveness (WUE) was time-consuming. For metrics like Carbon-Free Energy %, Renewable Energy %, and Electricity Mix % at regional levels, we couldn't find reliable free sources. Integrating Electricity Maps solved this but introduced heavy rate limiting. We solved it by pre-fetching data, storing it in the database, and querying locally instead of hitting the API repeatedly.
+
+### AI Code Quality
+
+Kiro CLI generated solid initial code for pages like dashboard, settings, and audit logs, but it created significant duplication across the 10 KPIs - nearly identical code with minute differences. We also encountered unit mismatches (gCO2e instead of mtCO2e, mL instead of L). The solution was creating reusable prompts and using the Postgres MCP server to verify database units before calculations. We also created an optimize-db-queries prompt that reduced response times from ~2s to ~200ms by eliminating redundant database calls.
+
+---
+
+## 🏆 Accomplishments That We're Proud Of
+
+### Complete End-to-End Solution
+
+We built a production-ready platform that solves a real problem. From secure cloud provider connections to accurate carbon calculations to comprehensive audit trails - every piece works together seamlessly. Organizations can go from zero to full sustainability monitoring in minutes.
+
+### Industry-Standard Methodology
+
+We implemented Etsy's Cloud Jewels approach - the gold standard for cloud carbon accounting. Our calculations include both operational emissions (energy consumption) and embodied emissions (hardware manufacturing), using real-time regional grid carbon intensity data. This level of rigor is rare in sustainability tools.
+
+### 10 Comprehensive KPIs
+
+We defined and implemented 10 sustainability KPIs that matter to real organizations: CO2 emissions, GHG intensity, energy consumption, water withdrawal, AI compute hours, renewable energy percentage, carbon-free energy percentage, low-carbon region distribution, electricity mix breakdown, and water-stressed region analysis. Each KPI has deep analytics with charts, breakdowns, and actionable recommendations.
+
+### Enterprise-Grade Auditability
+
+Every action in the system is logged with complete transparency. KPI calculations include the formula, data sources, input values, and step-by-step execution. This level of auditability is essential for ESG compliance and stakeholder reporting - and it's built into the core of the platform.
+
+### Performance Optimization
+
+We optimized database queries using Prisma aggregations, parallel queries with Promise.all, and batch fetching to prevent N+1 queries. Response times went from ~2 seconds to ~200ms. The platform handles large datasets efficiently with proper caching and query optimization.
+
+### Clean, Maintainable Codebase
+
+Despite starting with AI-generated code, we reduced the total lines of code by ~30% through refactoring and removing duplication. We created generic, reusable components and helpers that make the codebase maintainable and extensible. The architecture follows Next.js 15 best practices with Server Components, Server Actions, and proper separation of concerns.
+
+---
+
+## 📖 What We Learned
+
+### Cloud Carbon Accounting is Complex
+
+We learned that accurate cloud carbon accounting requires deep understanding of multiple domains: cloud infrastructure, energy systems, grid carbon intensity, hardware manufacturing emissions, and regional variations. There's no simple formula - it requires combining data from multiple sources and applying sophisticated methodologies.
+
+### Data Quality is Critical
+
+The accuracy of sustainability metrics depends entirely on data quality. We learned to validate data sources, handle missing data gracefully, and provide transparency about calculation methods. Users need to trust the numbers, which means showing exactly how they were calculated.
+
+### AI-Assisted Development Requires Human Oversight
+
+Kiro CLI was incredibly helpful for generating initial code, but human oversight was essential. AI tends to create duplication, miss edge cases, and make assumptions about units and data types. The key was using AI for scaffolding and boilerplate, then applying human expertise for optimization and correctness.
+
+### Security and Compliance are Non-Negotiable
+
+For enterprise adoption, security and auditability aren't optional features - they're requirements. We learned to implement proper IAM role-based authentication, use External IDs for security, provide read-only access, and log every action with complete transparency.
+
+---
+
+## 🚀 What's Next for GreenRatchet
+
+### Multi-Cloud Expansion
+
+Complete GCP and Azure integration to provide true multi-cloud sustainability monitoring. Organizations often use multiple cloud providers, and they need unified visibility across all of them.
+
+### Advanced Optimization Recommendations
+
+Build an AI-powered recommendation engine that analyzes usage patterns and suggests specific optimizations: instance type changes, region migrations, workload scheduling, and architectural improvements. Move from "here's your data" to "here's exactly what to do."
+
+### Automated Reporting
+
+Generate compliance-ready sustainability reports automatically - PDF exports, stakeholder presentations, ESG disclosures. Include year-over-year comparisons, progress tracking, and benchmark data against industry standards.
+
+### Real-Time Alerts
+
+Implement alerting for sustainability thresholds: notify teams when emissions spike, when KPIs fail to meet targets, or when opportunities for optimization are detected. Make sustainability monitoring proactive instead of reactive.
+
+### Carbon Budget Management
+
+Add carbon budgeting features where organizations can set emission budgets for teams, projects, or time periods, and track spending against those budgets in real-time. Treat carbon like a resource to be managed.
+
+### Integration with CI/CD
+
+Integrate with development workflows to show the carbon impact of code changes before deployment. Developers can see "this change will increase emissions by 5%" and make informed decisions.
+
+### Benchmarking and Industry Comparisons
+
+Provide anonymized benchmarking data so organizations can compare their sustainability metrics against industry peers. Show percentile rankings and best-in-class examples.
+
+### Scope 3 Emissions
+
+Expand beyond cloud infrastructure to track Scope 3 emissions: employee travel, supply chain, customer usage. Provide a complete picture of organizational environmental impact.
+
+### API and Webhooks
+
+Build a public API and webhook system so organizations can integrate GreenRatchet data into their existing tools, dashboards, and workflows. Make sustainability data accessible everywhere it's needed.
+
+### Machine Learning for Forecasting
+
+Use historical data to forecast future emissions, predict when KPIs will fail, and identify seasonal patterns. Help organizations plan proactively instead of reacting to past data.
+
+---
 
 ## 🤝 Contributing
 

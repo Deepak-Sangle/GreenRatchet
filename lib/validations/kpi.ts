@@ -16,7 +16,7 @@ export const CreateKPIFormSchema = KPISchema.omit({
     effectiveFrom: z.string().min(1, "Effective from date is required"),
     effectiveTo: z.string().optional(),
     name: z.string().min(1, "Name is required"),
-    targetValue: z.number().min(1, "Target value must be greater than 0"),
+    targetValue: z.number(),
   })
   .required({
     name: true,

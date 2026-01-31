@@ -17,28 +17,21 @@ import {
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
 import { formatDate, getKPIUnit } from "@/lib/utils";
-import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 
-const getAuditLogsData = unstable_cache(
-  async (userId: string, organizationId: string) => {
-    return prisma.auditLog.findMany({
-      where: {
-        OR: [{ userId: userId }, { organizationId: organizationId }],
-      },
-      include: {
-        user: true,
-        kpi: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-  },
-  [`audit`],
-  {
-    revalidate: 60,
-  },
-);
+const getAuditLogsData = async (userId: string, organizationId: string) => {
+  return prisma.auditLog.findMany({
+    where: {
+      OR: [{ userId: userId }, { organizationId: organizationId }],
+    },
+    include: {
+      user: true,
+      kpi: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+};
 
 export default async function AuditTrailPage() {
   const session = await auth();

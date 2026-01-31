@@ -14,7 +14,6 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
-import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import { match } from "ts-pattern";
 
@@ -197,26 +196,20 @@ function UnsupportedCloudCard({ cloud }: { cloud: UnsupportedCloud }) {
   );
 }
 
-const getCloudConnectionsData = unstable_cache(
-  async (userId: string) => {
-    return prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        organization: {
-          include: {
-            cloudConnections: {
-              orderBy: { createdAt: "desc" },
-            },
+const getCloudConnectionsData = async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      organization: {
+        include: {
+          cloudConnections: {
+            orderBy: { createdAt: "desc" },
           },
         },
       },
-    });
-  },
-  [`cloud`],
-  {
-    revalidate: 60,
-  },
-);
+    },
+  });
+};
 
 export default async function CloudConnectionsPage() {
   const session = await auth();
