@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteAvatar, uploadAvatar } from "@/lib/services/storage";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 export async function updateAvatarAction(formData: FormData) {
   try {
@@ -64,10 +64,6 @@ export async function updateAvatarAction(formData: FormData) {
 
     // Revalidate the shared dashboard layout (covers all authenticated pages)
     revalidatePath("/", "layout");
-    // Also revalidate specific page caches that show user info
-    if (user?.organizationId) {
-      revalidateTag(`org-${user.organizationId}`);
-    }
 
     return {
       success: true,

@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -14,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Badge } from "../ui/badge";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -35,7 +35,7 @@ interface TimeSeriesChartProps {
   icon?: LucideIcon;
   formatValue?: (value: number) => string;
   formatDate?: (date: string) => string;
-  formatTooltipLabel?: (label: string) => string;
+  formatTooltipLabel?: (label: any) => string;
   height?: number;
   className?: string;
 }
@@ -48,7 +48,7 @@ export function TimeSeriesChart({
   icon: Icon,
   formatValue = (value) => value.toFixed(2),
   formatDate = (date) => date,
-  formatTooltipLabel = (label) => label,
+  formatTooltipLabel = (label) => String(label ?? ""),
   height = 400,
   className,
 }: TimeSeriesChartProps) {

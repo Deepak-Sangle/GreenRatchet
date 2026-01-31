@@ -100,7 +100,7 @@ export async function calculateKPI(
   kpi: KPI,
   organizationId: string,
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
 ): Promise<KPICalculationResult>;
 
 // Type-specific calculation functions
@@ -109,7 +109,7 @@ async function calculateCO2Emission(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateEnergyConsumption(
@@ -117,7 +117,7 @@ async function calculateEnergyConsumption(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateWaterWithdrawal(
@@ -125,7 +125,7 @@ async function calculateWaterWithdrawal(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateLowCarbonRegionPercentage(
@@ -133,7 +133,7 @@ async function calculateLowCarbonRegionPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateCarbonFreeEnergyPercentage(
@@ -141,7 +141,7 @@ async function calculateCarbonFreeEnergyPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateRenewableEnergyPercentage(
@@ -149,7 +149,7 @@ async function calculateRenewableEnergyPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateElectricityMixBreakdown(
@@ -157,7 +157,7 @@ async function calculateElectricityMixBreakdown(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 
 async function calculateAIComputeHours(
@@ -165,7 +165,7 @@ async function calculateAIComputeHours(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult>;
 ```
 
@@ -186,15 +186,13 @@ export async function refreshKPICalculationsAction(): Promise<
 
 // Get detailed analytics for a specific KPI
 export async function getKPIDetailedAnalyticsAction(
-  kpiId: string
+  kpiId: string,
 ): Promise<{ data: DetailedKPIAnalytics } | { error: string }>;
 
 interface KPIAnalytics {
   kpiId: string;
   kpiName: string;
   kpiType: KpiType;
-  loanId: string;
-  loanName: string;
   targetValue: number;
   direction: KpiDirection;
   latestResult: {
@@ -404,11 +402,11 @@ _For any_ completed KPI calculation, an AuditLog record should be created docume
 **Validates: Requirements 1.12**
 
 Property 9: User KPI visibility
-_For any_ user, when viewing the analytics page, all KPIs associated with loans where the user's organization is either borrowerOrg or lenderOrg should be displayed
+_For any_ user, when viewing the analytics page, all KPIs associated with the user's organization should be displayed
 **Validates: Requirements 2.1, 6.1**
 
 Property 10: KPI display completeness
-_For any_ displayed KPI, the UI should include loan name, KPI name, KPI type, target value, and current status
+_For any_ displayed KPI, the UI should include KPI name, KPI type, target value, and current status
 **Validates: Requirements 2.2**
 
 Property 11: Trend calculation
@@ -514,7 +512,7 @@ test("CO2 emission calculation sums all co2e values", () => {
       const expectedSum = records.reduce((sum, r) => sum + r.co2e, 0);
       expect(result.actualValue).toBeCloseTo(expectedSum, 2);
     }),
-    { numRuns: 100 }
+    { numRuns: 100 },
   );
 });
 ```
@@ -579,7 +577,7 @@ const data = await unstable_cache(
   {
     revalidate: 60,
     tags: [`analytics-${userId}`, `org-${organizationId}`],
-  }
+  },
 )();
 
 // Revalidate after calculations

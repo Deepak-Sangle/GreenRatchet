@@ -1,40 +1,222 @@
+import { Prisma } from "@/app/generated/prisma/client";
+import { CloudProvider } from "@/app/generated/schemas/schemas";
 import { auth } from "@/auth";
 import { AWSConnectionDialog } from "@/components/cloud/aws-connection-dialog";
 import { DisconnectCloudButton } from "@/components/cloud/disconnect-cloud-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/utils";
-import { CheckCircle2, Cloud, Database, Server, XCircle } from "lucide-react";
+import { cn, formatDate } from "@/lib/utils";
+import {
+  CheckCircle2,
+  Cloud,
+  Server,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
+import { match } from "ts-pattern";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
+type CloudConnection = Prisma.CloudConnectionGetPayload<{}>;
 
-async function getCloudConnectionsData(userId: string, organizationId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          organization: {
-            include: {
-              cloudConnections: {
-                orderBy: { createdAt: "desc" },
-              },
+interface SupportedCloud {
+  id: string;
+  name: string;
+  logo: string;
+  provider: CloudProvider;
+  connectionName: string;
+  bgColor: string;
+}
+
+interface UnsupportedCloud {
+  id: string;
+  name: string;
+  provider: CloudProvider;
+  icon: LucideIcon;
+  iconColor: string;
+  bgColor: string;
+  description: string;
+}
+
+const SUPPORTED_CLOUD: SupportedCloud[] = [
+  {
+    id: "aws",
+    name: "Amazon Web Services",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
+    provider: "AWS",
+    connectionName: "Role ARN",
+    bgColor: "bg-orange-100",
+  },
+];
+
+const UNSUPPORTED_CLOUD: UnsupportedCloud[] = [
+  {
+    id: "gcp",
+    name: "Google Cloud Platform",
+    provider: "GCP",
+    icon: Cloud,
+    iconColor: "text-blue-600",
+    bgColor: "bg-blue-100",
+    description:
+      "GCP integration is under development and will be available soon.",
+  },
+  {
+    id: "azure",
+    name: "Microsoft Azure",
+    provider: "AZURE",
+    icon: Server,
+    iconColor: "text-sky-600",
+    bgColor: "bg-sky-100",
+    description:
+      "Azure integration is under development and will be available soon.",
+  },
+  // {
+  //   id: "on-premise",
+  //   name: "On-Premise",
+  //   provider: "On-Premise",
+  //   icon: Database,
+  //   iconColor: "text-slate-600",
+  //   bgColor: "bg-slate-100",
+  //   description:
+  //     "On-premise infrastructure integration is under development and will be available soon.",
+  // },
+];
+
+function SupportedCloudCard({
+  cloud,
+  connection,
+}: {
+  cloud: SupportedCloud;
+  connection?: CloudConnection;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                cloud.bgColor,
+              )}
+            >
+              <img
+                src={cloud.logo}
+                alt={cloud.name}
+                className="h-6 w-6 object-contain"
+              />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{cloud.name}</CardTitle>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Cloud already connected */}
+        {connection ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">Connected</span>
+              <Badge variant="success">Active</Badge>
+            </div>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>
+                <strong>{cloud.connectionName}:</strong>{" "}
+                {match(cloud.provider)
+                  .with("AWS", () => connection.roleArn)
+                  .with("GCP", () => connection.projectId)
+                  .with("AZURE", () => connection.tenantId)
+                  .otherwise(() => "N/A")}
+              </p>
+              <p>
+                <strong>Connected:</strong> {formatDate(connection.createdAt)}
+              </p>
+              {connection.lastSync && (
+                <p>
+                  <strong>Last Sync:</strong> {formatDate(connection.lastSync)}
+                </p>
+              )}
+            </div>
+            <div className="pt-2">
+              <DisconnectCloudButton
+                connectionId={connection.id}
+                provider={cloud.provider}
+              />
+            </div>
+          </div>
+        ) : (
+          // No connection yet
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <XCircle className="h-5 w-5" />
+              <span className="text-sm">Not connected</span>
+            </div>
+            {cloud.provider === "AWS" && <AWSConnectionDialog />}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UnsupportedCloudCard({ cloud }: { cloud: UnsupportedCloud }) {
+  const Icon = cloud.icon;
+  return (
+    <Card className="opacity-60">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                cloud.bgColor,
+              )}
+            >
+              <Icon className={cn("h-6 w-6", cloud.iconColor)} />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{cloud.name}</CardTitle>
+            </div>
+          </div>
+          <Badge variant="secondary">Coming Soon</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <XCircle className="h-5 w-5" />
+            <span className="text-sm">Not connected</span>
+          </div>
+          <p className="text-xs text-muted-foreground">{cloud.description}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const getCloudConnectionsData = unstable_cache(
+  async (userId: string) => {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        organization: {
+          include: {
+            cloudConnections: {
+              orderBy: { createdAt: "desc" },
             },
           },
         },
-      });
-    },
-    [`cloud-${userId}-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [`cloud-${userId}`, `org-${organizationId}`],
-    }
-  )();
-}
+      },
+    });
+  },
+  [`cloud`],
+  {
+    revalidate: 60,
+  },
+);
 
 export default async function CloudConnectionsPage() {
   const session = await auth();
@@ -43,33 +225,14 @@ export default async function CloudConnectionsPage() {
     redirect("/auth/signin");
   }
 
-  // First get basic user info to check organization and role
-  const basicUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, organizationId: true, role: true },
-  });
-
-  if (!basicUser || !basicUser.organizationId) {
-    redirect("/auth/signin");
-  }
-
   // Get cached cloud connections data
-  const user = await getCloudConnectionsData(
-    basicUser.id,
-    basicUser.organizationId
-  );
+  const user = await getCloudConnectionsData(session.user.id);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");
   }
 
   const connections = user.organization.cloudConnections;
-  const awsConnection = connections.find(
-    (c) => c.provider === "AWS" && c.isActive
-  );
-  const gcpConnection = connections.find(
-    (c) => c.provider === "GCP" && c.isActive
-  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -97,152 +260,19 @@ export default async function CloudConnectionsPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-lg bg-orange-100 flex items-center justify-center">
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg"
-                    alt="Amazon Web Services"
-                    className="h-6 w-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Amazon Web Services</CardTitle>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {awsConnection ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium">Connected</span>
-                  <Badge variant="success">Active</Badge>
-                </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    <strong>Role ARN:</strong> {awsConnection.roleArn}
-                  </p>
-                  <p>
-                    <strong>Connected:</strong>{" "}
-                    {formatDate(awsConnection.createdAt)}
-                  </p>
-                  {awsConnection.lastSync && (
-                    <p>
-                      <strong>Last Sync:</strong>{" "}
-                      {formatDate(awsConnection.lastSync)}
-                    </p>
-                  )}
-                </div>
-                <div className="pt-2">
-                  <DisconnectCloudButton
-                    connectionId={awsConnection.id}
-                    provider="AWS"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <XCircle className="h-5 w-5" />
-                  <span className="text-sm">Not connected</span>
-                </div>
-                <AWSConnectionDialog />
-              </div>
+        {SUPPORTED_CLOUD.map((cloud) => (
+          <SupportedCloudCard
+            key={cloud.id}
+            cloud={cloud}
+            connection={connections.find(
+              (c) => c.provider === cloud.provider && c.isActive,
             )}
-          </CardContent>
-        </Card>
+          />
+        ))}
 
-        {/* Google Cloud Platform - Coming Soon */}
-        <Card className="opacity-60">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Cloud className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">
-                    Google Cloud Platform
-                  </CardTitle>
-                </div>
-              </div>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <XCircle className="h-5 w-5" />
-                <span className="text-sm">Not connected</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                GCP integration is under development and will be available soon.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Microsoft Azure - Coming Soon */}
-        <Card className="opacity-60">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <Server className="h-6 w-6 text-sky-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Microsoft Azure</CardTitle>
-                </div>
-              </div>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <XCircle className="h-5 w-5" />
-                <span className="text-sm">Not connected</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Azure integration is under development and will be available
-                soon.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* On-Premise - Coming Soon */}
-        <Card className="opacity-60">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <Database className="h-6 w-6 text-slate-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">On-Premise</CardTitle>
-                </div>
-              </div>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <XCircle className="h-5 w-5" />
-                <span className="text-sm">Not connected</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                On-premise infrastructure integration is under development and
-                will be available soon.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {UNSUPPORTED_CLOUD.map((cloud) => (
+          <UnsupportedCloudCard key={cloud.id} cloud={cloud} />
+        ))}
       </div>
 
       <Card>
@@ -273,12 +303,6 @@ export default async function CloudConnectionsPage() {
                   <strong>AWS:</strong> Cost and Usage data via Cloudwatch and
                   Cost Explorer
                 </li>
-                {/* <li>
-                  <strong>GCP:</strong> Billing Export Table using BigQuery
-                </li>
-                <li>
-                  <strong>Azure:</strong> Consumption Management API
-                </li> */}
               </ul>
               <p className="text-sm text-muted-foreground">
                 This pulls usage and cost data from all linked accounts in your

@@ -1,9 +1,10 @@
 "use client";
 
+import { getLatestCarbonIntensityAction } from "@/app/actions/grid-carbon-intensity";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Info } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -113,11 +114,32 @@ function getIntensityCategory(value: number): string {
   return "Extreme";
 }
 
-export function CarbonIntensityMap({ data }: CarbonIntensityMapProps) {
+export function CarbonIntensityMap() {
+    const [carbonIntensityData, setCarbonIntensityData] = useState<
+      Array<RegionCarbonIntensity>
+    >([]);
+    const [carbonIntensityLoading, setCarbonIntensityLoading] = useState(true);
+
+
+  /** Fetches carbon intensity data */
+  const fetchCarbonIntensity = useCallback(async () => {
+    setCarbonIntensityLoading(true);
+    const result = await getLatestCarbonIntensityAction();
+    if (result.data) {
+      setCarbonIntensityData(result.data);
+    }
+    setCarbonIntensityLoading(false);
+  }, []);
+
+  // Fetch carbon intensity on mount
+  useEffect(() => {
+    fetchCarbonIntensity();
+  }, [fetchCarbonIntensity]);
+
   const geoUrl =
     "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-  const regionsWithCoordinates = data
+  const regionsWithCoordinates = carbonIntensityData
     .map((item) => ({
       ...item,
       coordinates: getRegionCoordinates(item.region, item.provider),

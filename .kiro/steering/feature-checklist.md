@@ -1,51 +1,29 @@
-# Feature Implementation Checklist
+# Feature Checklist
 
-## When Creating New Features
+## Before Coding
 
-1. ✅ **Extract helper functions** for any repeated logic (DRY principle)
-2. ✅ **Use immutable patterns** - never mutate variables
-3. ✅ **Strong typing** - explicit types for all functions
-4. ✅ **Use ts-pattern** for complex conditionals
-5. ✅ Start with Server Components, add "use client" only if needed
-6. ✅ Create Zod schema in `lib/validations/`
-7. ✅ Create Server Action in `app/actions/` (7-step pattern)
-8. ✅ Add audit logging for important actions
-9. ✅ Revalidate affected paths
-10. ❌ **DO NOT create `.md` documentation files**
+1. Check if similar feature exists - reuse patterns
+2. Identify which tables/data you need
+3. Plan the data flow: DB → Server Action → Component
 
-## Code Review Checklist
+## Implementation
 
-- [ ] **No Syntax issues** - First run `npx tsc` command to see all type issues and then run `npm run build` to check exhaustively
-- [ ] **No repeated code** - extracted to helper functions
-- [ ] **No mutations** - immutable patterns used
-- [ ] **Strongly typed** - no `any`, explicit types
-- [ ] **ts-pattern** used for complex conditionals
-- [ ] Validates all inputs with Zod
-- [ ] Checks authentication and authorization
-- [ ] Proper error handling (`{ success, data }` or `{ error }`)
-- [ ] Follows design system
-- [ ] **Dark mode compatible** - uses semantic colors, tested in both themes
-- [ ] Includes loading states
-- [ ] Responsive and accessible
+1. Create server action in `app/actions/kpis/` using `withServerAction`
+2. Use Prisma aggregations, not in-memory calculations
+3. Batch fetch related data to prevent N+1
+4. Create component in `components/kpis/base/` using `BaseKpiCard`
+5. Add to dashboard grid
 
-## JSDoc Comments
+## Code Quality
 
-Only add JSDoc for complex functions:
+- No `any` types
+- No variable mutations
+- Extract repeated logic to helpers
+- Use ts-pattern for conditionals
+- Use generated Prisma types/schemas
 
-```tsx
-/**
- * Calculates KPI results with status validation
- * @param kpiId - The KPI to calculate
- * @returns KPI result with status and validation errors
- */
-```
+## Validation
 
-## Remember
-
-Follow established patterns. The most important rules are:
-
-1. **DRY** - Don't repeat yourself
-2. **Immutability** - Never mutate
-3. **Strong Typing** - No `any`
-4. **ts-pattern** - For complex conditionals
-5. **Helper Functions** - Extract reusable logic
+1. Run `npx tsc --noEmit` for type errors
+2. Run `npm run build` for full check
+3. Test in both light and dark mode

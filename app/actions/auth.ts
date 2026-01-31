@@ -26,7 +26,6 @@ export async function signUpAction(data: SignUpInput) {
     const organization = await prisma.organization.create({
       data: {
         name: validated.organizationName,
-        type: validated.role,
       },
     });
 
@@ -36,7 +35,6 @@ export async function signUpAction(data: SignUpInput) {
         name: validated.name,
         email: validated.email,
         password: hashedPassword,
-        role: validated.role,
         organizationId: organization.id,
       },
     });

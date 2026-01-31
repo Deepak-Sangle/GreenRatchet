@@ -1,6 +1,7 @@
 "use client";
 
 import { disconnectCloud } from "@/app/actions/cloud";
+import { CloudProvider } from "@/app/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +18,7 @@ import { useState } from "react";
 
 interface DisconnectCloudButtonProps {
   connectionId: string;
-  provider: "AWS" | "GCP";
+  provider: CloudProvider
 }
 
 export function DisconnectCloudButton({

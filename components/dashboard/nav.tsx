@@ -7,7 +7,6 @@ import {
   Activity,
   BarChart3,
   Cloud,
-  FileText,
   Gauge,
   History,
   LayoutDashboard,
@@ -27,7 +26,6 @@ interface NavItem {
 }
 
 interface NavProps {
-  role: string;
   user: {
     id: string;
     name: string | null;
@@ -44,7 +42,7 @@ interface NavProps {
   };
 }
 
-export function Nav({ role, user, organization }: NavProps) {
+export function Nav({ user, organization }: NavProps) {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -54,11 +52,7 @@ export function Nav({ role, user, organization }: NavProps) {
       href: "/dashboard",
       icon: LayoutDashboard,
     },
-    {
-      label: "SLL Deals",
-      href: "/loans",
-      icon: FileText,
-    },
+
     {
       label: "Cloud Connections",
       href: "/cloud",
@@ -106,13 +100,13 @@ export function Nav({ role, user, organization }: NavProps) {
                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                 )}
               >
                 <Icon
                   className={cn(
                     "h-[18px] w-[18px] transition-transform duration-200",
-                    !isActive && "group-hover:scale-110"
+                    !isActive && "group-hover:scale-110",
                   )}
                 />
                 <span className="tracking-tight">{item.label}</span>

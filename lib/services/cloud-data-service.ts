@@ -6,12 +6,13 @@
 
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getWUEForRegion } from "../constants";
 
 /**
  * Get cloud connection IDs for an organization
  */
 export async function getOrganizationConnectionIds(
-  organizationId: string
+  organizationId: string,
 ): Promise<string[]> {
   const connections = await prisma.cloudConnection.findMany({
     where: { organizationId, isActive: true },
@@ -28,7 +29,7 @@ export function buildCloudFootprintWhereClause(
   connectionIds: string[],
   startDate: Date,
   endDate: Date,
-  additionalFilters?: Prisma.CloudFootprintWhereInput
+  additionalFilters?: Prisma.CloudFootprintWhereInput,
 ): Prisma.CloudFootprintWhereInput {
   return {
     cloudConnectionId: { in: connectionIds },
@@ -44,7 +45,7 @@ export function buildCloudFootprintWhereClause(
 export async function getTotalCo2e(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<number> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -68,7 +69,7 @@ export async function getTotalCo2e(
 export async function getTotalEnergy(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<number> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -94,7 +95,7 @@ export async function getTotalEnergy(
 export async function getCo2eByRegion(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Record<string, number>> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -115,7 +116,7 @@ export async function getCo2eByRegion(
       acc[result.region] = result._sum.co2e ?? 0;
       return acc;
     },
-    {} as Record<string, number>
+    {} as Record<string, number>,
   );
 }
 
@@ -125,7 +126,7 @@ export async function getCo2eByRegion(
 export async function getCo2eByService(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Record<string, number>> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -146,40 +147,7 @@ export async function getCo2eByService(
       acc[result.serviceName] = result._sum.co2e ?? 0;
       return acc;
     },
-    {} as Record<string, number>
-  );
-}
-
-/**
- * Get energy consumption by region
- */
-export async function getEnergyByRegion(
-  organizationId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<Record<string, number>> {
-  const connectionIds = await getOrganizationConnectionIds(organizationId);
-
-  if (connectionIds.length === 0) {
-    return {};
-  }
-
-  const results = await prisma.cloudFootprint.groupBy({
-    by: ["region"],
-    where: buildCloudFootprintWhereClause(connectionIds, startDate, endDate, {
-      kilowattHours: { not: null },
-    }),
-    _sum: {
-      kilowattHours: true,
-    },
-  });
-
-  return results.reduce(
-    (acc, result) => {
-      acc[result.region] = result._sum.kilowattHours ?? 0;
-      return acc;
-    },
-    {} as Record<string, number>
+    {} as Record<string, number>,
   );
 }
 
@@ -189,7 +157,7 @@ export async function getEnergyByRegion(
 export async function getEnergyByService(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Record<string, number>> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -212,7 +180,7 @@ export async function getEnergyByService(
       acc[result.serviceName] = result._sum.kilowattHours ?? 0;
       return acc;
     },
-    {} as Record<string, number>
+    {} as Record<string, number>,
   );
 }
 
@@ -222,7 +190,7 @@ export async function getEnergyByService(
 export async function getWaterWithdrawalByRegion(
   organizationId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<{ total: number; byRegion: Record<string, number> }> {
   const connectionIds = await getOrganizationConnectionIds(organizationId);
 
@@ -242,9 +210,6 @@ export async function getWaterWithdrawalByRegion(
 
   let total = 0;
   const byRegion: Record<string, number> = {};
-
-  // Import WUE function dynamically to avoid circular dependency
-  const { getWUEForRegion } = await import("@/lib/constants/wue-data");
 
   results.forEach((result) => {
     if (result._sum.kilowattHours !== null) {

@@ -22,16 +22,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowDown,
-  ArrowUp,
   BarChart3,
   ChevronDown,
   ChevronUp,
   Loader2,
+  Plus,
   RefreshCw,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 type KPIResult = {
@@ -42,46 +42,27 @@ type KPIResult = {
   periodEnd: Date;
 };
 
-type MarginRatchet = {
-  stepUpBps: number;
-  stepDownBps: number;
-  maxAdjustmentBps: number;
-};
-
 type KPI = {
   id: string;
   name: string;
   type: string;
   targetValue: number;
   direction: string;
-  marginRatchets: MarginRatchet[];
   results: KPIResult[];
 };
 
-type Loan = {
-  id: string;
-  name: string;
-  borrowerOrg: { name: string };
-  lenderOrg: { name: string } | null;
-  kpis: KPI[];
-};
-
 interface AnalyticsPageClientProps {
-  loans: Loan[];
-  userRole: string;
+  kpis: KPI[];
   userId: string;
 }
 
 export function AnalyticsPageClient({
-  loans,
-  userRole,
+  kpis,
   userId,
 }: AnalyticsPageClientProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const isBorrower = userRole === "BORROWER";
 
   const handleRefresh = () => {
     setError(null);
@@ -96,23 +77,12 @@ export function AnalyticsPageClient({
         setSuccess(
           `Successfully calculated ${result.resultsCreated} KPI${
             result.resultsCreated === 1 ? "" : "s"
-          }`
+          }`,
         );
         setTimeout(() => setSuccess(null), 5000);
       }
     });
   };
-
-  // Flatten all KPIs from all loans
-  const allKPIs = loans.flatMap((loan) =>
-    loan.kpis.map((kpi) => ({
-      ...kpi,
-      loanName: loan.name,
-      borrowerOrgName: userRole === "LENDER" ? loan.borrowerOrg.name : null,
-      lenderOrgName:
-        userRole === "BORROWER" ? (loan.lenderOrg?.name ?? null) : null,
-    }))
-  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
@@ -121,15 +91,11 @@ export function AnalyticsPageClient({
         <div>
           <h1 className="text-3xl font-bold">KPI Analytics</h1>
           <p className="text-muted-foreground mt-1">
-            Track environmental performance across all your SLL deals
+            Track environmental performance across your organization
           </p>
         </div>
-        {isBorrower && (
-          <Button
-            onClick={handleRefresh}
-            disabled={isPending}
-            className="gap-2"
-          >
+        <div className="flex items-center gap-2">
+          <Button onClick={handleRefresh} disabled={isPending}>
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -138,11 +104,17 @@ export function AnalyticsPageClient({
             ) : (
               <>
                 <RefreshCw className="h-4 w-4" />
-                Refresh KPIs
+                Calculate KPIs
               </>
             )}
           </Button>
-        )}
+          <Link href="/kpis/new">
+            <Button variant="outline">
+              <Plus className="mr-2 h-4 w-4" />
+              Create KPI
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Success Message */}
@@ -177,15 +149,13 @@ export function AnalyticsPageClient({
       )}
 
       {/* Empty State */}
-      {allKPIs.length === 0 ? (
+      {kpis.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BarChart3 className="h-12 w-12 text-muted-foreground mb-3" />
             <h3 className="text-lg font-medium mb-1">No KPIs Found</h3>
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              {isBorrower
-                ? "Create KPIs for your loans to start tracking environmental performance."
-                : "Once the borrower creates KPIs for their loans, you'll see analytics here."}
+              Create KPIs to start tracking environmental performance.
             </p>
           </CardContent>
         </Card>
@@ -194,23 +164,15 @@ export function AnalyticsPageClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30%]">KPI Name</TableHead>
-                <TableHead className="w-[15%]">Loan</TableHead>
-                {userRole === "LENDER" && (
-                  <TableHead className="w-[15%]">Borrower</TableHead>
-                )}
-                {userRole === "BORROWER" && (
-                  <TableHead className="w-[15%]">Lender</TableHead>
-                )}
-                <TableHead className="w-[10%]">Status</TableHead>
-                <TableHead className="w-[12%]">Latest / Target</TableHead>
-                <TableHead className="w-[15%]">Margin Ratchet</TableHead>
+                <TableHead className="w-[40%]">KPI Name</TableHead>
+                <TableHead className="w-[15%]">Status</TableHead>
+                <TableHead className="w-[20%]">Latest / Target</TableHead>
                 <TableHead className="w-[5%]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allKPIs.map((kpi) => (
-                <KPITableRow key={kpi.id} kpi={kpi} userRole={userRole} />
+              {kpis.map((kpi) => (
+                <KPITableRow key={kpi.id} kpi={kpi} />
               ))}
             </TableBody>
           </Table>
@@ -218,7 +180,7 @@ export function AnalyticsPageClient({
       )}
 
       {/* Info Card */}
-      {allKPIs.length > 0 && (
+      {kpis.length > 0 && (
         <Card className="border-primary/20 bg-accent/30">
           <CardContent className="p-4">
             <h3 className="font-heading font-semibold text-sm mb-1">
@@ -239,21 +201,10 @@ export function AnalyticsPageClient({
 /**
  * Individual KPI Table Row Component
  */
-function KPITableRow({
-  kpi,
-  userRole,
-}: {
-  kpi: KPI & {
-    loanName: string;
-    borrowerOrgName: string | null;
-    lenderOrgName: string | null;
-  };
-  userRole: string;
-}) {
+function KPITableRow({ kpi }: { kpi: KPI }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const latestResult = kpi.results[0] ?? null;
-  const marginRatchet = kpi.marginRatchets[0] ?? null;
 
   const handleToggle = async () => {
     setIsExpanded(!isExpanded);
@@ -286,8 +237,6 @@ function KPITableRow({
       kpiId: kpi.id,
       kpiName: kpi.name,
       kpiType: kpi.type,
-      loanId: "",
-      loanName: kpi.loanName,
       targetValue: Number(kpi.targetValue),
       direction: kpi.direction,
       latestResult: latestResult
@@ -299,9 +248,7 @@ function KPITableRow({
           }
         : null,
       trend,
-      marginRatchet,
       historicalResults: kpi.results,
-      borrowerOrgName: kpi.borrowerOrgName ?? undefined,
       calculationDetails: null,
       recommendations: [],
     };
@@ -348,19 +295,6 @@ function KPITableRow({
           <div className="truncate">{kpi.name}</div>
         </TableCell>
         <TableCell>
-          <div className="truncate text-sm">{kpi.loanName}</div>
-        </TableCell>
-        {userRole === "LENDER" && (
-          <TableCell>
-            <div className="truncate text-sm">{kpi.borrowerOrgName || "-"}</div>
-          </TableCell>
-        )}
-        {userRole === "BORROWER" && (
-          <TableCell>
-            <div className="truncate text-sm">{kpi.lenderOrgName || "-"}</div>
-          </TableCell>
-        )}
-        <TableCell>
           {latestResult ? (
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -400,22 +334,6 @@ function KPITableRow({
           )}
         </TableCell>
         <TableCell>
-          {marginRatchet ? (
-            <div className="flex items-center gap-2 text-xs">
-              <div className="flex items-center gap-0.5">
-                <ArrowUp className="h-3 w-3 text-muted-foreground" />
-                <span>{marginRatchet.stepUpBps}</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                <ArrowDown className="h-3 w-3 text-muted-foreground" />
-                <span>{marginRatchet.stepDownBps}</span>
-              </div>
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">-</span>
-          )}
-        </TableCell>
-        <TableCell>
           {isExpanded ? (
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -425,7 +343,7 @@ function KPITableRow({
       </TableRow>
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30 p-0">
+          <TableCell colSpan={4} className="bg-muted/30 p-0">
             <div className="p-6 animate-in fade-in duration-200">
               {renderAnalytics()}
             </div>

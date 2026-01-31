@@ -1,6 +1,5 @@
 import {
   AggregationPeriodSchema,
-  CloudMetricSchema,
   CloudServiceSchema,
   TimeRangeSchema,
 } from "@/lib/constants";
@@ -24,7 +23,6 @@ export const CloudUsageFilterSchema = z.object({
   timeRange: TimeRangeSchema.default(TimeRangeSchema.options[0]),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  metric: CloudMetricSchema.default(CloudMetricSchema.options[0]),
   aggregation: AggregationPeriodSchema.default("day"),
 });
 

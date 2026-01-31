@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { DashboardItem } from "@/components/shared/dashboard-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,53 +10,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { Cloud, FileText, Plus, TrendingUp } from "lucide-react";
+import { getKPIUnit } from "@/lib/utils";
+import { Cloud, Plus, Target } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-// Enable caching for this page
-export const revalidate = 60; // Revalidate every 60 seconds
-
-async function getDashboardData(userId: string, organizationId: string) {
-  return unstable_cache(
-    async () => {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          organization: {
-            include: {
-              borrowerLoans: {
-                include: {
-                  kpis: true,
-                  lenderOrg: true,
-                  borrowerOrg: true,
+const getDashboardData = unstable_cache(
+  async (userId: string) => {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        organization: {
+          include: {
+            kpis: {
+              orderBy: { createdAt: "desc" },
+              include: {
+                results: {
+                  orderBy: { periodEnd: "desc" },
+                  take: 1,
                 },
-                orderBy: { createdAt: "desc" },
               },
-              lenderLoans: {
-                include: {
-                  kpis: true,
-                  borrowerOrg: true,
-                  lenderOrg: true,
-                },
-                orderBy: { createdAt: "desc" },
-              },
-              cloudConnections: {
-                where: { isActive: true },
-              },
+            },
+            cloudConnections: {
+              where: { isActive: true },
             },
           },
         },
-      });
-    },
-    [`dashboard-${userId}-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [`dashboard-${userId}`, `org-${organizationId}`],
-    }
-  )();
-}
+      },
+    });
+  },
+  ["dashboard"],
+  {
+    revalidate: 60,
+  },
+);
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -67,7 +56,7 @@ export default async function DashboardPage() {
   // First get basic user info to check organization
   const basicUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, organizationId: true, role: true, name: true },
+    select: { id: true, organizationId: true, name: true },
   });
 
   if (!basicUser || !basicUser.organizationId) {
@@ -75,29 +64,16 @@ export default async function DashboardPage() {
   }
 
   // Get cached dashboard data
-  const user = await getDashboardData(basicUser.id, basicUser.organizationId);
+  const user = await getDashboardData(basicUser.id);
 
   if (!user || !user.organization) {
     redirect("/auth/signin");
   }
 
-  const isBorrower = user.role === "BORROWER";
-  const loans = isBorrower
-    ? user.organization.borrowerLoans
-    : user.organization.lenderLoans;
+  const kpis = user.organization.kpis;
   const cloudConnections = user.organization.cloudConnections;
 
-  const totalKPIs = loans.reduce((acc, loan) => acc + loan.kpis.length, 0);
-  const acceptedKPIs = loans.reduce(
-    (acc, loan) =>
-      acc + loan.kpis.filter((kpi) => kpi.status === "ACCEPTED").length,
-    0
-  );
-  const proposedKPIs = loans.reduce(
-    (acc, loan) =>
-      acc + loan.kpis.filter((kpi) => kpi.status === "PROPOSED").length,
-    0
-  );
+  const totalKPIs = kpis.length;
 
   return (
     <div className="space-y-6">
@@ -106,131 +82,66 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user.name}</p>
         </div>
-        {isBorrower && (
-          <Link href="/loans/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create SLL Deal
-            </Button>
-          </Link>
-        )}
+        <Link href="/analytics">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Manage KPIs
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Deals</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loans.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {isBorrower ? "Borrowing" : "Lending"} deals
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <DashboardItem
+          title="Total KPIs"
+          icon={<Target className="h-4 w-4 text-muted-foreground" />}
+          contentTitle={totalKPIs.toString()}
+          contentBody="Tracked sustainability metrics"
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total KPIs</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalKPIs}</div>
-            <p className="text-xs text-muted-foreground">
-              {acceptedKPIs} accepted, {proposedKPIs} proposed
-            </p>
-          </CardContent>
-        </Card>
-
-        {isBorrower && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Cloud Connections
-              </CardTitle>
-              <Cloud className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {cloudConnections.length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Active connections
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{proposedKPIs}</div>
-            <p className="text-xs text-muted-foreground">
-              {isBorrower ? "Awaiting lender review" : "Require your review"}
-            </p>
-          </CardContent>
-        </Card>
+        <DashboardItem
+          title="Cloud Connections"
+          icon={<Cloud className="h-4 w-4 text-muted-foreground" />}
+          contentTitle={cloudConnections.length.toString()}
+          contentBody="Active data sources"
+        />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent SLL Deals</CardTitle>
+          <CardTitle>Recent KPIs</CardTitle>
           <CardDescription>
-            {isBorrower
-              ? "Your sustainability-linked loan deals"
-              : "Deals requiring your review"}
+            Your organization's key performance indicators
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loans.length === 0 ? (
+          {kpis.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <Target className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
-                {isBorrower
-                  ? "No deals yet. Create your first SLL deal to get started."
-                  : "No deals assigned to you yet."}
+                No KPIs yet. Create your first KPI to get started.
               </p>
-              {isBorrower && (
-                <Link href="/loans/new">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create SLL Deal
-                  </Button>
-                </Link>
-              )}
+              <Link href="/kpis/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create KPI
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              {loans.slice(0, 5).map((loan) => (
-                <Link
-                  key={loan.id}
-                  href={`/loans/${loan.id}`}
-                  className="block"
-                >
+              {kpis.slice(0, 5).map((kpi) => (
+                <Link key={kpi.id} href={`/analytics`} className="block">
                   <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
                     <div className="space-y-1">
-                      <p className="font-medium">{loan.name}</p>
+                      <p className="font-medium">{kpi.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {isBorrower
-                          ? loan.lenderOrg
-                            ? `Lender: ${loan.lenderOrg.name}`
-                            : "No lender assigned"
-                          : `Borrower: ${loan.borrowerOrg.name}`}
+                        Target: {kpi.targetValue} {getKPIUnit(kpi)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {loan.kpis.length} KPI
-                        {loan.kpis.length !== 1 ? "s" : ""}
+                        {kpi.type.replace(/_/g, " ")}
                       </Badge>
-                      {loan.kpis.some((kpi) => kpi.status === "PROPOSED") && (
-                        <Badge variant="warning">Pending</Badge>
-                      )}
                     </div>
                   </div>
                 </Link>

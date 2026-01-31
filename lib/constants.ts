@@ -30,30 +30,6 @@ export const CFN_TEMPLATE_S3_KEY = "aws-iam-policy.yaml";
 export const CFN_TEMPLATE_URL = `https://${CFN_TEMPLATE_S3_BUCKET}.s3.${CFN_TEMPLATE_S3_REGION}.amazonaws.com/${CFN_TEMPLATE_S3_KEY}`;
 
 /**
- * Supported cloud providers
- */
-export const CLOUD_PROVIDERS = {
-  AWS: "AWS",
-  // GCP: "GCP",
-  // AZURE: "AZURE",
-} as const;
-
-/**
- * Maximum file upload size in bytes (2MB)
- */
-export const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
-/**
- * Allowed image MIME types for uploads
- */
-export const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-];
-
-/**
  * Supported cloud services for usage tracking
  */
 export const CloudServiceSchema = z.enum([
@@ -65,7 +41,7 @@ export const CloudServiceSchema = z.enum([
   "Lambda",
 ]);
 export type CloudService = z.infer<typeof CloudServiceSchema>;
-export const CLOUD_SERVICES = CloudServiceSchema.options;
+export const CloudServices = CloudServiceSchema.options;
 
 /**
  * Human-readable labels for cloud services
@@ -329,6 +305,7 @@ export const US_NERC_REGIONS_EMISSIONS_FACTORS: {
 /**
  * Regional PUE (Power Usage Effectiveness) values for AWS regions
  * Source: AWS Sustainability Report 2024
+ * This only changes per year (i mean we can't get better granularity than this)
  */
 export const AWS_PUE_BY_REGION: CloudConstantsEmissionsFactors = {
   [AWS_REGIONS.EU_NORTH_1]: 1.1,
@@ -429,3 +406,161 @@ export const AWS_WATER_STRESS_BY_REGION: Record<AWS_REGIONS, number> = {
   [AWS_REGIONS.SA_EAST_1]: 2, // São Paulo - Low-Medium stress
   [AWS_REGIONS.UNKNOWN]: 3, // Average risk
 };
+
+/**
+ * AWS GPU instance types used for AI/ML workloads
+ */
+const AI_INSTANCE_TYPES = [
+  "p3",
+  "p4",
+  "p5",
+  "g4",
+  "g5",
+  "inf1",
+  "inf2",
+  "trn1", // AWS Trainium for ML training
+];
+
+/**
+ * Check if a service type represents an AI/ML instance
+ */
+export function isAIInstance(serviceType: string | null): boolean {
+  if (!serviceType) return false;
+
+  const instanceFamily = serviceType.split(".")[0]?.toLowerCase();
+  return AI_INSTANCE_TYPES.includes(instanceFamily);
+} 
+
+/**
+ * Water Usage Effectiveness (WUE) Data
+ * Source: AWS Sustainability - https://sustainability.aboutamazon.com/products-services/aws-cloud#increasing-efficiency
+ * Latest 2024 data for AWS regions
+ * Formula: Water (liters) = IT energy (kWh) × WUE (L/kWh)
+ */
+export interface WUEData {
+  region: string;
+  regionId: string;
+  year: number;
+  wue: number | null;
+}
+
+/**
+ * WUE data for 2024 (latest available)
+ * Only includes regions with WUE data available
+ */
+export const WUE_2024_DATA: WUEData[] = [
+  // Global/Regional Averages
+  { region: "GLOBAL", regionId: "GLOBAL", year: 2024, wue: 0.15 },
+  { region: "AMER", regionId: "AMER", year: 2024, wue: 0.14 },
+  { region: "EMEA", regionId: "EMEA", year: 2024, wue: 0.12 },
+  { region: "APAC", regionId: "APAC", year: 2024, wue: 0.27 },
+  { region: "Europe", regionId: "Europe", year: 2024, wue: 0.04 },
+  { region: "North America", regionId: "North America", year: 2024, wue: 0.13 },
+  {
+    region: "Central/South America",
+    regionId: "Central/South America",
+    year: 2024,
+    wue: 0.23,
+  },
+  {
+    region: "Asia Pacific (excl. China)",
+    regionId: "Asia Pacific (excl. China)",
+    year: 2024,
+    wue: 0.98,
+  },
+
+  // AWS Specific Regions
+  {
+    region: "Europe (Stockholm)",
+    regionId: "eu-north-1",
+    year: 2024,
+    wue: 0.02,
+  },
+  { region: "U.S. East (Ohio)", regionId: "us-east-2", year: 2024, wue: 0.1 },
+  { region: "Europe (Ireland)", regionId: "eu-west-1", year: 2024, wue: 0.03 },
+  {
+    region: "Europe (Frankfurt)",
+    regionId: "eu-central-1",
+    year: 2024,
+    wue: 0.01,
+  },
+  {
+    region: "South America (Sao Paulo)",
+    regionId: "sa-east-1",
+    year: 2024,
+    wue: 0.23,
+  },
+  {
+    region: "U.S. East (Northern Virginia)",
+    regionId: "us-east-1",
+    year: 2024,
+    wue: 0.12,
+  },
+  {
+    region: "Asia-Pacific (Melbourne)",
+    regionId: "ap-southeast-4",
+    year: 2024,
+    wue: 0.02,
+  },
+  {
+    region: "Asia-Pacific (Tokyo)",
+    regionId: "ap-northeast-1",
+    year: 2024,
+    wue: 0.91,
+  },
+  {
+    region: "U.S. West (Oregon)",
+    regionId: "us-west-2",
+    year: 2024,
+    wue: 0.16,
+  },
+  {
+    region: "U.S. West (Northern California)",
+    regionId: "us-west-1",
+    year: 2024,
+    wue: 0.51,
+  },
+  {
+    region: "Asia-Pacific (Singapore)",
+    regionId: "ap-southeast-1",
+    year: 2024,
+    wue: 1.68,
+  },
+  {
+    region: "Asia-Pacific (Sydney)",
+    regionId: "ap-southeast-2",
+    year: 2024,
+    wue: 0.12,
+  },
+  {
+    region: "Canada (Central)",
+    regionId: "ca-central-1",
+    year: 2024,
+    wue: 0.04,
+  },
+  { region: "Europe (Spain)", regionId: "eu-south-2", year: 2024, wue: 0.24 },
+  { region: "Canada (West)", regionId: "ca-west-1", year: 2024, wue: 0.08 },
+  {
+    region: "Asia-Pacific (Jakarta)",
+    regionId: "ap-southeast-3",
+    year: 2024,
+    wue: 2.75,
+  },
+];
+
+/**
+ * Default WUE value to use when region-specific data is not available
+ */
+export const DEFAULT_WUE = 0.15; // Global average for 2024
+
+/**
+ * Get WUE value for a specific region
+ */
+export function getWUEForRegion(region: string): number {
+  const wueData = WUE_2024_DATA.find(
+    (data) =>
+      data.regionId.toLowerCase() === region.toLowerCase() ||
+      data.region.toLowerCase() === region.toLowerCase(),
+  );
+  return wueData?.wue ?? DEFAULT_WUE;
+}

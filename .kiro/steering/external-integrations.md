@@ -1,32 +1,25 @@
-# External Integrations & Third-Party Services
+# External Integrations
 
-## Integration Architecture
+## Electricity Maps API
 
-- Place all external service integrations in `lib/services/`
-- Always wrap service calls in server actions in `app/actions/`
-- Use Zod validation for all inputs
-- Return `{ success: boolean; data?: T; error?: string }` format
+- Service: `lib/services/electricity-maps.ts`
+- Sync: `lib/services/electricity-maps-sync.ts`
+- Data tables: GridCarbonIntensity, GridCarbonFreeEnergy, GridRenewableEnergy, GridElectricityMix
+
+## Cloud Providers
+
+- AWS, GCP, Azure connections stored in CloudConnection table
+- Footprint data in CloudFootprint table
+- Use `getOrganizationConnectionIds` and `buildCloudFootprintWhereClause` helpers
+
+## Integration Pattern
+
+1. Service file in `lib/services/` handles API calls
+2. Server action in `app/actions/` wraps service with auth
+3. Sync functions upsert data to avoid duplicates
 
 ## Environment Variables
 
-- Store all API keys and credentials in `.env`
-- Always check if environment variables exist before using
-- Never use non-null assertion (`!`) on environment variables
-
-## Error Handling
-
-- Use `AbortController` for request timeouts (default 10s)
-- Implement exponential backoff for retries (3 attempts)
-- Log errors server-side with `console.error`
-- Return user-friendly error messages to client
-- Handle `AbortError` separately for timeout messages
-
-## Auto-Save Pattern
-
-When fetching external data that should be saved:
-
-1. Fetch data from external service
-2. Immediately save to database in same action
-3. Show success message if both operations succeed
-4. Show "Fetched but failed to save" if save fails
-5. Update local state to reflect saved value
+- Store in `.env`, check existence before use
+- Sync `.env.example` without actual values
+- Never use `!` assertion on env vars

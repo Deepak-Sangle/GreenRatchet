@@ -3,9 +3,6 @@
  * Extracts common patterns to follow DRY principles
  */
 
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-
 /**
  * Status levels based on percentage thresholds
  */
@@ -23,34 +20,10 @@ export const getPercentageStatus = (percentage: number): PercentageStatus => {
 };
 
 /**
- * Gets authenticated user's organization ID
- * Returns error if not authenticated or no organization found
- */
-export const getAuthenticatedOrganizationId = async (): Promise<
-  { organizationId: string } | { error: string }
-> => {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "Unauthorized" };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { organizationId: true },
-  });
-
-  if (!user?.organizationId) {
-    return { error: "No organization found" };
-  }
-
-  return { organizationId: user.organizationId };
-};
-
-/**
  * Gets date range for last N days
  */
 export const getDateRange = (
-  days: number = 30
+  days: number = 30,
 ): { startDate: Date; endDate: Date } => {
   const endDate = new Date();
   const startDate = new Date();
@@ -59,34 +32,10 @@ export const getDateRange = (
 };
 
 /**
- * Gets CO2e data grouped by region for an organization
- */
-export const getCo2eByRegion = async (
-  organizationId: string
-): Promise<Array<{ region: string; co2e: number }>> => {
-  const footprintData = await prisma.cloudFootprint.groupBy({
-    by: ["region"],
-    where: {
-      cloudConnection: {
-        organizationId,
-      },
-    },
-    _sum: {
-      co2e: true,
-    },
-  });
-
-  return footprintData.map(({ region, _sum }) => ({
-    region,
-    co2e: _sum.co2e ?? 0,
-  }));
-};
-
-/**
  * Calculates total CO2e from regional data
  */
 export const calculateTotalCo2e = (
-  regionData: Array<{ co2e: number }>
+  regionData: Array<{ co2e: number }>,
 ): number => {
   return regionData.reduce((sum, r) => sum + r.co2e, 0);
 };
@@ -106,7 +55,7 @@ export const calculateAverage = (values: number[]): number => {
 export const getTopN = <T>(
   items: T[],
   sortBy: (item: T) => number,
-  n: number = 5
+  n: number = 5,
 ): T[] => {
   return [...items].sort((a, b) => sortBy(b) - sortBy(a)).slice(0, n);
 };
@@ -123,10 +72,100 @@ export const formatToMonth = (date: Date): string => {
  */
 export const handleAnalyticsError = (
   error: unknown,
-  context: string
+  context: string,
 ): { error: string } => {
   console.error(`Error in ${context}:`, error);
   return {
     error: error instanceof Error ? error.message : "Failed to fetch data",
   };
+}; /**
+ * Shared utilities for category-based analytics (pie charts)
+ * Used for low-carbon regions and water-stressed regions
+ */
+/**
+ * Generic category type for analytics
+ */
+export type Category = "low" | "medium" | "high";
+/**
+ * Generic pie data structure with flexible value field
+ */
+
+export interface PieDataPoint<T extends string = Category> {
+  category: T;
+  value: number;
+  percentage: number;
+  co2e?: number; // For carbon-based analytics
+  waterUsage?: number; // For water-based analytics
+}
+/**
+ * Generic category stats structure with flexible value field
+ */
+
+export type CategoryStats<T extends string = Category> = Record<
+  T,
+  { percentage: number; value: number; co2e?: number; waterUsage?: number }
+>;
+/**
+ * Configuration for building pie data
+ */
+interface BuildPieDataConfig {
+  valueFieldName?: "co2e" | "waterUsage"; // Optional specific field name
+}
+/**
+ * Builds pie chart data from category totals
+ */
+
+export const buildPieData = <T extends string = Category>(
+  categoryTotals: Record<T, number>,
+  categories: T[],
+  config?: BuildPieDataConfig,
+): PieDataPoint<T>[] => {
+  const total = Object.values(categoryTotals).reduce(
+    (sum: number, val) => sum + (val as number),
+    0,
+  );
+
+  return categories.map((category) => {
+    const value = categoryTotals[category];
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+
+    const dataPoint: PieDataPoint<T> = { category, value, percentage };
+
+    // Add specific field if configured
+    if (config?.valueFieldName === "co2e") {
+      dataPoint.co2e = value;
+    } else if (config?.valueFieldName === "waterUsage") {
+      dataPoint.waterUsage = value;
+    }
+
+    return dataPoint;
+  });
+};
+/**
+ * Builds category stats from pie data
+ */
+
+export const buildCategoryStats = <T extends string = Category>(
+  pieData: PieDataPoint<T>[],
+): CategoryStats<T> => {
+  return pieData.reduce(
+    (stats, { category, value, percentage, co2e, waterUsage }) => ({
+      ...stats,
+      [category]: { percentage, value, co2e, waterUsage },
+    }),
+    {} as CategoryStats<T>,
+  );
+};
+/**
+ * Classifies value into low/medium/high categories based on thresholds
+ */
+
+export const classifyByThresholds = (
+  value: number,
+  lowThreshold: number,
+  highThreshold: number,
+): Category => {
+  if (value < lowThreshold) return "low";
+  if (value <= highThreshold) return "medium";
+  return "high";
 };

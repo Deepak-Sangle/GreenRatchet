@@ -11,7 +11,7 @@ import type {
   KpiDirection,
 } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isAIInstance } from "./ai-usage-calculator";
+import { isAIInstance } from "../constants";
 import {
   buildCloudFootprintWhereClause,
   getCo2eByRegion,
@@ -24,7 +24,7 @@ import {
 } from "./cloud-data-service";
 import {
   calculateEnergySourcePercentages,
-  calculateRenewablePercentage,
+  calculateTotalRenewableMix,
   calculateWeightedElectricityMix,
 } from "./electricity-mix-service";
 
@@ -58,7 +58,7 @@ export async function calculateKPI(
   kpi: Pick<KPI, "type" | "targetValue" | "direction">,
   organizationId: string,
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
 ): Promise<KPICalculationResult> {
   const targetValue = Number(kpi.targetValue);
   const direction = kpi.direction;
@@ -70,7 +70,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "ENERGY_CONSUMPTION":
       return calculateEnergyConsumption(
@@ -78,7 +78,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "WATER_WITHDRAWAL":
       return calculateWaterWithdrawal(
@@ -86,7 +86,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "AI_COMPUTE_HOURS":
       return calculateAIComputeHours(
@@ -94,7 +94,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "LOW_CARBON_REGION_PERCENTAGE":
       return calculateLowCarbonRegionPercentage(
@@ -102,7 +102,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "CARBON_FREE_ENERGY_PERCENTAGE":
       return calculateCarbonFreeEnergyPercentage(
@@ -110,7 +110,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "RENEWABLE_ENERGY_PERCENTAGE":
       return calculateRenewableEnergyPercentage(
@@ -118,7 +118,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     case "ELECTRICITY_MIX_BREAKDOWN":
       return calculateElectricityMixBreakdown(
@@ -126,7 +126,7 @@ export async function calculateKPI(
         periodStart,
         periodEnd,
         targetValue,
-        direction
+        direction,
       );
     default:
       throw new Error(`Unsupported KPI type: ${kpi.type}`);
@@ -139,7 +139,7 @@ export async function calculateKPI(
 function determineStatus(
   actualValue: number,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): KPIResultStatus {
   if (direction === "LOWER_IS_BETTER") {
     return actualValue <= targetValue ? "PASSED" : "FAILED";
@@ -163,7 +163,7 @@ async function calculateCO2Emission(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -176,7 +176,7 @@ async function calculateCO2Emission(
     inputs.totalCO2Tonnes = 0;
     steps.push(`No cloud usage data found for the specified period`);
     steps.push(
-      `Total CO2 emissions: 0 metric tons (no cloud workloads detected)`
+      `Total CO2 emissions: 0 metric tons (no cloud workloads detected)`,
     );
 
     return {
@@ -207,12 +207,12 @@ async function calculateCO2Emission(
   const byRegion = await getCo2eByRegion(
     organizationId,
     periodStart,
-    periodEnd
+    periodEnd,
   );
   const byService = await getCo2eByService(
     organizationId,
     periodStart,
-    periodEnd
+    periodEnd,
   );
 
   const connections = await prisma.cloudConnection.findMany({
@@ -252,7 +252,7 @@ async function calculateEnergyConsumption(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -261,7 +261,7 @@ async function calculateEnergyConsumption(
   const totalEnergy = await getTotalEnergy(
     organizationId,
     periodStart,
-    periodEnd
+    periodEnd,
   );
 
   if (totalEnergy === 0) {
@@ -297,7 +297,7 @@ async function calculateEnergyConsumption(
   const byService = await getEnergyByService(
     organizationId,
     periodStart,
-    periodEnd
+    periodEnd,
   );
 
   const connections = await prisma.cloudConnection.findMany({
@@ -314,7 +314,7 @@ async function calculateEnergyConsumption(
       periodEnd,
       {
         kilowattHours: { not: null },
-      }
+      },
     ),
     _sum: { kilowattHours: true },
   });
@@ -351,7 +351,7 @@ async function calculateWaterWithdrawal(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -364,7 +364,7 @@ async function calculateWaterWithdrawal(
     inputs.totalWaterLiters = 0;
     steps.push(`No energy consumption data found for the specified period`);
     steps.push(
-      `Total water withdrawal: 0 liters (no cloud workloads detected)`
+      `Total water withdrawal: 0 liters (no cloud workloads detected)`,
     );
 
     return {
@@ -435,7 +435,7 @@ async function calculateAIComputeHours(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -452,7 +452,7 @@ async function calculateAIComputeHours(
         serviceName: "EC2",
         serviceType: { not: null },
         kilowattHours: { not: null },
-      }
+      },
     ),
     select: { serviceType: true, kilowattHours: true, region: true },
   });
@@ -546,7 +546,7 @@ async function calculateLowCarbonRegionPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -562,7 +562,7 @@ async function calculateLowCarbonRegionPercentage(
       periodEnd,
       {
         kilowattHours: { not: null },
-      }
+      },
     ),
     _sum: { kilowattHours: true, co2e: true },
   });
@@ -573,7 +573,7 @@ async function calculateLowCarbonRegionPercentage(
     inputs.lowCarbonThreshold = lowCarbonThreshold;
     steps.push(`No regional energy data found for the specified period`);
     steps.push(
-      `Low-carbon region percentage: 0% (no cloud workloads detected)`
+      `Low-carbon region percentage: 0% (no cloud workloads detected)`,
     );
 
     return {
@@ -613,11 +613,11 @@ async function calculateLowCarbonRegionPercentage(
         lowCarbonEnergy += energy;
         byRegion[r.region] = energy;
         steps.push(
-          `  ${r.region}: ${carbonIntensity.toFixed(2)} gCO2/kWh (LOW CARBON) - ${energy.toFixed(2)} kWh`
+          `  ${r.region}: ${carbonIntensity.toFixed(2)} gCO2/kWh (LOW CARBON) - ${energy.toFixed(2)} kWh`,
         );
       } else {
         steps.push(
-          `  ${r.region}: ${carbonIntensity.toFixed(2)} gCO2/kWh - ${energy.toFixed(2)} kWh`
+          `  ${r.region}: ${carbonIntensity.toFixed(2)} gCO2/kWh - ${energy.toFixed(2)} kWh`,
         );
       }
     }
@@ -669,7 +669,7 @@ async function calculateCarbonFreeEnergyPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -684,7 +684,7 @@ async function calculateCarbonFreeEnergyPercentage(
       periodEnd,
       {
         kilowattHours: { not: null },
-      }
+      },
     ),
     _sum: { kilowattHours: true },
   });
@@ -741,7 +741,7 @@ async function calculateCarbonFreeEnergyPercentage(
       byRegion[r.region] = cfePercentage;
 
       steps.push(
-        `  ${r.region}: ${cfePercentage.toFixed(2)}% CFE, ${energy.toFixed(2)} kWh`
+        `  ${r.region}: ${cfePercentage.toFixed(2)}% CFE, ${energy.toFixed(2)} kWh`,
       );
     }
   }
@@ -790,7 +790,7 @@ async function calculateRenewableEnergyPercentage(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -805,7 +805,7 @@ async function calculateRenewableEnergyPercentage(
       periodEnd,
       {
         kilowattHours: { not: null },
-      }
+      },
     ),
     _sum: { kilowattHours: true },
   });
@@ -815,7 +815,7 @@ async function calculateRenewableEnergyPercentage(
     inputs.totalEnergy = 0;
     steps.push(`No energy data found for the specified period`);
     steps.push(
-      `Weighted average renewable energy: 0% (no cloud workloads detected)`
+      `Weighted average renewable energy: 0% (no cloud workloads detected)`,
     );
 
     return {
@@ -864,7 +864,7 @@ async function calculateRenewableEnergyPercentage(
       byRegion[r.region] = renewablePercentage;
 
       steps.push(
-        `  ${r.region}: ${renewablePercentage.toFixed(2)}% renewable, ${energy.toFixed(2)} kWh`
+        `  ${r.region}: ${renewablePercentage.toFixed(2)}% renewable, ${energy.toFixed(2)} kWh`,
       );
     }
   }
@@ -875,7 +875,7 @@ async function calculateRenewableEnergyPercentage(
   inputs.weightedAvgRenewable = weightedAvgRenewable;
   inputs.totalEnergy = totalEnergy;
   steps.push(
-    `Weighted average renewable energy: ${weightedAvgRenewable.toFixed(2)}%`
+    `Weighted average renewable energy: ${weightedAvgRenewable.toFixed(2)}%`,
   );
 
   const connections = await prisma.cloudConnection.findMany({
@@ -917,7 +917,7 @@ async function calculateElectricityMixBreakdown(
   periodStart: Date,
   periodEnd: Date,
   targetValue: number,
-  direction: KpiDirection
+  direction: KpiDirection,
 ): Promise<KPICalculationResult> {
   const steps: string[] = [];
   const inputs: Record<string, number | string> = {};
@@ -927,7 +927,7 @@ async function calculateElectricityMixBreakdown(
     await calculateWeightedElectricityMix(
       organizationId,
       periodStart,
-      periodEnd
+      periodEnd,
     );
 
   if (totalEnergy === 0) {
@@ -978,11 +978,11 @@ async function calculateElectricityMixBreakdown(
   // Calculate energy source percentages
   const byEnergySource = calculateEnergySourcePercentages(
     weightedMix,
-    totalEnergy
+    totalEnergy,
   );
 
   // Calculate renewable percentage
-  const renewablePercentage = calculateRenewablePercentage(byEnergySource);
+  const renewablePercentage = calculateTotalRenewableMix(byEnergySource);
 
   inputs.totalEnergy = totalEnergy;
   Object.entries(byRegion).forEach(([region, energy]) => {

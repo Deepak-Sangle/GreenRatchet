@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 export type UserWithOrg = {
   id: string;
   organizationId: string;
-  role: string;
   organization: {
     id: string;
     employeeCount: number | null;
@@ -27,7 +26,6 @@ export async function getAuthenticatedUser(): Promise<
     where: { id: session.user.id },
     select: {
       id: true,
-      role: true,
       organizationId: true,
       organization: {
         select: {
@@ -47,7 +45,6 @@ export async function getAuthenticatedUser(): Promise<
     success: true,
     user: {
       id: user.id,
-      role: user.role,
       organizationId: user.organizationId,
       organization: user.organization,
     },
@@ -94,12 +91,14 @@ export function handleServerActionError(error: unknown, context: string) {
     error: error instanceof Error ? error.message : `Failed to ${context}`,
   };
 }
+
 /**
- * Simple wrapper for server actions
+ * Wrapper for server actions with automatic caching (5 minutes default)
+ * unstable_cache automatically creates cache keys from function implementation and arguments
  */
 export async function withServerAction<T>(
   action: (user: UserWithOrg) => Promise<T>,
-  context: string
+  context: string,
 ): Promise<{ success: true; data: T } | { error: string }> {
   try {
     const userResult = await getAuthenticatedUser();
@@ -107,7 +106,23 @@ export async function withServerAction<T>(
       return { error: userResult.error };
     }
 
-    const data = await action(userResult.user);
+    const user = userResult.user;
+
+    // Wrap action with caching - unstable_cache handles cache keys automatically
+    // not using cache by/default bcz it causes issues if some other data is updated
+    // const cachedAction = unstable_cache(
+    //   async () => {
+    //     console.log(`Cache miss for the context: ${context}`);
+    //     return action(user);
+    //   },
+    //   [context, user.organizationId],
+    //   {
+    //     revalidate: 300, // 5 minutes
+    //     tags: [`org:${user.organizationId}`, `action:${context}`],
+    //   },
+    // );
+
+    const data = await action(user);
     return { success: true, data };
   } catch (error) {
     return handleServerActionError(error, context);

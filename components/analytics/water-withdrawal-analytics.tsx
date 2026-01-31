@@ -2,7 +2,7 @@
 
 import type { DetailedKPIAnalytics } from "@/app/actions/kpi-analytics";
 import { Card } from "@/components/ui/card";
-import { getWUEForRegion } from "@/lib/constants/wue-data";
+import { getWUEForRegion } from "@/lib/constants";
 import { Droplets, MapPin } from "lucide-react";
 import {
   Bar,
@@ -68,7 +68,7 @@ export function WaterWithdrawalAnalytics({
   // Calculate water-stressed region analysis
   const totalWaterUsage = regionalData.reduce(
     (sum, item) => sum + item.waterUsage,
-    0
+    0,
   );
   const waterStressedUsage = regionalData
     .filter((item) => item.isWaterStressed)
@@ -306,7 +306,7 @@ export function WaterWithdrawalAnalytics({
                     undefined,
                     {
                       maximumFractionDigits: 2,
-                    }
+                    },
                   )}{" "}
                   liters
                 </p>
@@ -500,7 +500,7 @@ export function WaterWithdrawalAnalytics({
                         <span className="text-muted-foreground">{key}:</span>{" "}
                         <span className="font-medium">{String(value)}</span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>

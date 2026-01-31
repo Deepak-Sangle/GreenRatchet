@@ -49,6 +49,14 @@
     --chart-4: 180 50% 38%;
     --chart-5: 195 45% 42%;
 
+    /* Pie chart colors - primary variants */
+    --pie-chart-1: 152 58% 38%;
+    --pie-chart-2: 158 52% 45%;
+    --pie-chart-3: 146 48% 52%;
+    --pie-chart-4: 164 45% 42%;
+    --pie-chart-5: 140 42% 48%;
+    --pie-chart-6: 170 50% 36%;
+
     /* Custom additions */
     --header-bg: 160 20% 99%;
     --sidebar-bg: 155 18% 97%;
@@ -132,9 +140,17 @@
     /* Enhanced chart colors for dark theme - better contrast */
     --chart-1: 152 55% 48%;
     --chart-2: 168 50% 52%;
-    --chart-3: 140 45% 58%;
+    --chart-3: 120 90% 120%;
     --chart-4: 180 45% 48%;
     --chart-5: 195 40% 52%;
+
+    /* Pie chart colors - primary variants for dark mode */
+    --pie-chart-1: 152 55% 48%;
+    --pie-chart-2: 158 50% 55%;
+    --pie-chart-3: 146 45% 58%;
+    --pie-chart-4: 164 42% 52%;
+    --pie-chart-5: 140 40% 55%;
+    --pie-chart-6: 170 48% 46%;
 
     /* Extended theme-specific variables for dark mode */
     --success: 142 70% 45%;

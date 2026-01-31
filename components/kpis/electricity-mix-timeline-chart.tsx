@@ -1,20 +1,14 @@
 "use client";
 
-import type { ElectricityMixDataPoint } from "@/app/actions/electricity-mix-analytics";
-import { Card } from "@/components/ui/card";
-import { chartPalettes, chartTheme } from "@/lib/utils/chart-colors";
-import { format } from "date-fns";
+import type { ElectricityMixDataPoint } from "@/app/actions/kpis/electricity-mix";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { TimelineTooltip } from "../ui/chart-tooltip";
+  GenericTimelineChart,
+  type LineConfig,
+  type TimelineConfig,
+} from "@/components/ui/generic-timeline-chart";
+import { formatPercentage } from "@/lib/utils";
+import { Zap } from "lucide-react";
+import { formatMonth } from "../ui/chart-wrapper";
 
 interface ElectricityMixTimelineChartProps {
   data: ElectricityMixDataPoint[];
@@ -23,79 +17,80 @@ interface ElectricityMixTimelineChartProps {
 export function ElectricityMixTimelineChart({
   data,
 }: ElectricityMixTimelineChartProps) {
-  const chartData = data.map((point) => ({
-    month: format(new Date(point.month + "-01"), "MMM yyyy"),
-    "Low-Carbon": Number(point.lowCarbonShare.toFixed(2)),
-    Fossil: Number(point.fossilShare.toFixed(2)),
-    Renewable: Number(point.renewableShare.toFixed(2)),
+  const timelineData = data.map((d) => ({
+    month: d.month,
+    lines: {
+      lowCarbon: d.lowCarbonShare,
+      renewable: d.renewableShare,
+      fossil: d.fossilShare,
+    },
+    isProjected: false,
   }));
 
+  const avgLowCarbon =
+    data.length > 0
+      ? data.reduce((sum, d) => sum + d.lowCarbonShare, 0) / data.length
+      : 0;
+
+  const config: TimelineConfig = {
+    title: "Electricity Mix Timeline",
+    description: "Energy source breakdown over time (Month over Month)",
+    icon: Zap,
+    iconColor: "text-warning",
+    height: 400,
+    yAxisFormatter: (value: number) => `${value}%`,
+    showProjectionLine: false,
+    showStats: true,
+    stats: [
+      {
+        label: "Avg Low-Carbon",
+        value: avgLowCarbon,
+        formatter: formatPercentage,
+      },
+      {
+        label: "Data Points",
+        value: data.length,
+      },
+    ],
+  };
+
+  const lines: LineConfig[] = [
+    {
+      key: "lowCarbon",
+      label: "Low-Carbon",
+      color: "hsl(var(--chart-1))",
+    },
+    {
+      key: "renewable",
+      label: "Renewable",
+      color: "hsl(var(--chart-4))",
+    },
+    {
+      key: "fossil",
+      label: "Fossil",
+      color: "hsl(var(--chart-3))",
+    },
+  ];
+
+  const tooltipFormatter = (
+    value: number | undefined,
+    lineKey: string,
+  ): [string, string] => {
+    const labels: Record<string, string> = {
+      lowCarbon: "Low-Carbon",
+      renewable: "Renewable",
+      fossil: "Fossil",
+    };
+    return [formatPercentage(value), labels[lineKey] || lineKey];
+  };
+
   return (
-    <Card className="p-6 shadow-soft">
-      <h4 className="font-heading text-base font-semibold mb-4">
-        Electricity Mix Timeline (Month over Month)
-      </h4>
-      <ResponsiveContainer width="100%" height={400}>
-        <AreaChart data={chartData}>
-          <CartesianGrid
-            strokeDasharray={chartTheme.grid.strokeDasharray}
-            stroke={chartTheme.grid.stroke}
-          />
-          <XAxis
-            dataKey="month"
-            className="text-xs"
-            stroke={chartTheme.axis.stroke}
-            fontSize={chartTheme.axis.fontSize}
-            tickLine={chartTheme.axis.tickLine}
-            axisLine={chartTheme.axis.axisLine}
-          />
-          <YAxis
-            className="text-xs"
-            stroke={chartTheme.axis.stroke}
-            fontSize={chartTheme.axis.fontSize}
-            tickLine={chartTheme.axis.tickLine}
-            axisLine={chartTheme.axis.axisLine}
-            label={{
-              value: "Share (%)",
-              angle: -90,
-              position: "insideLeft",
-              style: { fill: "hsl(var(--muted-foreground))" },
-            }}
-          />
-          <Tooltip content={<TimelineTooltip />} />
-          <Legend
-            wrapperStyle={{
-              paddingTop: "20px",
-            }}
-            iconType="line"
-            className="text-foreground"
-          />
-          <Area
-            type="monotone"
-            dataKey="Low-Carbon"
-            stackId="1"
-            stroke={chartPalettes.energyMix.lowCarbon}
-            fill={chartPalettes.energyMix.lowCarbon}
-            fillOpacity={0.6}
-          />
-          <Area
-            type="monotone"
-            dataKey="Renewable"
-            stackId="2"
-            stroke={chartPalettes.energyMix.renewable}
-            fill={chartPalettes.energyMix.renewable}
-            fillOpacity={0.6}
-          />
-          <Area
-            type="monotone"
-            dataKey="Fossil"
-            stackId="3"
-            stroke={chartPalettes.energyMix.fossil}
-            fill={chartPalettes.energyMix.fossil}
-            fillOpacity={0.6}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </Card>
+    <GenericTimelineChart
+      data={timelineData}
+      config={config}
+      lines={lines}
+      xAxisFormatter={formatMonth}
+      tooltipFormatter={tooltipFormatter}
+    />
   );
 }

@@ -122,10 +122,10 @@ export function AvatarUploadDialog({
               {previewUrl || currentAvatarUrl ? (
                 <Image
                   src={previewUrl || currentAvatarUrl!}
-                  alt="Avatar preview"
+                  alt={"Avatar preview"}
                   width={120}
                   height={120}
-                  className="h-30 w-30 rounded-full object-cover ring-2 ring-border/50"
+                  className="h-20 w-20 rounded-full object-cover ring-2 ring-border/50 ring-offset-2 ring-offset-background transition-all group-hover:ring-primary/50"
                 />
               ) : (
                 <div className="h-30 w-30 rounded-full bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center ring-2 ring-border/50">

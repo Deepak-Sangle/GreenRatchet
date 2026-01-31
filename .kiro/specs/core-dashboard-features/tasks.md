@@ -1,0 +1,339 @@
+# Implementation Plan: Core Dashboard Features
+
+## Overview
+
+This implementation plan breaks down the core dashboard features into discrete coding tasks. The approach follows Next.js 15 patterns with Server Components, Server Actions using the `withServerAction` wrapper, and Prisma ORM for database access. Tasks are organized to build incrementally, with testing integrated throughout.
+
+## Tasks
+
+- [x] 1. Set up server actions for dashboard data fetching
+  - [x] 1.1 Create `getDashboardDataAction` in `app/actions/dashboard/get-dashboard-data.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Query user name from session
+    - Count KPIs for organization using Prisma `count()`
+    - Count active cloud connections using Prisma `count()`
+    - Fetch 5 most recent KPIs ordered by `createdAt DESC`
+    - Use `Promise.all` for parallel queries
+    - Configure cache with 60-second revalidation
+    - Return type-safe response with `{ success: true, data }` format
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6_
+  - [x]\* 1.2 Write property test for dashboard data isolation
+    - **Property 3: Organization Data Isolation**
+    - **Validates: Requirements 1.3, 1.4**
+  - [x]\* 1.3 Write property test for dashboard count accuracy
+    - **Property 4: Dashboard Count Accuracy**
+    - **Validates: Requirements 2.2, 2.3**
+  - [x]\* 1.4 Write property test for dashboard cache behavior
+    - **Property 6: Dashboard Cache Behavior**
+    - **Validates: Requirements 2.6, 8.2**
+
+- [x] 2. Create dashboard page components
+  - [x] 2.1 Create `WelcomeHeader` component in `components/dashboard/welcome-header.tsx`
+    - Accept `userName` prop
+    - Display personalized greeting with user name
+    - Use semantic color tokens for theming
+    - _Requirements: 2.1_
+  - [x] 2.2 Create `SummaryCards` component in `components/dashboard/summary-cards.tsx`
+    - Accept `kpiCount` and `connectionCount` props
+    - Display two cards in responsive grid layout
+    - Use shadcn/ui Card component
+    - Show icons from lucide-react (Activity for KPIs, Cloud for connections)
+    - _Requirements: 2.2, 2.3_
+  - [x] 2.3 Create `RecentKPIsList` component in `components/dashboard/recent-kpis-list.tsx`
+    - Accept `kpis` array prop
+    - Display up to 5 KPIs with name, type, target value, and unit
+    - Each KPI links to `/analytics?kpiId={id}`
+    - Use responsive list layout
+    - _Requirements: 2.4, 2.7_
+  - [x] 2.4 Create `EmptyState` component in `components/dashboard/empty-state.tsx`
+    - Display when no KPIs exist
+    - Show call-to-action button linking to KPI creation
+    - Use friendly messaging and icon
+    - _Requirements: 2.5_
+  - [x] 2.5 Create dashboard page in `app/(dashboard)/dashboard/page.tsx`
+    - Server Component that calls `getDashboardDataAction`
+    - Handle loading and error states
+    - Compose WelcomeHeader, SummaryCards, RecentKPIsList, and EmptyState
+    - Add authentication check (redirect if not authenticated)
+    - _Requirements: 1.1, 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [x]\* 2.6 Write unit tests for dashboard components
+    - Test WelcomeHeader displays user name
+    - Test SummaryCards displays correct counts
+    - Test RecentKPIsList renders KPIs with links
+    - Test EmptyState shows when no KPIs
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [x] 3. Checkpoint - Verify dashboard page works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Set up audit log server actions
+  - [x] 4.1 Create `getAuditLogsAction` in `app/actions/audit/get-audit-logs.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Query up to 100 most recent audit logs for organization
+    - Include user relation to get user names
+    - Order by `createdAt DESC`
+    - Parse JSON details field
+    - Configure cache with 5-minute revalidation
+    - _Requirements: 4.1, 4.3, 4.4, 4.5_
+  - [x] 4.2 Create audit log helper in `lib/utils/audit-log-helpers.ts`
+    - Implement `createAuditLog` function
+    - Accept action type, entity type, entity ID, user ID, details, organization ID
+    - Create audit log entry in database
+    - Handle system vs user-initiated actions
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
+  - [x]\* 4.3 Write property test for audit log creation
+    - **Property 7: Audit Log Creation for All Actions**
+    - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 6.3**
+  - [x]\* 4.4 Write property test for audit log required fields
+    - **Property 8: Audit Log Required Fields**
+    - **Validates: Requirements 3.6, 3.7, 3.8, 3.9**
+  - [x]\* 4.5 Write property test for audit log organization filtering
+    - **Property 9: Audit Log Organization Filtering**
+    - **Validates: Requirements 4.1**
+
+- [x] 5. Create audit logs page components
+  - [x] 5.1 Create `ActionTypeBadge` component in `components/audit/action-type-badge.tsx`
+    - Accept `actionType` prop
+    - Display color-coded badge based on action type
+    - Use different colors for different action categories (create=green, delete=red, calculate=blue, etc.)
+    - _Requirements: 4.2_
+  - [x] 5.2 Create `AuditLogsTable` component in `components/audit/audit-logs-table.tsx`
+    - Accept `logs` array prop
+    - Display table with columns: action type, entity, user, details, timestamp
+    - Use ActionTypeBadge for action type column
+    - Format timestamps in human-readable format
+    - Parse and display JSON details in readable format
+    - Show "System" for null user IDs
+    - Use responsive table layout
+    - _Requirements: 4.2, 4.3, 4.4, 4.5, 4.6_
+  - [x] 5.3 Create `AuditabilityInfoCard` component in `components/audit/auditability-info-card.tsx`
+    - Display informational card explaining audit features
+    - Use shadcn/ui Card component with Info icon
+    - _Requirements: 4.8_
+  - [x] 5.4 Create audit logs page in `app/(dashboard)/audit/page.tsx`
+    - Server Component that calls `getAuditLogsAction`
+    - Handle loading and error states
+    - Compose PageHeader, AuditabilityInfoCard, AuditLogsTable
+    - Show EmptyState when no logs exist
+    - Add authentication check
+    - _Requirements: 1.1, 4.1, 4.7, 4.8_
+  - [x]\* 5.5 Write unit tests for audit log components
+    - Test ActionTypeBadge displays correct colors
+    - Test AuditLogsTable renders all columns
+    - Test timestamp formatting
+    - Test JSON details parsing
+    - _Requirements: 4.2, 4.5, 4.6_
+
+- [x] 6. Checkpoint - Verify audit logs page works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Set up cloud connection server actions
+  - [x] 7.1 Create `getCloudConnectionsAction` in `app/actions/cloud/get-cloud-connections.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Query all cloud connections for organization
+    - Order by cloudProvider
+    - Configure cache with 5-minute revalidation
+    - _Requirements: 5.1, 5.2_
+  - [x] 7.2 Create `generateExternalIdAction` in `app/actions/cloud/generate-external-id.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Generate cryptographically secure random string (32 characters)
+    - Use Node.js `crypto.randomBytes()` for security
+    - Return External ID
+    - _Requirements: 5.4_
+  - [x] 7.3 Create `createAWSConnectionAction` in `app/actions/cloud/create-aws-connection.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Accept roleArn and externalId as input
+    - Validate Role ARN format using regex
+    - Test AWS connection using AWS STS AssumeRole
+    - Verify access to CloudWatch and Cost Explorer APIs
+    - Create CloudConnection record in database
+    - Call `createAuditLog` helper with CLOUD_CONNECTION_CREATED
+    - Return connection ID on success
+    - Return validation errors on failure
+    - _Requirements: 5.6, 5.7, 5.8, 7.1, 7.3_
+  - [x] 7.4 Create `disconnectCloudProviderAction` in `app/actions/cloud/disconnect-cloud-provider.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Accept connectionId as input
+    - Verify connection belongs to user's organization
+    - Delete CloudConnection record (cascade deletes related data)
+    - Call `createAuditLog` helper with CLOUD_CONNECTION_DISCONNECTED
+    - Revalidate cache paths
+    - _Requirements: 5.8_
+  - [x] 7.5 Create `triggerBackfillAction` in `app/actions/cloud/trigger-backfill.ts`
+    - Implement server action using `withServerAction` wrapper
+    - Accept connectionId as input
+    - Verify connection belongs to user's organization
+    - Calculate date range (1 year back from today)
+    - Call footprint sync service endpoint with date range
+    - Update lastSyncAt timestamp on connection
+    - Call `createAuditLog` helper with CLOUD_BACKFILL_TRIGGERED
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [x]\* 7.6 Write property test for External ID generation
+    - **Property 12: External ID Security**
+    - **Validates: Requirements 5.4**
+  - [x]\* 7.7 Write property test for AWS Role ARN validation
+    - **Property 13: AWS Role ARN Validation**
+    - **Validates: Requirements 5.7, 7.3**
+  - [x]\* 7.8 Write property test for cloud disconnection completeness
+    - **Property 14: Cloud Disconnection Completeness**
+    - **Validates: Requirements 5.8**
+  - [x]\* 7.9 Write property test for backfill date range calculation
+    - **Property 15: Backfill Date Range Calculation**
+    - **Validates: Requirements 6.2**
+
+- [x] 8. Create cloud connections page components
+  - [x] 8.1 Create `AWSConnectionDialog` client component in `components/cloud/aws-connection-dialog.tsx`
+    - Use "use client" directive
+    - Implement multi-step dialog flow (generate → cloudformation → role-arn → validating)
+    - Step 1: Call `generateExternalIdAction` to get External ID
+    - Step 2: Display CloudFormation launch link with pre-filled parameters (External ID, stack name)
+    - Step 3: Accept Role ARN input from user
+    - Step 4: Call `createAWSConnectionAction` to validate and create connection
+    - Show loading states during validation
+    - Display success/error messages
+    - Use shadcn/ui Dialog component
+    - _Requirements: 5.4, 5.5, 5.6, 5.7_
+  - [x] 8.2 Create `DisconnectButton` client component in `components/cloud/disconnect-button.tsx`
+    - Use "use client" directive
+    - Show confirmation dialog before disconnecting
+    - Call `disconnectCloudProviderAction` on confirm
+    - Show success/error toast messages
+    - Refresh page data after successful disconnect
+    - Use shadcn/ui AlertDialog component
+    - _Requirements: 5.8_
+  - [x] 8.3 Create `AWSConnectionCard` component in `components/cloud/aws-connection-card.tsx`
+    - Accept connection status and details as props
+    - Show "Not Connected" state with AWSConnectionDialog trigger
+    - Show "Connected" state with connection details, last sync time, and DisconnectButton
+    - Show backfill button that calls `triggerBackfillAction`
+    - Use shadcn/ui Card component
+    - _Requirements: 5.2, 5.3, 6.1_
+  - [x] 8.4 Create `GCPConnectionCard` component in `components/cloud/gcp-connection-card.tsx`
+    - Display "Coming Soon" badge
+    - Show GCP logo and description
+    - Disable connection button
+    - _Requirements: 5.9_
+  - [x] 8.5 Create `AzureConnectionCard` component in `components/cloud/azure-connection-card.tsx`
+    - Display "Coming Soon" badge
+    - Show Azure logo and description
+    - Disable connection button
+    - _Requirements: 5.9_
+  - [x] 8.6 Create `CloudProvidersList` component in `components/cloud/cloud-providers-list.tsx`
+    - Accept connections array prop
+    - Display grid of provider cards (AWS, GCP, Azure)
+    - Pass connection status to each card
+    - Use responsive grid layout
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [x] 8.7 Create info cards components in `components/cloud/info-cards.tsx`
+    - Create `ESGDataCollectionCard` explaining automated data collection benefits
+    - Create `CarbonMethodologyCard` explaining carbon calculation methodology (Etsy's Cloud Jewels)
+    - Use shadcn/ui Card component with Info icon
+    - _Requirements: 5.10, 5.11_
+  - [x] 8.8 Create cloud connections page in `app/(dashboard)/cloud/page.tsx`
+    - Server Component that calls `getCloudConnectionsAction`
+    - Handle loading and error states
+    - Compose PageHeader, InfoCards, CloudProvidersList
+    - Add authentication check
+    - _Requirements: 1.1, 5.1_
+  - [x]\* 8.9 Write unit tests for cloud connection components
+    - Test AWSConnectionDialog flow
+    - Test DisconnectButton confirmation
+    - Test connection card states (connected vs not connected)
+    - Test coming soon cards
+    - _Requirements: 5.2, 5.3, 5.9_
+
+- [x] 9. Checkpoint - Verify cloud connections page works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Integrate audit logging into existing actions
+  - [x] 10.1 Add audit logging to KPI creation action
+    - Import `createAuditLog` helper
+    - Call after successful KPI creation
+    - Pass KPI_CREATED action type
+    - _Requirements: 3.1_
+  - [x] 10.2 Add audit logging to KPI calculation action
+    - Import `createAuditLog` helper
+    - Call after successful KPI calculation
+    - Pass KPI_CALCULATED action type
+    - _Requirements: 3.2_
+
+- [x] 11. Add authentication and authorization middleware
+  - [x] 11.1 Create auth helper in `lib/utils/auth-helpers.ts`
+    - Implement `requireAuth` function that checks session
+    - Implement `requireOrganization` function that checks organization membership
+    - Return user and organization context
+    - Throw errors for unauthorized access
+    - _Requirements: 1.1, 1.2_
+  - [x] 11.2 Update `withServerAction` wrapper to use auth helpers
+    - Call `requireAuth` and `requireOrganization` automatically
+    - Inject user and organizationId into context
+    - Handle auth errors with redirects
+    - _Requirements: 1.1, 1.2, 1.3_
+  - [x]\* 11.3 Write property test for unauthenticated access redirect
+    - **Property 1: Unauthenticated Access Redirect**
+    - **Validates: Requirements 1.1**
+  - [x]\* 11.4 Write property test for organization membership requirement
+    - **Property 2: Organization Membership Required**
+    - **Validates: Requirements 1.2**
+
+- [x] 12. Add error handling and loading states
+  - [x] 12.1 Create `ErrorDisplay` component in `components/ui/error-display.tsx`
+    - Accept error message prop
+    - Display user-friendly error message
+    - Use Alert component from shadcn/ui
+    - _Requirements: 9.5_
+  - [x] 12.2 Create `LoadingSpinner` component in `components/ui/loading-spinner.tsx`
+    - Display Loader2 icon with spin animation
+    - Use semantic colors
+    - _Requirements: 9.4_
+  - [x] 12.3 Add error boundaries to all pages
+    - Wrap page content in error boundary
+    - Display ErrorDisplay on errors
+    - Log errors to console
+    - _Requirements: 9.5_
+  - [x] 12.4 Add loading states to all pages
+    - Use Suspense with LoadingSpinner fallback
+    - Show loading during data fetching
+    - _Requirements: 9.4_
+  - [x]\* 12.5 Write property test for error message display
+    - **Property 19: Error Message Display**
+    - **Validates: Requirements 9.5**
+  - [x]\* 12.6 Write property test for external API error handling
+    - **Property 20: External API Error Handling**
+    - **Validates: Requirements 10.5**
+
+- [x] 13. Final integration and polish
+  - [x] 13.1 Add navigation links to dashboard layout
+    - Update sidebar navigation to include Dashboard, Audit Logs, Cloud Connections
+    - Use lucide-react icons
+    - Highlight active route
+    - _Requirements: 2.7_
+  - [x] 13.2 Test responsive design on mobile, tablet, desktop
+    - Verify all pages work on different screen sizes
+    - Test dark mode on all pages
+    - Fix any layout issues
+    - _Requirements: 9.1, 9.2_
+  - [x] 13.3 Run type checking and build
+    - Run `npx tsc --noEmit` to check for type errors
+    - Run `npm run build` to verify production build
+    - Fix any errors
+    - _Requirements: All_
+  - [x]\* 13.4 Write integration tests for complete flows
+    - Test AWS connection flow end-to-end
+    - Test audit trail end-to-end
+    - Test dashboard data flow
+    - _Requirements: All_
+
+- [x] 14. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation at key milestones
+- Property tests validate universal correctness properties with 100+ iterations
+- Unit tests validate specific examples and edge cases
+- All server actions use `withServerAction` wrapper for auth and caching
+- All components use semantic color tokens for dark mode support
+- Use generated Prisma types from `@/app/generated/prisma`
