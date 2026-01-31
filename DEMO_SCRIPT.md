@@ -1,174 +1,93 @@
 # GreenRatchet Demo Video Script (3 Minutes)
 
-## Opening (0:00 - 0:20)
+## Opening (0:00 - 0:15)
 
-**[Screen: Landing page with GreenRatchet logo]**
+Cloud infrastructure is exploding. AI workloads are everywhere. But most companies have no idea about their environmental impact.
 
-**Narrator:**
-"Cloud infrastructure is growing exponentially, but most companies have no idea about its environmental impact. Meet GreenRatchet - the platform that makes cloud sustainability visible, measurable, and actionable."
+Traditional sustainability reporting is a nightmare - manual data collection, complex CO2e calculations, and reports that arrive months too late. By the time you see last year's numbers, you've already locked in inefficient workloads.
 
-**[Transition to problem statement with visual stats]**
-
-"Traditional sustainability reporting is manual, slow, and arrives too late to make a difference. By the time you see last year's report, you've already made architectural decisions that locked in inefficient workloads."
+GreenRatchet changes everything. Real-time cloud sustainability monitoring that's automated, transparent, and actionable.
 
 ---
 
-## The Solution (0:20 - 0:45)
+## Dashboard Overview (0:15 - 0:25)
 
-**[Screen: Dashboard overview]**
+We connect directly to AWS, GCP, and Azure to automatically track environmental metrics. No spreadsheets, no manual work.
 
-**Narrator:**
-"GreenRatchet changes that. We connect directly to your cloud providers - AWS, GCP, and Azure - to automatically track environmental metrics in real-time."
-
-**[Show dashboard with KPI cards]**
-
-"Here's our dashboard. At a glance, you see your organization's sustainability KPIs: CO2 emissions, energy consumption, water usage, and more. No spreadsheets, no manual calculations - just real data, updated continuously."
-
-**[Highlight the summary cards]**
-
-"We're tracking 10 predefined Key performance indicators (KPIs), which we found from the internet, giving you complete visibility into your infrastructure's environmental footprint."
+Here's the dashboard: 10 sustainability KPIs tracked, 2 active cloud connections. Everything you need at a glance.
 
 ---
 
-## Cloud Connection (0:45 - 1:15)
+## Cloud Connection & Backfill (0:25 - 0:50)
 
-**[Screen: Navigate to Cloud Connections page]**
+Let's connect AWS. Generate a secure External ID to prevent attacks. Launch the CloudFormation stack - it creates a read-only IAM role. Copy the Role ARN, paste it, and you're connected.
 
-**Narrator:**
-"Let's see how easy it is to connect your cloud provider. Click on Cloud Connections."
+Now the power move: click Backfill Data. This syncs the last full year of historical usage in the background. Instant historical context.
 
-**[Show AWS connection card]**
-
-"For AWS, we use a secure CloudFormation stack. Click 'Connect AWS'."
-
-**[Show AWS connection dialog - Step 1]**
-
-"First, we generate a cryptographically secure External ID - this prevents confused deputy attacks and keeps your infrastructure safe."
-
-**[Show CloudFormation launch button]**
-
-"Click to launch the CloudFormation stack. It pre-fills all parameters and creates an IAM role with read-only access to CloudWatch and Cost Explorer."
-
-**[Show Role ARN input]**
-
-"Once the stack is created, copy the Role ARN from the outputs and paste it here. That's it - you're connected."
-
-**[Show connected state with last sync time]**
-
-"Now GreenRatchet automatically pulls your cloud usage data and calculates environmental impact using industry-standard methodologies."
+We use Etsy's Cloud Jewels methodology - the industry standard. Operational emissions from energy use, plus embodied emissions from hardware manufacturing, using real-time regional grid carbon intensity.
 
 ---
 
-## Carbon Calculation Methodology (1:15 - 1:45)
+## KPI Dashboard (0:50 - 1:20)
 
-**[Screen: Scroll to methodology card on Cloud page]**
+The KPI Dashboard shows all 10 metrics: CO2 emissions, energy consumption, water withdrawal, AI compute hours, renewable energy percentage, carbon-free energy, low-carbon regions, electricity mix, GHG intensity, and water-stressed regions.
 
-**Narrator:**
-"How do we calculate this? We use Etsy's Cloud Jewels approach - the gold standard for cloud carbon accounting."
+Click any card to expand. CO2 Emissions shows time-series trends, regional breakdown - US-East-1 is 45% of emissions, US-West-2 is 20%. Service breakdown - EC2 is 60%, Lambda 15%, S3 10%.
 
-**[Highlight the 5-step process]**
+The system gives specific recommendations: "Migrate workloads from US-East-1 to US-West-2 for 30% emission reduction." Data-driven insights from your actual usage.
 
-"Step 1: We collect and classify all cloud usage - compute, storage, networking, and memory.
-
-Step 2: We calculate hourly compute load for accurate energy estimation.
-
-Step 3: We apply Power Usage Effectiveness factors for data center overhead.
-
-Step 4: We use regional grid carbon intensity - because emissions vary dramatically by location.
-
-Step 5: We include embodied emissions from hardware manufacturing."
-
-**[Show formula on screen]**
-
-"The result? Total CO2e equals operational emissions plus embodied emissions - giving you the complete picture."
+Every KPI has this depth - charts, breakdowns, recommendations. All automated.
 
 ---
 
-## KPIs (1:45 - 2:15)
+## Analytics Page (1:20 - 1:50)
 
-**[Screen: Navigate to KPIs page]**
+The Analytics page is different - this is KPI tracking and management.
 
-**Narrator:**
-"Now let's look at the analytics. Here we see all 10 sustainability KPIs."
+Table view shows all KPIs: status badges, actual versus target values, trend indicators. Green means meeting targets, red needs attention.
 
-**[Click on CO2 Emissions KPI to expand]**
+Click Calculate KPIs to refresh all metrics on demand. The system pulls latest data, runs calculations, updates everything in seconds.
 
-"Click any KPI to dive deeper. This shows our total CO2 emissions over time."
+Click any row to expand - see historical performance over 10 periods, trend charts, status tracking. You can see exactly when you met targets and when you didn't.
 
-**[Show time series chart]**
-
-"The trend line shows we're improving - emissions are decreasing month over month."
-
-**[Show regional breakdown]**
-
-"We can break this down by region. US-East-1 is our highest emitter, but we can see exactly where to optimize."
-
-**[Show service breakdown]**
-
-"And by service - EC2 compute is our biggest contributor. This actionable data helps us make informed decisions about where to reduce our footprint."
-
-**[Quickly show other KPIs - Energy Consumption, Renewable Energy %]**
-
-"We track energy consumption, renewable energy percentage, carbon-free energy, and more - all calculated automatically from your cloud usage."
+Create custom KPIs for your specific goals - emissions per customer, per transaction, whatever matters to your organization.
 
 ---
 
-## Audit Trail (2:15 - 2:35)
+## Cloud Usage Deep Dive (1:50 - 2:20)
 
-**[Screen: Navigate to Audit page]**
+Cloud Usage page has four views. Timeline separates operational emissions (blue) from embodied emissions (orange) - most tools only show operational, we show the complete picture.
 
-**Narrator:**
-"Transparency is critical for sustainability reporting. That's why every action in GreenRatchet is logged."
+Services view: EC2 at 2.5 metric tons, Lambda at 0.8 metric tons. See exactly where emissions come from.
 
-**[Show audit log table]**
+Regions view: US-East-1 has high carbon intensity from fossil fuels. US-West-2 is cleaner with hydroelectric power. Shifting workloads could cut emissions 40%.
 
-"Here's our complete audit trail. Every cloud connection, every KPI calculation, every data sync - all timestamped and traceable."
+Instance Types view: M5 instances have higher embodied emissions than T3. Switch instance families to reduce footprint.
 
-**[Highlight a specific log entry]**
-
-"See this? When we connected AWS, the system logged who did it, when, and what permissions were granted. This level of auditability is essential for ESG compliance and stakeholder reporting."
-
-**[Show calculation details]**
-
-"Even KPI calculations show the formula, inputs, and step-by-step execution. Complete transparency, complete reproducibility."
+Filter by time range, services, or regions. Export to CSV for compliance reporting - every data point in a clean format.
 
 ---
 
-## Cloud Usage Deep Dive (2:35 - 2:50)
+## Audit Trail (2:20 - 2:45)
 
-**[Screen: Navigate to Cloud Usage page]**
+Every action is logged. Cloud connections, KPI calculations, data syncs, configuration changes - all timestamped with user details.
 
-**Narrator:**
-"Want to go even deeper? The Cloud Usage page shows granular data."
+Click any entry for full details. KPI calculations show the formula, data sources, input values, and step-by-step execution. If someone questions your numbers, you can prove exactly how they were calculated.
 
-**[Show time series with operational vs embodied emissions]**
-
-"We separate operational emissions from embodied emissions, so you understand both runtime impact and hardware manufacturing footprint."
-
-**[Show filters - time range, services, regions]**
-
-"Filter by time range, specific services, or regions to analyze exactly what you need."
-
-**[Show instance type breakdown]**
-
-"And see which instance types have the highest embodied emissions - helping you make smarter hardware choices."
+This is enterprise-grade auditability. Your reports aren't just numbers - they're fully reproducible and verifiable. Stakeholders can verify everything. Auditors can trace every calculation.
 
 ---
 
-## Closing (2:50 - 3:00)
+## Closing (2:45 - 3:00)
 
-**[Screen: Return to dashboard, zoom out to show full platform]**
+GreenRatchet: Automated data collection. Industry-standard calculations. Complete transparency. Actionable insights.
 
-**Narrator:**
-"GreenRatchet: automated cloud sustainability monitoring that's real-time, transparent, and actionable."
+Backfill historical data. Export to CSV. Calculate KPIs on demand. Track progress against targets.
 
-**[Show key benefits as text overlay]**
+10 comprehensive KPIs. Multi-cloud support. Full audit trail. Zero manual work.
 
-"No more manual reporting. No more waiting for year-end data. Just continuous visibility into your cloud's environmental impact."
+No more spreadsheets. No more waiting for year-end reports. Just real-time visibility into your cloud's environmental impact.
 
-**[End screen with logo and tagline]**
-
-"GreenRatchet - Make your cloud sustainable."
+GreenRatchet - Make your cloud sustainable.
 
 ---
-

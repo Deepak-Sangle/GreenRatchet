@@ -18,22 +18,14 @@ export const UpdateOrganizationSchema = z.object({
     .min(1, "Organization name is required")
     .max(100, "Name is too long"),
   headquarters: z.string().max(200, "Headquarters is too long").optional(),
-  linkedinUrl: z
-    .string()
-    .url("Invalid LinkedIn URL")
-    .optional()
-    .or(z.literal("")),
+  linkedinUrl: z.url("Invalid LinkedIn URL").optional().or(z.literal("")),
   employeeCount: z
     .number()
     .int("Employee count must be a whole number")
     .positive("Employee count must be positive")
     .optional()
     .nullable(),
-  annualRevenue: z
-    .number()
-    .positive("Revenue must be a positive number")
-    .optional()
-    .nullable(),
+  annualRevenue: z.number().min(0).optional().nullable(),
 });
 
 export type UpdateOrganizationForm = z.infer<typeof UpdateOrganizationSchema>;
