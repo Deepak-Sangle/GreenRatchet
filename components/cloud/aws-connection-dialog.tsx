@@ -40,12 +40,11 @@ import { useForm } from "react-hook-form";
 
 // Generate a cryptographically random external ID
 function generateExternalId(): string {
-  return "34ab6e160e8cf18d72d501c8e92353a6";
-  // const array = new Uint8Array(16);
-  // crypto.getRandomValues(array);
-  // return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
-  //   ""
-  // );
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+    ""
+  );
 }
 
 export function AWSConnectionDialog() {

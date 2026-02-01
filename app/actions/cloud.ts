@@ -242,43 +242,38 @@ export async function backfillCloudUsageAction(): Promise<{
       url.searchParams.set("groupBy", "day");
       url.searchParams.set("ignoreCache", "true");
 
-      const body = {
-        cloudConnectionId: connection.id,
-        organizationId: user.organizationId,
-        config: {
-          AWS: {
-            INCLUDE_ESTIMATES: true,
-            INCLUDE_EMBODIED_METRICS: true,
-            INCLUDE_OPERATIONAL_METRICS: true,
-            USE_BILLING_DATA: false,
-            accounts: [{ id: connection.accountId }],
-            CURRENT_REGIONS: availableRegions,
-            authentication: {
-              mode: "AWS",
-              options: {
-                externalId: connection.externalId,
-              },
-            },
-          },
-        },
-      };
-
       // Fire and forget - don't await
       fetch(url.toString(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          cloudConnectionId: connection.id,
+          organizationId: user.organizationId,
+          config: {
+            AWS: {
+              INCLUDE_ESTIMATES: true,
+              INCLUDE_EMBODIED_METRICS: true,
+              INCLUDE_OPERATIONAL_METRICS: true,
+              USE_BILLING_DATA: false,
+              accounts: [{ id: connection.accountId }],
+              CURRENT_REGIONS: availableRegions,
+              authentication: {
+                mode: "AWS",
+                options: {
+                  externalId: connection.externalId,
+                },
+              },
+            },
+          },
+        }),
       }).catch((error) => {
         console.error(
           `Error triggering backfill for connection ${connection.id}:`,
           error,
         );
       });
-
-      console.log(`Fired Backfill for url: ${url}`);
-      console.log(`With body: ${JSON.stringify(body, null, 2)}`);
     }
 
     // 7. Create audit log
