@@ -24,7 +24,7 @@ export default async function CloudUsagePage({ searchParams }: PageProps) {
       .data ?? [...CloudServices],
     regions:
       z.array(z.string()).safeParse(params.regions?.split(",")).data ?? [],
-    timeRange: TimeRangeSchema.safeParse(params.timeRange).data ?? "30d",
+    timeRange: TimeRangeSchema.safeParse(params.timeRange).data ?? "90d",
     startDate: z.coerce.date().safeParse(params.startDate).data ?? undefined,
     endDate: z.coerce.date().safeParse(params.endDate).data ?? undefined,
     aggregation:

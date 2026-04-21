@@ -1,5 +1,4 @@
 {
-  "workbench.colorTheme": "Default Dark Modern",
   "git.autofetch": true,
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma",

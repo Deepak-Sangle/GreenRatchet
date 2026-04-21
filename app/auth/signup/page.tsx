@@ -19,8 +19,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { TEST_CREDENTIALS } from "@/lib/constants/test-credentials";
 import { SignUpSchema, type SignUpInput } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Info } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,8 +37,8 @@ export default function SignUpPage() {
     resolver: zodResolver(SignUpSchema),
     defaultValues: {
       name: "",
-      email: "",
-      password: "",
+      email: TEST_CREDENTIALS.email,
+      password: TEST_CREDENTIALS.password,
       organizationName: "",
     },
   });
@@ -65,6 +67,24 @@ export default function SignUpPage() {
             KPIs
           </CardDescription>
         </CardHeader>
+        <CardContent className="pb-0">
+          <div className="w-full rounded-md border border-border bg-muted/50 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Info className="h-4 w-4 text-primary" />
+              Here are demo credentials
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+              <p>
+                <span className="text-muted-foreground">Email:</span>{" "}
+                <span className="font-mono">{TEST_CREDENTIALS.email}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Password:</span>{" "}
+                <span className="font-mono">{TEST_CREDENTIALS.password}</span>
+              </p>
+            </div>
+          </div>
+        </CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
